@@ -42,7 +42,7 @@ const goodOptions = {
 let server = new Hapi.Server();
 server.connection({
     host: 'localhost',
-    port: 3000
+    port: 3030
 });
 
 let swaggerOptions = {
