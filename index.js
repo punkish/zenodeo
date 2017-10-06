@@ -1,5 +1,6 @@
 'use strict';
 
+const config = require('./config.js');
 const Blipp = require('blipp');
 const Hapi = require('hapi');
 const Inert = require('inert');
@@ -8,7 +9,7 @@ const HapiSwagger = require('hapi-swagger');
 const Pack = require('./package.json');
 const Routes = [
     require('./resources/index.js'),
-    //require('./resources/apiroot.js'),
+    require('./resources/tos.js'),
     require('./resources/biosyslit.js'),
     require('./resources/record.js'),
     require('./resources/records.js'),
@@ -42,7 +43,7 @@ const goodOptions = {
 let server = new Hapi.Server();
 server.connection({
     host: 'localhost',
-    port: 3030
+    port: config.port
 });
 
 let swaggerOptions = {
