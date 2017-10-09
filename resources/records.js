@@ -2,8 +2,8 @@ const Joi = require('joi');
 const Wreck = require('wreck');
 const config = require('../config.js');
 
-const schema = {
-    //communities: Joi.required().default('biosyslit'),
+const querySchema = {
+    communities: Joi.string().required().default('biosyslit'),
     file_type: Joi
         .string()
         .valid(
@@ -29,8 +29,28 @@ const schema = {
             'video'
         )
         .optional(),
+
+    // subtype is dependent on type = image | publication
     subtype: Joi
         .string()
+        // .valid(
+        //     'figure', 
+        //     'photo', 
+        //     'drawing', 
+        //     'other', 
+        //     'diagram', 
+        //     'plot',
+        //     'article', 
+        //     'conferencepaper', 
+        //     'report', 
+        //     'other', 
+        //     'book', 
+        //     'thesis', 
+        //     'section', 
+        //     'workingpaper', 
+        //     'deliverable', 
+        //     'preprint'
+        // )
         .when('type', {
             is: 'image',
             then: Joi.valid(
@@ -83,7 +103,8 @@ const schema = {
             'new'
         )
         .optional(),
-    summary: Joi.boolean().default(true)
+    summary: Joi.boolean().default(true),
+    images: Joi.boolean()
 };
 
 const records = {
@@ -100,23 +121,20 @@ const records = {
             }
         },
         validate: {
-            query: schema
+            query: querySchema
         },
         notes: [
             'This is the main route for fetching records matching the provided query parameters. The results default to a summary of record_ids unless explicitly requested otherwise.',
         ]
     },
-    
+
     handler: function(request, reply) {
         let uri = config.uri + 'records/?communities=biosyslit';
-        
-        //if (Object.keys(request.query).length > 0) {
-            //uri += '?communities=biosyslit';
-
+            
         if (request.query.file_type) {
             uri += '&file_type=' + encodeURIComponent(request.query.file_type);
         }
-
+    
         if (request.query.type) {
             uri += '&subtype=' + encodeURIComponent(request.query.type);
         }
@@ -128,28 +146,96 @@ const records = {
         if (request.query.access_right) {
             uri += '&access_right=' + encodeURIComponent(request.query.access_right);
         }
-
+    
         if (request.query.keywords) {
             uri += '&keywords=' + encodeURIComponent(request.query.keywords);
         }
+    
+        if (request.query.summary) {
+            
+            const getSummaryOfRecords = async function () {
+                
+                const { res, payload } = await Wreck.get(uri);
+                const summary = JSON.parse(payload.toString())
+                    .hits
+                    .hits
+                    .map(function(element) {
+                        return element.links.self;
+                    });
 
-        //}
-        console.log('uri: ' + uri);
-        Wreck.get(uri, (err, res, payload) => {
-            if (request.query.summary) {
+                reply(summary).headers = res.headers;
+            };
+            
+            try {
+                getSummaryOfRecords();
+            }
+            catch (error) {
+                console.error(error);
+            }
+        }
+        else if (request.query.images) {
+            let imagesOfRecords = {};
+
+            const getImagesOfRecords = async function(uri) {
+                
+                const { res, payload } = await Wreck.get(uri);
                 const records = JSON.parse(payload.toString())
                     .hits
                     .hits
-                    .map(function(el) {
-                        return el.links.self;
+                    .map(function(element) {
+                        return element.links.self;
                     });
 
-                reply(records).headers = res.headers;
+                for (let record of records) {
+                    const imagesOfOneRecord = await getImagesOfOneRecord(record);
+                    imagesOfRecords[record] = imagesOfOneRecord;
+                };
+
+                reply(imagesOfRecords);
+            };
+
+            const getBucketForOneRecord = async function(record) {
+                
+                const { res, payload } = await Wreck.get(record);
+                
+                try {
+                    return JSON.parse(payload.toString()).links.bucket;
+                }
+                catch (error) {
+                    console.error(error);
+                }
+            };
+            
+            const getImagesOfOneRecord = async function(record) {
+                
+                const bucket = await getBucketForOneRecord(record);
+                const { res, payload } = await Wreck.get(bucket);
+
+                try {
+
+                    const contents = JSON.parse(payload.toString()).contents;
+                    const imagesOfOneRecord = contents.map(function(el) { return el.links.self; });
+                    return imagesOfOneRecord;
+                }
+                catch (error) {
+                    console.error(error);
+                }
+            };
+
+            try {
+                getImagesOfRecords(uri);
+                
             }
-            else {
-                reply(payload).headers = res.headers;
-            }      
-        })
+            catch (error) {
+                console.error(error);
+            }
+        }
+    
+        // return the all the details of all the records
+        else {
+            const recordDetails = getRecords(uri);
+            reply(recordDetails).headers = res.headers;
+        }
     }
 };
 

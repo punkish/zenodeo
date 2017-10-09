@@ -87,7 +87,7 @@ let swaggerOptions = {
     //         }
     //     }
     // ],
-    jsonEditor: true,
+    jsonEditor: false,
     validatorUrl: null
 };
 
@@ -120,7 +120,8 @@ server.register(
         server.start(err => {
             if (err) {
                 console.log(err);
-            } else {
+            }
+            else {
                 console.log('Server running at:', server.info.uri);
             }
         });
@@ -129,6 +130,8 @@ server.register(
 
 server.views({
     path: 'public/html',
-    engines: { html: require('handlebars') },
+    engines: {
+        html: require('handlebars')
+    },
     isCached: false
 });
