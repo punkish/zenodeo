@@ -10,7 +10,7 @@ const inert = {
 
     handler: {
         directory: {
-            path: '.',
+            path: './public',
             redirectToSlash: true,
             index: true
         }

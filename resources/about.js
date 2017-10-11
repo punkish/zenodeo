@@ -1,11 +1,11 @@
-const index = {
-
+const about = {
+    
     method: 'GET',
 
-    path: '/docs',
+    path: '/about',
 
     config: {
-        description: "index",
+        description: "about",
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -14,8 +14,8 @@ const index = {
     },
 
     handler: function(request, reply) {
-        reply.view('index.html', {});
+        reply.view('about');
     }
 };
-
-module.exports = index;
+    
+module.exports = about;

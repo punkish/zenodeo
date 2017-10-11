@@ -1,5 +1,6 @@
 const Wreck = require('wreck');
-const config = require('../config.js');
+const Config = require('../../../config.js');
+const ResponseMessages = require('../../response-messages');
 
 const biosyslit = {
 
@@ -12,7 +13,8 @@ const biosyslit = {
         tags: ['biosyslit', 'communities', 'api'],
         plugins: {
             'hapi-swagger': {
-                order: 1
+                order: 1,
+                responseMessages: ResponseMessages
             }
         },
         validate: {},
@@ -22,7 +24,14 @@ const biosyslit = {
     },
 
     handler: function(request, reply) {
-        Wreck.get(config.uri + 'communities/biosyslit', (err, res, payload) => {
+        const uri = Config.uri + 'communities/biosyslit';
+
+        Wreck.get(uri, (err, res, payload) => {
+            
+            if (err) {
+                reply(err);
+                return;
+            }
 
             reply(payload).headers = res.headers;
         })

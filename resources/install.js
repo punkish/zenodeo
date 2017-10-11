@@ -1,11 +1,11 @@
-const tos = {
+const install = {
     
     method: 'GET',
 
-    path: '/tos',
+    path: '/install',
 
     config: {
-        description: "terms of service",
+        description: "installation instructions",
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -14,8 +14,8 @@ const tos = {
     },
 
     handler: function(request, reply) {
-        reply.view('tos');
+        reply.view('install');
     }
 };
     
-module.exports = tos;
+module.exports = install;

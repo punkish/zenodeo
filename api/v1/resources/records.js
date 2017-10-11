@@ -1,111 +1,7 @@
-const Joi = require('joi');
 const Wreck = require('wreck');
-const config = require('../config.js');
-
-const querySchema = {
-    communities: Joi.string().required().default('biosyslit'),
-    file_type: Joi
-        .string()
-        .valid(
-            'png', 
-            'jpg', 
-            'pdf', 
-            'xml', 
-            'xlsx', 
-            'docx', 
-            'xls', 
-            'csv', 
-            'svg', 
-            'doc'
-        )
-        .optional(),
-    type: Joi
-        .string()
-        .valid(
-            'image', 
-            'publication', 
-            'dataset', 
-            'presentation', 
-            'video'
-        )
-        .optional(),
-
-    // subtype is dependent on type = image | publication
-    subtype: Joi
-        .string()
-        // .valid(
-        //     'figure', 
-        //     'photo', 
-        //     'drawing', 
-        //     'other', 
-        //     'diagram', 
-        //     'plot',
-        //     'article', 
-        //     'conferencepaper', 
-        //     'report', 
-        //     'other', 
-        //     'book', 
-        //     'thesis', 
-        //     'section', 
-        //     'workingpaper', 
-        //     'deliverable', 
-        //     'preprint'
-        // )
-        .when('type', {
-            is: 'image',
-            then: Joi.valid(
-                'figure', 
-                'photo', 
-                'drawing', 
-                'other', 
-                'diagram', 
-                'plot'
-            )
-        })
-        .when('type', {
-            is: 'publication', 
-            then: Joi.valid(
-                'article', 
-                'conferencepaper', 
-                'report', 
-                'other', 
-                'book', 
-                'thesis', 
-                'section', 
-                'workingpaper', 
-                'deliverable', 
-                'preprint'
-            )
-        })
-        .optional()
-        .description('subtype based on the file_type'),
-    access_right: Joi
-        .string()
-        .valid(
-            'open', 
-            'closed', 
-            'embargoed', 
-            'restricted'
-        )
-        .optional(),
-    keywords: Joi
-        .array()
-        .valid(
-            'taxonomy', 
-            'animalia', 
-            'biodiversity', 
-            'arthropoda', 
-            'insecta', 
-            'coleoptera', 
-            'arachnida', 
-            'hymenoptera', 
-            'chordata', 
-            'new'
-        )
-        .optional(),
-    summary: Joi.boolean().default(true),
-    images: Joi.boolean()
-};
+const Schema = require('../schema.js');
+const Config = require('../../../config.js');
+const ResponseMessages = require('../../response-messages');
 
 const records = {
     method: 'GET',
@@ -117,19 +13,20 @@ const records = {
         tags: ['record', 'api'],
         plugins: {
             'hapi-swagger': {
-                order: 3
+                order: 3,
+                responseMessages: ResponseMessages
             }
         },
         validate: {
-            query: querySchema
+            query: Schema.record
         },
         notes: [
-            'This is the main route for fetching records matching the provided query parameters. The results default to a summary of record_ids unless explicitly requested otherwise.',
+            'This is the main route for fetching records matching the provided query parameters.',
         ]
     },
 
     handler: function(request, reply) {
-        let uri = config.uri + 'records/?communities=biosyslit';
+        let uri = Config.uri + 'records/?communities=biosyslit';
             
         if (request.query.file_type) {
             uri += '&file_type=' + encodeURIComponent(request.query.file_type);
@@ -186,6 +83,9 @@ const records = {
                         return element.links.self;
                     });
 
+                // async/await don't work with [].forEach()so using
+                // `for (let element of array) {}` form
+                // see https://stackoverflow.com/a/37576787 for details
                 for (let record of records) {
                     const imagesOfOneRecord = await getImagesOfOneRecord(record);
                     imagesOfRecords[record] = imagesOfOneRecord;

@@ -1,20 +1,14 @@
 'use strict';
 
-const config = require('./config.js');
+const Config = require('./config.js');
 const Blipp = require('blipp');
 const Hapi = require('hapi');
 const Inert = require('inert');
 const Vision = require('vision');
+const Good = require('good');
 const HapiSwagger = require('hapi-swagger');
-const Pack = require('./package.json');
-const Routes = [
-    require('./resources/index.js'),
-    require('./resources/tos.js'),
-    require('./resources/biosyslit.js'),
-    require('./resources/record.js'),
-    require('./resources/records.js'),
-    require('./resources/files.js')
-];
+const Api1 = require('./api/v1/index.js');
+const Api2 = require('./api/v2/index.js');
 
 const goodOptions = {
     ops: {
@@ -43,79 +37,55 @@ const goodOptions = {
 let server = new Hapi.Server();
 server.connection({
     host: 'localhost',
-    port: config.port
+    port: Config.port
 });
 
-let swaggerOptions = {
+const swaggerOptions = {
     documentationPage: false,
-    // documentationPath: "/docs",
-    // swaggerUIPath: '/ui/',
-    //basePath: '/api/',
-    //pathPrefixSize: 2,
-    info: {
-        title: 'Zenodo API Documentation for BLR',
-        version: Pack.version,
-        description: "nodejs interface to Zenodo/BLR Community",
-        termsOfService: "/tos",
-        contact: {
-            name: "Puneet Kishor",
-            url: "http://punkish.org/About",
-            email: "punkish@plazi.org"
-        },
-        license: {
-            name: "CC0 Public Domain Dedication",
-            url: "https://creativecommons.org/publicdomain/zero/1.0/legalcode"
-        }
-    },
-    //grouping: 'tags',
+    documentationPath: "/docs",
+    info: Config.info,
     sortEndpoints: 'ordered',
-    // tags: [
-    //     {
-    //         name: 'sum',
-    //         description: 'working with maths',
-    //         externalDocs: {
-    //             description: 'Find out more',
-    //             url: 'http://example.org'
-    //         }
-    //     },
-    //     {
-    //         name: 'store',
-    //         description: 'storing data',
-    //         externalDocs: {
-    //             description: 'Find out more',
-    //             url: 'http://example.org'
-    //         }
-    //     }
-    // ],
     jsonEditor: false,
     validatorUrl: null
 };
 
-server.register(
-    [
-        Inert,
-        Vision,
-        Blipp,
-        {
-            register: require('good'),
-            options: goodOptions
-        },
-        {
-            register: HapiSwagger,
-            options: swaggerOptions
-        }
+const plugins = [
+    Inert,
+    Vision,
+    Blipp,
+    { register: Good, options: goodOptions },
+    { register: HapiSwagger, options: swaggerOptions },
+    { register: Api1, routes: { prefix: '/v1' } },
+    { register: Api2, routes: { prefix: '/v2' } }
+];
 
-        // {
-        //     register: require('lout'),
-        //     options: {}
-        // }
-    ],
+server.register(
+    plugins,
     err => {
         if (err) {
             console.log(err);
         }
 
-        server.route(Routes);
+        server.views({
+            engines: {
+                html: require('handlebars')
+            },
+            relativeTo: __dirname,
+            path: './views',
+            layoutPath: './views/layouts',
+            partialsPath: './views/partials',
+            layout: 'main',
+            //helpersPath: './templates/helpers'
+            isCached: false
+        });
+
+        server.route([
+            require('./resources/inert'),
+            require('./resources/docs'),
+            require('./resources/tos'),
+            require('./resources/install'),
+            require('./resources/about')
+        ]);
 
         server.start(err => {
             if (err) {
@@ -127,11 +97,3 @@ server.register(
         });
     }
 );
-
-server.views({
-    path: 'public/html',
-    engines: {
-        html: require('handlebars')
-    },
-    isCached: false
-});

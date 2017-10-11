@@ -1,0 +1,203 @@
+<!doctype html>
+<head>
+    <link rel="icon" type="image/png" href="{{hapiSwagger.swaggerUIPath}}images/favicon-32x32.png" sizes="32x32" />
+    <link rel="icon" type="image/png" href="{{hapiSwagger.swaggerUIPath}}images/favicon-16x16.png" sizes="16x16" />
+    
+    <!--
+    <link href='{{hapiSwagger.swaggerUIPath}}css/typography.css' media='screen' rel='stylesheet'>
+    <link href='{{hapiSwagger.swaggerUIPath}}css/reset.css' media='screen' rel='stylesheet'>
+    -->
+    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/Skeleton-2.0.4/css/normalize.css">
+    <link rel="stylesheet" href="/Skeleton-2.0.4/css/skeleton.css">
+
+    <link href='{{hapiSwagger.swaggerUIPath}}css/screen.css' media='screen' rel='stylesheet'>
+    
+    <!--
+    <link href='{{hapiSwagger.swaggerUIPath}}css/reset.css' media='print' rel='stylesheet'>
+    <link href='{{hapiSwagger.swaggerUIPath}}css/print.css' media='print' rel='stylesheet'>
+    -->
+
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/jquery-1.8.0.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/jquery.slideto.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/jquery.wiggle.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/jquery.ba-bbq.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/handlebars-2.0.0.js'></script>
+
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/js-yaml.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/lodash.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/backbone-min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}swagger-ui.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/highlight.7.3.pack.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/jsoneditor.min.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/marked.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lib/swagger-oauth.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}extend.js'></script>
+
+    <!-- Some basic translations -->
+    <script src='{{hapiSwagger.swaggerUIPath}}lang/translator.js'></script>
+    <script src='{{hapiSwagger.swaggerUIPath}}lang/{{hapiSwagger.lang}}.js'></script>
+
+    <script>
+
+// creates a list of tags in the order they where created
+var tags = []
+{{#each hapiSwagger.tags}}
+tags.push('{{name}}');
+{{/each}}
+
+$(function () {
+    $('#input_apiKey').hide();
+    var url = window.location.search.match(/url=([^&]+)/);
+
+    if (url && url.length > 1) {
+        url = decodeURIComponent(url[1]);
+    } 
+    else {
+        url = "{{{hapiSwagger.jsonPath}}}";
+    }
+
+    // Pre load translate...
+    if(window.SwaggerTranslator) {
+        window.SwaggerTranslator.translate();
+    }
+
+    // pull validatorUrl string or null form server
+    var validatorUrl = null;
+    {{#if hapiSwagger.validatorUrl}}
+    validatorUrl: '{{hapiSwagger.validatorUrl}}';
+    {{/if}}
+
+    function clearVersion() {
+        var $select = $('select#version');
+
+        $('ul#resources').children().each(function() {
+            var $title = $(this).find('.heading h2 a');
+            var version = (/v[\d]+/.exec($title.text()) || ['v0'])[0];
+            $(this).addClass(version);
+            $select.append($('<option></option>').val(version).html(version));
+            $title.text($title.text().replace(/v[\d]+\//, ''));
+            $(this).find('.endpoints .heading .path a').each(function() {
+                $(this).text($(this).text().replace(/v[\d]+\/?/, ''));
+            });
+        });
+
+        $select.change(function() {
+            var version = $(this).val();
+            $('ul#resources .resource').hide();
+            $('.'+version).show();
+        });
+
+        $select.find('option').detach().sort(function(a,b) {
+            var at = $(a).text().match(/v([\d]+)/)[1] * 1;
+            var bt = $(b).text().match(/v([\d]+)/)[1] * 1;
+            return at > bt;
+        }).appendTo($select);
+
+        $select.find('option:last').attr('selected', 'selected').trigger('change');
+    }
+
+    window.swaggerUi = new SwaggerUi({
+        url: url,
+        dom_id: "swagger-ui-container",
+        supportedSubmitMethods: ['get', 'post', 'put', 'delete', 'patch'],
+        onComplete: function (swaggerApi, swaggerUi) {
+
+            if (typeof initOAuth == "function") {
+                initOAuth({
+                    clientId: "your-client-id",
+                    clientSecret: "your-client-secret",
+                    realm: "your-realms",
+                    appName: "your-app-name",
+                    scopeSeparator: ","
+                });
+            }
+
+            if (window.SwaggerTranslator) {
+                window.SwaggerTranslator.translate();
+            }
+
+            $('pre code').each(function (i, e) {
+                hljs.highlightBlock(e)
+            });
+
+            if (Array.isArray(swaggerApi.auths) && swaggerApi.auths.length > 0 && swaggerApi.auths[0].type === "apiKey") {
+                auth = swaggerApi.auths[0].value;
+                $('#input_apiKey').show();
+            }
+
+            clearVersion();
+            //addApiKeyAuthorization();
+        },
+
+        onFailure: function (data) {
+            log("Unable to Load SwaggerUI");
+        },
+
+        docExpansion: "{{hapiSwagger.expanded}}",
+        apisSorter: apisSorter.{{hapiSwagger.sortTags}},
+        operationsSorter: operationsSorter.{{hapiSwagger.sortEndpoints}},
+        showRequestHeaders: false,
+        validatorUrl: '{{hapiSwagger.validatorUrl}}',
+        jsonEditor: {{#if hapiSwagger.jsonEditor}}true{{else}}false{{/if}}
+    });
+
+    function addApiKeyAuthorization() {
+        if($('#input_apiKey')){
+            var key = $('#input_apiKey')[0].value;
+
+            if (key && key.trim() != "") {
+
+                if('{{{hapiSwagger.keyPrefix}}}' !== ''){
+                    key = '{{{hapiSwagger.keyPrefix}}}' + key;
+                }
+
+                var apiKeyAuth = new SwaggerClient.ApiKeyAuthorization(auth.name, key, auth.in);
+                window.swaggerUi.api.clientAuthorizations.add(auth.name, apiKeyAuth);
+                log("added key " + key);
+            }
+        }
+    }
+
+    $('#input_apiKey').change(addApiKeyAuthorization);
+
+    /*
+    // if you have an apiKey you would like to pre-populate on the page for demonstration purposes...
+    var apiKey = "Bearer 12345";
+    $('#input_apiKey').val(apiKey);
+    */
+    window.swaggerUi.load();
+    function log() {
+        if ('console' in window) {
+            console.log.apply(console, arguments);
+        }
+    }
+});
+    </script>
+    <style>
+header {margin-bottom: 3em;}
+nav a {margin-right: 1.2em;}
+#resources_container {width: 100% !important;}
+#v1_endpoint_list {margin-left: 0 !important; font-size: 100% !important;}
+.endpoint {margin-left: -2em !important;}
+.footer h4 {font-size: 1em !important;}
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <header class="row">
+            <nav>
+                <a href="/docs">docs</a>
+                <a href="/tos">terms of service</a>
+                <a href="/install">install</a>
+                <a href="/about">about</a>
+                <select id="version"></select>
+            </nav>
+        </header>
+        
+        {{{ content }}}
+    </div>
+</body>
+    
+</html>

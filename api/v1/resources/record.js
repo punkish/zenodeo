@@ -1,6 +1,7 @@
 const Joi = require('joi');
 const Wreck = require('wreck');
-const config = require('../config.js');
+const Config = require('../../../config.js');
+const ResponseMessages = require('../../response-messages');
 
 const record = {
 
@@ -13,7 +14,8 @@ const record = {
         tags: ['record', 'api'],
         plugins: {
             'hapi-swagger': {
-                order: 2
+                order: 2,
+                responseMessages: ResponseMessages
             }
         },
         validate: {
@@ -30,10 +32,14 @@ const record = {
     },
     
     handler: function(request, reply) {
-        const uri = config.uri + 'records/' + encodeURIComponent(request.params.id);
+        const uri = Config.uri + 'records/' + encodeURIComponent(request.params.id);
 
         Wreck.get(uri, (err, res, payload) => {
-            
+            if (err) {
+                reply(err);
+                return;
+            }
+
             if (request.query.images) {
                 
                 let images = [];

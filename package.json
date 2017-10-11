@@ -1,7 +1,7 @@
 {
   "name": "zenodeo",
   "version": "1.0.0",
-  "description": "nodejs interface to Zenodo",
+  "description": "`nodejs` interface to Zenodo/BLR community",
   "main": "index.js",
   "repository": "https://github.com/punkish/zenodeo",
   "author": "Puneet Kishor",

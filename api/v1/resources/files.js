@@ -1,6 +1,8 @@
 const Joi = require('joi');
 const Wreck = require('wreck');
-const config = require('../config.js');
+const Config = require('../../../config.js');
+const ResponseMessages = require('../../response-messages');
+
 
 const files = {
 
@@ -13,7 +15,8 @@ const files = {
         tags: ['file', 'api'],
         plugins: {
             'hapi-swagger': {
-                order: 4
+                order: 4,
+                responseMessages: ResponseMessages
             }
         },
         validate: {
@@ -27,7 +30,7 @@ const files = {
     },
     
     handler: function(request, reply) {
-        Wreck.get(config.uri + 'files/' + encodeURIComponent(request.params.file_id), (err, res, payload) => {
+        Wreck.get(Config.uri + 'files/' + encodeURIComponent(request.params.file_id), (err, res, payload) => {
             
             reply(payload).headers = res.headers;
         })

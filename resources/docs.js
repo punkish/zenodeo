@@ -1,11 +1,11 @@
-const tos = {
+const docs = {
     
     method: 'GET',
 
-    path: '/tos',
+    path: '/docs',
 
     config: {
-        description: "terms of service",
+        description: "docs",
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -14,8 +14,8 @@ const tos = {
     },
 
     handler: function(request, reply) {
-        reply.view('tos');
+        reply.view('docs', null, {layout: 'docs'});
     }
 };
     
-module.exports = tos;
+module.exports = docs;
