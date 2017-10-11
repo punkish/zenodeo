@@ -8,7 +8,7 @@ const Vision = require('vision');
 const Good = require('good');
 const HapiSwagger = require('hapi-swagger');
 const Api1 = require('./api/v1/index.js');
-const Api2 = require('./api/v2/index.js');
+//const Api2 = require('./api/v2/index.js');
 
 const goodOptions = {
     ops: {
@@ -56,7 +56,7 @@ const plugins = [
     { register: Good, options: goodOptions },
     { register: HapiSwagger, options: swaggerOptions },
     { register: Api1, routes: { prefix: '/v1' } },
-    { register: Api2, routes: { prefix: '/v2' } }
+    //{ register: Api2, routes: { prefix: '/v2' } }
 ];
 
 server.register(
