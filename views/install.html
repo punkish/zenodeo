@@ -1,5 +1,7 @@
 <section class="row">
-    <h1>Installation</h1>
+    <h1>Installation and Use</h1>
+    
+    <h2>Installation</h2>
 
     <h3>Method 1</h3>
     <p><code>git</code>, a relatively new version of <code>nodejs</code> (I am using 8.x) and <code>yarn</code>.</p>
@@ -18,4 +20,50 @@ $ cd zenodeo
 $ npm install
 $ node index.js
 </code></pre>
+
+    <p>While an instance of this application is running on this website as a demo, it is really designed to be installed and run on one’s own (or a team’s) computer. For one, the demo version is really just a demo and is not guaranteed to be either stable or even running all the time. More importantly, this application will soon provide caching of results. This means your own personal queries will be cached on your computer saving you a tremendous amount of time when doing repeated identical queries.</p>
+
+    <h2>Use</h2>
+
+    <p>Once everthing is installed, start the application with <code class="bash">$ node index.js</code>. You should see something like the following</p>
+
+<pre><code class="bash">$ node index.js
+http://localhost:3030
+    GET    /{param*}                      static files
+    GET    /about                         about
+    GET    /docs                          docs
+    GET    /install                       installation instructions
+    GET    /swagger.json
+    GET    /swaggerui/{path*}
+    GET    /swaggerui/extend.js
+    GET    /tos                           terms of service
+    GET    /v1                            biosyslit
+    GET    /v1/files/{file_id}            files
+    GET    /v1/record/{id}                records
+    GET    /v1/records                    records
+
+Server running at: http://localhost:3030
+</code></pre>
+
+    <p>Now you can begin querying the API. Below is an example using <code>curl</code> but feel free to use whatever programming language or application you prefer.</p>
+
+<pre><code class="bash">$ curl -X GET --header 'Accept: application/json' 'http://localhost:3030/v1'
+{
+    "updated": "2017-05-23T13:27:06.991331+00:00",
+    "id_user": 1161,
+    "description": "<p>A community to share publications related to bio-systematics. The goal is to provide</p>\r\n\r\n<ol>\r\n\t<li>open access to publications cited in publications or in combination with scientific names</li>\r\n\t<li>a digital object identifier (DOI) to enable citation of the publications including direct access to its digital representation.</li>\r\n</ol>\r\n\r\n<p>For additional search functionality&nbsp; can be used. This includes also searches in CrossRef, DataCite, PubMed, RefBank, GNUB and Mendeley.</p>\r\n",
+    "links": {
+        "self": "https://www.zenodo.org/api/communities/biosyslit",
+        "html": "https://www.zenodo.org/communities/biosyslit/"
+    },
+    "created": "2013-11-11T14:14:18+00:00",
+    "title": "Biodiversity Literature Repository",
+    "id": "biosyslit",
+    "last_record_accepted": "2017-05-23T13:27:06.990269+00:00",
+    "page": "<p><strong>Upload guideline</strong></p>\r\n\r\n<p>A provisional guideline how to upload is <a href=\"https://drive.google.com/file/d/0B_yrQwn4yBySX3JkTV9RZzZfNUU/view?usp=sharing\">here</a>.</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n",
+    "curation_policy": "<ol>\r\n\t<li>If an uploaded document has an existing DOI, it will be kept. If there is no DOI, a Zenodo DOI will be minted for the item.</li>\r\n\t<li>Items with Open Access remain Open Access.</li>\r\n\t<li>Items with closed access remain closed. If they are published on 31.12.1999 or earlier, they are made accessible for reading. Please consult your national copyright law for conditions of reuse.</li>\r\n\t<li>To upload publications, please contact <a href=\"mailto:info@plazi.org\">info@plazi.org</a>.</li>\r\n</ol>\r\n"
+    }
+</code></pre>
+
+    <p>You can get more examples of queries <a href="/docs">from the docs</a>.</p>
 </section>

@@ -49,15 +49,21 @@ const swaggerOptions = {
     validatorUrl: null
 };
 
+const Apis = [
+    { register: Api1, routes: { prefix: '/v1' } }
+    //{ register: Api2, routes: { prefix: '/v2' } }
+];
+
 const plugins = [
     Inert,
     Vision,
     Blipp,
     { register: Good, options: goodOptions },
-    { register: HapiSwagger, options: swaggerOptions },
-    { register: Api1, routes: { prefix: '/v1' } },
-    //{ register: Api2, routes: { prefix: '/v2' } }
+    { register: HapiSwagger, options: swaggerOptions }
 ];
+Apis.forEach(function(api) {
+    plugins.push(api);
+});
 
 server.register(
     plugins,
@@ -80,6 +86,19 @@ server.register(
         });
 
         server.route([
+
+            // redirect to the most recent API
+            {
+                method: 'GET',
+                path: '/',
+                config: {
+                    description: "default route",
+                    tags: ['private']
+                },
+                handler: function(request, reply) {
+                    reply.redirect(Apis[Apis.length - 1].routes.prefix);
+                }
+            },
             require('./resources/inert'),
             require('./resources/docs'),
             require('./resources/tos'),

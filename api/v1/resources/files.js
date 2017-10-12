@@ -31,6 +31,11 @@ const files = {
     
     handler: function(request, reply) {
         Wreck.get(Config.uri + 'files/' + encodeURIComponent(request.params.file_id), (err, res, payload) => {
+
+            if (err) {
+                reply(err);
+                return;
+            }
             
             reply(payload).headers = res.headers;
         })

@@ -25,6 +25,7 @@ const biosyslit = {
 
     handler: function(request, reply) {
         const uri = Config.uri + 'communities/biosyslit';
+        //console.log(`uri: ${uri}`);
 
         Wreck.get(uri, (err, res, payload) => {
             

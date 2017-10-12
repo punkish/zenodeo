@@ -35,6 +35,7 @@ const record = {
         const uri = Config.uri + 'records/' + encodeURIComponent(request.params.id);
 
         Wreck.get(uri, (err, res, payload) => {
+            
             if (err) {
                 reply(err);
                 return;
