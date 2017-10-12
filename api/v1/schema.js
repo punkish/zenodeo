@@ -9,6 +9,9 @@ const schema = {
             .default('biosyslit')
             .valid('biosyslit'),
 
+        q: Joi.string()
+            .description('text string for full-text search'),
+
         file_type: Joi.string()
             .description('file type, usually determined by the extension')
             .optional().valid(

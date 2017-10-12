@@ -28,6 +28,10 @@ const records = {
     handler: function(request, reply) {
         let uri = Config.uri + 'records/?communities=biosyslit';
             
+        if (request.query.q) {
+            uri += '&q=' + encodeURIComponent(request.query.q);
+        }
+
         if (request.query.file_type) {
             uri += '&file_type=' + encodeURIComponent(request.query.file_type);
         }
@@ -133,8 +137,18 @@ const records = {
     
         // return the all the details of all the records
         else {
-            const recordDetails = getRecords(uri);
-            reply(recordDetails).headers = res.headers;
+            const getRecords = async function (uri) {
+                
+                const { res, payload } = await Wreck.get(uri);
+                reply(JSON.parse(payload.toString())).headers = res.headers;
+            };
+            
+            try {
+                getRecords(uri);
+            }
+            catch (error) {
+                console.error(error);
+            }
         }
     }
 };
