@@ -27,7 +27,8 @@ const records = {
 
     handler: function(request, reply) {
         let uri = Config.uri + 'records/?communities=biosyslit';
-            
+        
+        // construct the 'uri' based on the query params
         if (request.query.q) {
             uri += '&q=' + encodeURIComponent(request.query.q);
         }
@@ -37,11 +38,14 @@ const records = {
         }
     
         if (request.query.type) {
-            uri += '&subtype=' + encodeURIComponent(request.query.type);
+            uri += '&type=' + encodeURIComponent(request.query.type);
         }
         
-        if (request.query.subtype) {
-            uri += '&subtype=' + encodeURIComponent(request.query.subtype);
+        if (request.query.image_subtype) {
+            uri += '&subtype=' + encodeURIComponent(request.query.image_subtype);
+        }
+        else if (request.query.publication_subtype) {
+            uri += '&subtype=' + encodeURIComponent(request.query.publication_subtype);
         }
         
         if (request.query.access_right) {
@@ -52,8 +56,9 @@ const records = {
             uri += '&keywords=' + encodeURIComponent(request.query.keywords);
         }
     
+        // now that the 'uri' has been constructed, let's get either 
+        // a summary or images or complete details
         if (request.query.summary) {
-            
             const getSummaryOfRecords = async function () {
                 
                 const { res, payload } = await Wreck.get(uri);
@@ -75,64 +80,57 @@ const records = {
             }
         }
         else if (request.query.images) {
-            let imagesOfRecords = {};
 
-            const getImagesOfRecords = async function(uri) {
+            const getImages = async function(uri) {
                 
-                const { res, payload } = await Wreck.get(uri);
-                const records = JSON.parse(payload.toString())
-                    .hits
-                    .hits
-                    .map(function(element) {
-                        return element.links.self;
-                    });
-
-                // async/await don't work with [].forEach()so using
-                // `for (let element of array) {}` form
-                // see https://stackoverflow.com/a/37576787 for details
-                for (let record of records) {
-                    const imagesOfOneRecord = await getImagesOfOneRecord(record);
-                    imagesOfRecords[record] = imagesOfOneRecord;
-                };
-
-                reply(imagesOfRecords);
-            };
-
-            const getBucketForOneRecord = async function(record) {
-                
-                const { res, payload } = await Wreck.get(record);
-                
+                // get all the records for the query
                 try {
-                    return JSON.parse(payload.toString()).links.bucket;
-                }
-                catch (error) {
-                    console.error(error);
-                }
-            };
+                    const { res, payload } = await Wreck.get(uri);
+                    
+                    // extract all the links for the records
+                    const records = JSON.parse(payload.toString())
+                        .hits
+                        .hits
+                        .map(function(element) {
+                            return element.links.self;
+                        });
+
+                    //reply(records).headers = res.headers;
+                    // get images for each record
+                    let imagesOfRecords = {};
+                    for (let record of records) {
             
-            const getImagesOfOneRecord = async function(record) {
-                
-                const bucket = await getBucketForOneRecord(record);
-                const { res, payload } = await Wreck.get(bucket);
+                        // get images of one record
+                        
+                        // first get the bucket for one record
+                        try {
+                            const { res, payload } = await Wreck.get(record);
+                            const bucket = JSON.parse(payload.toString()).links.bucket;
 
-                try {
+                            try {
+                                // now get the images for the bucket
+                                const { res, payload } = await Wreck.get(bucket);
+                                const contents = JSON.parse(payload.toString()).contents;
+                                const images = contents.map(function(el) { return el.links.self; });
+                                imagesOfRecords[record] = images;
+                            }
+                            catch (error) {
+                                console.log(error);
+                            }
+                        }
+                        catch (error) {
+                            console.log(error);
+                        }
+                    };
 
-                    const contents = JSON.parse(payload.toString()).contents;
-                    const imagesOfOneRecord = contents.map(function(el) { return el.links.self; });
-                    return imagesOfOneRecord;
+                    reply(imagesOfRecords).headers = res.headers;
                 }
                 catch (error) {
-                    console.error(error);
-                }
+                    console.log(error);
+                } 
             };
 
-            try {
-                getImagesOfRecords(uri);
-                
-            }
-            catch (error) {
-                console.error(error);
-            }
+            getImages(uri);
         }
     
         // return the all the details of all the records
