@@ -2,6 +2,7 @@ const Joi = require('joi');
 const Wreck = require('wreck');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
+const Cache = require('memory-cache');
 
 const record = {
 
@@ -33,33 +34,39 @@ const record = {
     
     handler: function(request, reply) {
         const uri = Config.uri + 'records/' + encodeURIComponent(request.params.id);
-
-        Wreck.get(uri, (err, res, payload) => {
-            
-            if (err) {
-                reply(err);
-                return;
-            }
-
-            if (request.query.images) {
+        const responseExists = Cache.get(uri);
+        
+        if (responseExists) {
+            reply(responseExists);
+        }
+        else {
+            Wreck.get(uri, (err, res, payload) => {
                 
-                let images = [];
-                const bucket = JSON.parse(payload.toString())
-                    .links
-                    .bucket;
+                if (err) {
+                    reply(err);
+                    return;
+                }
     
-                Wreck.get(bucket, (err, res, payload) => {
-                    JSON.parse(payload.toString()).contents.forEach(function(element) {
-                        images.push(element.links.self);
+                if (request.query.images) {
+                    
+                    let images = [];
+                    const bucket = JSON.parse(payload.toString())
+                        .links
+                        .bucket;
+        
+                    Wreck.get(bucket, (err, res, payload) => {
+                        JSON.parse(payload.toString()).contents.forEach(function(element) {
+                            images.push(element.links.self);
+                        });
+        
+                        reply(images).headers = res.headers;
                     });
-    
-                    reply(images).headers = res.headers;
-                });
-            }
-            else {
-                reply(payload).headers = res.headers;
-            }
-        })
+                }
+                else {
+                    reply(payload).headers = res.headers;
+                }
+            });
+        }
     }
 };
 

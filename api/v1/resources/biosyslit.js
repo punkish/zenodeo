@@ -1,6 +1,7 @@
 const Wreck = require('wreck');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
+const Cache = require('memory-cache');
 
 const biosyslit = {
 
@@ -25,17 +26,22 @@ const biosyslit = {
 
     handler: function(request, reply) {
         const uri = Config.uri + 'communities/biosyslit';
-        //console.log(`uri: ${uri}`);
+        const responseExists = Cache.get(uri);
 
-        Wreck.get(uri, (err, res, payload) => {
-            
-            if (err) {
-                reply(err);
-                return;
-            }
+        if (responseExists) {
+            reply(responseExists);
+        }
+        else {
+            Wreck.get(uri, (err, res, payload) => {
+                
+                if (err) {
+                    reply(err);
+                    return;
+                }
 
-            reply(payload).headers = res.headers;
-        })
+                reply(payload).headers = res.headers;
+            });
+        }
     }
 };
 

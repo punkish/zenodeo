@@ -2,7 +2,7 @@ const Joi = require('joi');
 const Wreck = require('wreck');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
-
+const Cache = require('memory-cache');
 
 const files = {
 
@@ -30,15 +30,23 @@ const files = {
     },
     
     handler: function(request, reply) {
-        Wreck.get(Config.uri + 'files/' + encodeURIComponent(request.params.file_id), (err, res, payload) => {
+        const uri = Config.uri + 'files/' + encodeURIComponent(request.params.file_id);
+        const responseExists = Cache.get(uri);
 
-            if (err) {
-                reply(err);
-                return;
-            }
-            
-            reply(payload).headers = res.headers;
-        })
+        if (responseExists) {
+            reply(responseExists);
+        }
+        else {
+            Wreck.get(uri, (err, res, payload) => {
+
+                if (err) {
+                    reply(err);
+                    return;
+                }
+                
+                reply(payload).headers = res.headers;
+            });
+        }
     }
 };
 
