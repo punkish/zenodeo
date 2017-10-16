@@ -1,3 +1,51 @@
+<style>
+figure img {width: 100%;}
+pre code {background-color: black; border: 1px black;}
+/* Center the loader */
+#loader {
+  z-index: 1;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto;
+  border: 16px solid #f3f3f3;
+  border-radius: 50%;
+  border-top: 16px solid #3498db;
+  width: 120px;
+  height: 120px;
+  -webkit-animation: spin 2s linear infinite;
+  animation: spin 2s linear infinite;
+}
+
+@-webkit-keyframes spin {
+  0% { -webkit-transform: rotate(0deg); }
+  100% { -webkit-transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Add animation to "page content" */
+.animate-bottom {
+  position: relative;
+  -webkit-animation-name: animatebottom;
+  -webkit-animation-duration: 1s;
+  animation-name: animatebottom;
+  animation-duration: 1s
+}
+
+@-webkit-keyframes animatebottom {
+  from { bottom:-100px; opacity:0 } 
+  to { bottom:0px; opacity:1 }
+}
+
+@keyframes animatebottom { 
+  from{ bottom:-100px; opacity:0 } 
+  to{ bottom:0; opacity:1 }
+}
+</style>
+
 <h1>Installation, Use and Examples</h1>
 
 <section id="install" class="row">
@@ -51,19 +99,19 @@ Server running at: http://localhost:3030
 
 <pre><code class="bash">$ curl -X GET --header 'Accept: application/json' 'http://localhost:3030/v1'
 {
-    "updated": "2017-05-23T13:27:06.991331+00:00",
-    "id_user": 1161,
-    "description": "<p>A community to share publications related to bio-systematics. The goal is to provide</p>\r\n\r\n<ol>\r\n\t<li>open access to publications cited in publications or in combination with scientific names</li>\r\n\t<li>a digital object identifier (DOI) to enable citation of the publications including direct access to its digital representation.</li>\r\n</ol>\r\n\r\n<p>For additional search functionality&nbsp; can be used. This includes also searches in CrossRef, DataCite, PubMed, RefBank, GNUB and Mendeley.</p>\r\n",
-    "links": {
-        "self": "https://www.zenodo.org/api/communities/biosyslit",
-        "html": "https://www.zenodo.org/communities/biosyslit/"
+    &#x22;updated&#x22;: &#x22;2017-05-23T13:27:06.991331+00:00&#x22;,
+    &#x22;id_user&#x22;: 1161,
+    &#x22;description&#x22;: &#x22;&#x3C;p&#x3E;A community to share publications related to bio-systematics. The goal is to provide&#x3C;/p&#x3E;\r\n\r\n&#x3C;ol&#x3E;\r\n\t&#x3C;li&#x3E;open access to publications cited in publications or in combination with scientific names&#x3C;/li&#x3E;\r\n\t&#x3C;li&#x3E;a digital object identifier (DOI) to enable citation of the publications including direct access to its digital representation.&#x3C;/li&#x3E;\r\n&#x3C;/ol&#x3E;\r\n\r\n&#x3C;p&#x3E;For additional search functionality&#x26;nbsp; can be used. This includes also searches in CrossRef, DataCite, PubMed, RefBank, GNUB and Mendeley.&#x3C;/p&#x3E;\r\n&#x22;,
+    &#x22;links&#x22;: {
+        &#x22;self&#x22;: &#x22;https://www.zenodo.org/api/communities/biosyslit&#x22;,
+        &#x22;html&#x22;: &#x22;https://www.zenodo.org/communities/biosyslit/&#x22;
     },
-    "created": "2013-11-11T14:14:18+00:00",
-    "title": "Biodiversity Literature Repository",
-    "id": "biosyslit",
-    "last_record_accepted": "2017-05-23T13:27:06.990269+00:00",
-    "page": "<p><strong>Upload guideline</strong></p>\r\n\r\n<p>A provisional guideline how to upload is <a href=\"https://drive.google.com/file/d/0B_yrQwn4yBySX3JkTV9RZzZfNUU/view?usp=sharing\">here</a>.</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n\r\n<p>&nbsp;</p>\r\n",
-    "curation_policy": "<ol>\r\n\t<li>If an uploaded document has an existing DOI, it will be kept. If there is no DOI, a Zenodo DOI will be minted for the item.</li>\r\n\t<li>Items with Open Access remain Open Access.</li>\r\n\t<li>Items with closed access remain closed. If they are published on 31.12.1999 or earlier, they are made accessible for reading. Please consult your national copyright law for conditions of reuse.</li>\r\n\t<li>To upload publications, please contact <a href=\"mailto:info@plazi.org\">info@plazi.org</a>.</li>\r\n</ol>\r\n"
+    &#x22;created&#x22;: &#x22;2013-11-11T14:14:18+00:00&#x22;,
+    &#x22;title&#x22;: &#x22;Biodiversity Literature Repository&#x22;,
+    &#x22;id&#x22;: &#x22;biosyslit&#x22;,
+    &#x22;last_record_accepted&#x22;: &#x22;2017-05-23T13:27:06.990269+00:00&#x22;,
+    &#x22;page&#x22;: &#x22;&#x3C;p&#x3E;&#x3C;strong&#x3E;Upload guideline&#x3C;/strong&#x3E;&#x3C;/p&#x3E;\r\n\r\n&#x3C;p&#x3E;A provisional guideline how to upload is &#x3C;a href=\&#x22;https://drive.google.com/file/d/0B_yrQwn4yBySX3JkTV9RZzZfNUU/view?usp=sharing\&#x22;&#x3E;here&#x3C;/a&#x3E;.&#x3C;/p&#x3E;\r\n\r\n&#x3C;p&#x3E;&#x26;nbsp;&#x3C;/p&#x3E;\r\n\r\n&#x3C;p&#x3E;&#x26;nbsp;&#x3C;/p&#x3E;\r\n\r\n&#x3C;p&#x3E;&#x26;nbsp;&#x3C;/p&#x3E;\r\n\r\n&#x3C;p&#x3E;&#x26;nbsp;&#x3C;/p&#x3E;\r\n\r\n&#x3C;p&#x3E;&#x26;nbsp;&#x3C;/p&#x3E;\r\n&#x22;,
+    &#x22;curation_policy&#x22;: &#x22;&#x3C;ol&#x3E;\r\n\t&#x3C;li&#x3E;If an uploaded document has an existing DOI, it will be kept. If there is no DOI, a Zenodo DOI will be minted for the item.&#x3C;/li&#x3E;\r\n\t&#x3C;li&#x3E;Items with Open Access remain Open Access.&#x3C;/li&#x3E;\r\n\t&#x3C;li&#x3E;Items with closed access remain closed. If they are published on 31.12.1999 or earlier, they are made accessible for reading. Please consult your national copyright law for conditions of reuse.&#x3C;/li&#x3E;\r\n\t&#x3C;li&#x3E;To upload publications, please contact &#x3C;a href=\&#x22;mailto:info@plazi.org\&#x22;&#x3E;info@plazi.org&#x3C;/a&#x3E;.&#x3C;/li&#x3E;\r\n&#x3C;/ol&#x3E;\r\n&#x22;
 }</code></pre>
 
     <p>You can get more examples of queries <a href="/docs">from the docs</a>.</p>
@@ -74,48 +122,8 @@ Server running at: http://localhost:3030
 
     <p>So, what can you do with an API? Pretty much whatever you want. Let’s say you want to make a web page that displays images for all records with the word 'pelagic' in their text. Below is a script that will do the work:</p>
 
-<script>
-    var getImages = function() {
-        var url = "v1/records?communities=biosyslit&q=pelagic&type=image&summary=false&images=true";
-        console.log(url);
-        var x = new XMLHttpRequest();
-
-        x.onload = function(event) {
-            if (x.readyState === 4) {
-                if (x.status === 200) {
-                    var res = JSON.parse(x.responseText);
-                    var html = "";
-                    for (var record in res) {
-                        html += "<figure>";
-                        var images = res[record];
-                        var j = images.length;
-                        for (var i = 0; i < j; i++) {
-                            html += "<img src='" + images[i] + "'>";
-                        }
-                        html += "<figcaption>record ID: " + record.split('/').pop() + "</figcaption>";
-                        html += "</figure>";
-                    }
-                    var imageDiv = document.getElementById('images');
-                    imageDiv.innerHTML = html;
-                    
-                    event.preventDefault();
-                    event.stopPropagation();
-                    return false;
-                }
-            }
-        };
-
-        x.onerror = function(e) {
-            console.error(x.statusText);
-        };
-
-        x.open("GET", url, true);
-        x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        x.send();
-    };
-</script>
-
 <pre><code class="js">var url = "v1/records?communities=biosyslit&q=pelagic&type=image&summary=false&images=true";
+
 var x = new XMLHttpRequest();
 
 x.onload = function(event) {
@@ -149,15 +157,58 @@ x.onerror = function(e) {
 
 x.open("GET", url, true);
 x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-x.send();
-</code></pre>
-<button class="button-primary" onclick="getImages();">Run Code</button>
+x.send();</code></pre>
 
-    <div id="images"></div>
+    <button class="button-primary" onclick="getImages();">Run Code</button>
+    <div id="loader" style="display:block; visibility: hidden;"></div>
+    <div id="images" class="animate-bottom" style="display:none;"></div>
 </section>
 
 <script>
-var codes = document.getElementsByTagName("code");
+var getImages = function() {
+    document.getElementById('loader').style.visibility = 'visible';
+    var url = "v1/records?communities=biosyslit&q=pelagic&type=image&summary=false&images=true";
+
+    var x = new XMLHttpRequest();
+
+    x.onload = function(event) {
+        if (x.readyState === 4) {
+            if (x.status === 200) {
+                var res = JSON.parse(x.responseText);
+                var html = "";
+                for (var record in res) {
+                    html += "<figure>";
+                    var images = res[record];
+                    var j = images.length;
+                    for (var i = 0; i < j; i++) {
+                        html += "<img src='" + images[i] + "'>";
+                    }
+                    html += "<figcaption>record ID: " + record.split('/').pop() + "</figcaption>";
+                    html += "</figure>";
+                }
+                var imageDiv = document.getElementById('images');
+                imageDiv.innerHTML = html;
+
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("images").style.display = "block";
+                
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }
+        }
+    };
+
+    x.onerror = function(e) {
+        console.error(x.statusText);
+    };
+
+    x.open("GET", url, true);
+    x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    x.send();
+};
+    
+var codes = document.getElementsByTagName("pre");
 if (typeof(codes) !== 'undefined' && codes != null) {
     for (var i=0, j=codes.length; i<j; i++) {
         hljs.highlightBlock(codes[i]);
