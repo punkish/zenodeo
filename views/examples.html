@@ -1,0 +1,117 @@
+<h1>Examples</h1>
+
+<section id="example1" class="row">
+    <h2>Web page with images</h2>
+
+    <p>Let’s say you want to make a web page that displays images for all records with the word 'pelagic' in their text. Below is a script that will do the work:</p>
+
+    <aside>
+        <i>Note: change the values below for a different query</i><br>
+        <div class="qryLabel">query</div> 
+        <div class="qryStr" id="q" contenteditable="true" onkeyup="updateCode();">pelagic</div>
+        <div class="qryLabel">number of records to fetch</div> 
+        <div class="qryStr" id="size" contenteditable="true" onkeyup="updateCode();">30</div>
+    </aside>
+    <br clear="both">
+
+<pre><code class="js">var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=<span id="urlQ">pelagic</span>&size=<span id="urlSize">30</span>";
+
+var x = new XMLHttpRequest();
+
+x.onload = function(event) {
+    if (x.readyState === 4) {
+        if (x.status === 200) {
+            var res = JSON.parse(x.responseText);
+            var html = "";
+            for (var record in res) {
+                html += "&lt;figure&gt;";
+                var images = res[record];
+                var j = images.length;
+                for (var i = 0; i < j; i++) {
+                    html += "&lt;img src='" + images[i] + "'&gt;";
+                }
+                html += "&lt;figcaption&gt;record ID: " + record.split('/').pop() + "&lt;/figcaption&gt;";
+                html += "&lt;/figure&gt;";
+            }
+            var imageDiv = document.getElementById('images');
+            imageDiv.innerHTML = html;
+            
+            event.preventDefault();
+            event.stopPropagation();
+            return false;
+        }
+    }
+};
+
+x.onerror = function(e) {
+    console.error(x.statusText);
+};
+
+x.open("GET", url, true);
+x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+x.send();</code></pre>
+
+    <button class="button-primary" onclick="getImages();">Run Code</button>
+    <div id="loader" style="display:block; visibility: hidden;"></div>
+    <div id="images" class="animate-bottom" style="display:none;"></div>
+</section>
+
+<script>
+var updateCode = function() {
+    document.getElementById('urlQ').innerHTML = document.getElementById('q').innerHTML;
+    document.getElementById('urlSize').innerHTML = document.getElementById('size').innerHTML;
+};
+
+var getImages = function() {
+    document.getElementById('loader').style.visibility = 'visible';
+    var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=" + 
+        document.getElementById('q').innerHTML + 
+        "&size=" + 
+        document.getElementById('size').innerHTML;
+    
+    var x = new XMLHttpRequest();
+
+    x.onload = function(event) {
+        if (x.readyState === 4) {
+            if (x.status === 200) {
+                var res = JSON.parse(x.responseText);
+                var html = "";
+                for (var record in res) {
+                    html += "<figure>";
+                    var images = res[record];
+                    var j = images.length;
+                    for (var i = 0; i < j; i++) {
+                        html += "<img src='" + images[i] + "'>";
+                    }
+                    html += "<figcaption>record ID: " + record.split('/').pop() + "</figcaption>";
+                    html += "</figure>";
+                }
+                var imageDiv = document.getElementById('images');
+                imageDiv.innerHTML = html;
+
+                document.getElementById("loader").style.display = "none";
+                document.getElementById("images").style.display = "block";
+                
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
+            }
+        }
+    };
+
+    x.onerror = function(e) {
+        console.error(x.statusText);
+    };
+
+    x.open("GET", url, true);
+    x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+    x.send();
+};
+
+var codes = document.getElementsByTagName("pre");
+if (typeof(codes) !== 'undefined' && codes != null) {
+    for (var i=0, j=codes.length; i<j; i++) {
+        hljs.highlightBlock(codes[i]);
+    }
+}
+</script>

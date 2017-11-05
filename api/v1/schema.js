@@ -3,6 +3,12 @@ const Joi = require('joi');
 const schema = {
     record: Joi.object().keys({
 
+        size: Joi.number()
+            .integer()
+            .description('number of records to fetch per query')
+            .required()
+            .default(10),
+
         communities: Joi.string()
             .description('the Biodiversity Literatutre Repository community on Zenodo')
             .required()
@@ -14,18 +20,19 @@ const schema = {
 
         file_type: Joi.string()
             .description('file type, usually determined by the extension')
-            .optional().valid(
-            'png', 
-            'jpg', 
-            'pdf', 
-            'xml', 
-            'xlsx', 
-            'docx', 
-            'xls', 
-            'csv', 
-            'svg', 
-            'doc'
-        ),
+            .optional()
+            .valid(
+                'png', 
+                'jpg', 
+                'pdf', 
+                'xml', 
+                'xlsx', 
+                'docx', 
+                'xls', 
+                'csv', 
+                'svg', 
+                'doc'
+            ),
 
         type: Joi.string()
             .description('type of resource')
@@ -75,56 +82,6 @@ const schema = {
                     )
                 }
             ),
-
-        /*
-        // subtype is dependent on type = image | publication
-        subtype: Joi.string().optional()
-            // .valid(
-            //     'figure', 
-            //     'photo', 
-            //     'drawing', 
-            //     'other', 
-            //     'diagram', 
-            //     'plot',
-            //     'article', 
-            //     'conferencepaper', 
-            //     'report', 
-            //     'other', 
-            //     'book', 
-            //     'thesis', 
-            //     'section', 
-            //     'workingpaper', 
-            //     'deliverable', 
-            //     'preprint'
-            // )
-            .when('type', {
-                is: 'image',
-                then: Joi.valid(
-                    'figure', 
-                    'photo', 
-                    'drawing', 
-                    'other', 
-                    'diagram', 
-                    'plot'
-                )
-            })
-            .when('type', {
-                is: 'publication', 
-                then: Joi.valid(
-                    'article', 
-                    'conferencepaper', 
-                    'report', 
-                    'other', 
-                    'book', 
-                    'thesis', 
-                    'section', 
-                    'workingpaper', 
-                    'deliverable', 
-                    'preprint'
-                )
-            })
-            .description('subtype based on the file_type'),
-            */
 
         access_right: Joi.string()
             .description('access rights for the resource')

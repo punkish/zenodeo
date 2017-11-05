@@ -10,8 +10,8 @@
     <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="/Skeleton-2.0.4/css/normalize-7.0.0.min.css">
     <link rel="stylesheet" href="/Skeleton-2.0.4/css/skeleton.css">
-
     <link href='{{hapiSwagger.swaggerUIPath}}css/screen.css' media='screen' rel='stylesheet'>
+    <link rel="stylesheet" href="/css/styles.css">
     
     <!--
     <link href='{{hapiSwagger.swaggerUIPath}}css/reset.css' media='print' rel='stylesheet'>
@@ -174,31 +174,15 @@ $(function () {
     }
 });
     </script>
-    <style>
-header {margin-bottom: 3em;}
-nav a, nav b {margin-right: 0.75em;}
-#resources_container {width: 100% !important;}
-#v1_endpoint_list {margin-left: 0 !important; font-size: 100% !important;}
-.endpoint {margin-left: -2em !important; font-size: 140% !important;}
-.footer h4 {font-size: 1em !important;}
-input.submit {background-color: #f5f5f5;  line-height: 0;}
-    </style>
 </head>
 
 <body>
     <div class="container">
-        <header class="row">
-            <nav>
-                <b>zenodeo</b> 
-                <a href="/docs">docs</a>
-                <a href="/tos">terms of service</a>
-                <a href="/install">install</a>
-                <a href="/about">about</a>
-                <select id="version"></select>
-            </nav>
-        </header>
+        {{> head}}
         
-        {{{ content }}}
+        version: <select id="version"></select>
+        
+        {{{content}}}
     </div>
 </body>
     
