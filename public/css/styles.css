@@ -12,8 +12,8 @@ input.submit {background-color: #f5f5f5;  line-height: 0;}
 pre code {background-color: black; border: 1px black;}
 
 /* examples.html */
-figure {float: left; border: 1px solid; width: 150px;}
-figure img {width: 150px;}
+figure {float: left; width: 150px;}
+figure img {width: 150px; border: 1px solid;}
 .qryLabel {float: left; font-weight: bold; margin-right: 10px;}
 .qryStr {float: left; margin-right: 10px; padding: 0 10px 0 10px; border: 1px dotted;}
 #loader {

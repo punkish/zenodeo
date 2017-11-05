@@ -42,7 +42,8 @@ const records = {
             'image_subtype', 
             'publication_subtype', 
             'access_right', 
-            'keywords'
+            'keywords',
+            'size'
         ].forEach(function(param) {
             if (request.query[param]) {
                 uri += `&${param}=${encodeURIComponent(request.query[param])}`;

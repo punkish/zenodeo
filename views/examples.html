@@ -30,7 +30,7 @@ x.onload = function(event) {
                 for (var i = 0; i < j; i++) {
                     html += "&lt;img src='" + images[i] + "'&gt;";
                 }
-                html += "&lt;figcaption&gt;record ID: " + record.split('/').pop() + "&lt;/figcaption&gt;";
+                html += "&lt;figcaption&gt;rec ID: " + record.split('/').pop() + "&lt;/figcaption&gt;";
                 html += "&lt;/figure&gt;";
             }
             var imageDiv = document.getElementById('images');
@@ -63,6 +63,7 @@ var updateCode = function() {
 };
 
 var getImages = function() {
+    document.getElementById('images').style.display = 'none';
     document.getElementById('loader').style.visibility = 'visible';
     var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=" + 
         document.getElementById('q').innerHTML + 
@@ -83,7 +84,7 @@ var getImages = function() {
                     for (var i = 0; i < j; i++) {
                         html += "<img src='" + images[i] + "'>";
                     }
-                    html += "<figcaption>record ID: " + record.split('/').pop() + "</figcaption>";
+                    html += "<figcaption>rec ID: " + record.split('/').pop() + "</figcaption>";
                     html += "</figure>";
                 }
                 var imageDiv = document.getElementById('images');
