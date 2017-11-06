@@ -84,7 +84,7 @@ var getImages = function() {
                     for (var i = 0; i < j; i++) {
                         html += "<img src='" + images[i] + "'>";
                     }
-                    html += "<figcaption>rec ID: " + record.split('/').pop() + "</figcaption>";
+                    html += "<figcaption>rec ID: <a href='https://zenodo.org/record/" + record.split('/').pop() + "'>" + record.split('/').pop() + "</a></figcaption>";
                     html += "</figure>";
                 }
                 var imageDiv = document.getElementById('images');
