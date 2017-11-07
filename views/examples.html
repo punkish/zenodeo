@@ -81,14 +81,14 @@ var getImages = function() {
                 var res = JSON.parse(x.responseText);
                 var html = "";
                 for (var record in res) {
-                    html += `<figure>`;
+                    html += "<figure>";
                     var images = res[record];
                     var j = images.length;
                     for (var i = 0; i < j; i++) {
                         html += `<img src='${images[i]}'>`;
                     }
     
-                    html += `<figcaption>rec ID: <a href='https://zenodo.org/record/${record.split('/').pop()} target='_blank'>${record.split('/').pop()}</a></figcaption>
+                        html += `<figcaption>rec ID: <a href='https://zenodo.org/record/${record.split('/').pop()}' target='_blank'>${record.split('/').pop()}</a></figcaption>
                     </figure>`;
                 }
                 var imageDiv = document.getElementById('images');
