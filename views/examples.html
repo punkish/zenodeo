@@ -6,15 +6,15 @@
     <p>Let’s say you want to make a web page that displays images for all records with the word 'pelagic' in their text. Below is a script that will do the work:</p>
 
     <aside>
-        <i>Note: change the values below for a different query</i><br>
+        <i>Note: change the value below for a different query</i><br>
         <div class="qryLabel">query</div> 
-        <div class="qryStr" id="q" contenteditable="true" onkeyup="updateCode();">pelagic</div>
-        <div class="qryLabel">number of records to fetch</div> 
-        <div class="qryStr" id="size" contenteditable="true" onkeyup="updateCode();">30</div>
+        <div class="qryStr" id="q" contenteditable="true" onkeyup="updateCode();">nymphalidae</div>
+        <!-- <div class="qryLabel">number of records to fetch</div> 
+        <div class="qryStr" id="size" contenteditable="true" onkeyup="updateCode();">30</div> -->
     </aside>
     <br clear="both">
 
-<pre><code class="js">var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=<span id="urlQ">pelagic</span>&size=<span id="urlSize">30</span>";
+<pre><code class="js">var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=<span id="urlQ">nymphalidae</span>&size=<span id="urlSize">30</span>";
 
 var x = new XMLHttpRequest();
 
@@ -28,10 +28,14 @@ x.onload = function(event) {
                 var images = res[record];
                 var j = images.length;
                 for (var i = 0; i < j; i++) {
-                    html += "&lt;img src='" + images[i] + "'&gt;";
+                    html += `&lt;img src='${images[i]}'&gt;`;
                 }
-                html += "&lt;figcaption&gt;rec ID: " + record.split('/').pop() + "&lt;/figcaption&gt;";
-                html += "&lt;/figure&gt;";
+
+                html += `&lt;figcaption&gt;
+                    rec ID: &lt;a href='https://zenodo.org/record/${record.split('/').pop()} target='_blank'&gt;
+                        ${record.split('/').pop()}&lt;/a&gt;
+                    &lt;/figcaption&gt;
+                &lt;/figure&gt;`;
             }
             var imageDiv = document.getElementById('images');
             imageDiv.innerHTML = html;
@@ -59,7 +63,7 @@ x.send();</code></pre>
 <script>
 var updateCode = function() {
     document.getElementById('urlQ').innerHTML = document.getElementById('q').innerHTML;
-    document.getElementById('urlSize').innerHTML = document.getElementById('size').innerHTML;
+    //document.getElementById('urlSize').innerHTML = document.getElementById('size').innerHTML;
 };
 
 var getImages = function() {
@@ -67,8 +71,7 @@ var getImages = function() {
     document.getElementById('loader').style.visibility = 'visible';
     var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=" + 
         document.getElementById('q').innerHTML + 
-        "&size=" + 
-        document.getElementById('size').innerHTML;
+        "&size=30";
     
     var x = new XMLHttpRequest();
 
@@ -78,14 +81,15 @@ var getImages = function() {
                 var res = JSON.parse(x.responseText);
                 var html = "";
                 for (var record in res) {
-                    html += "<figure>";
+                    html += `<figure>`;
                     var images = res[record];
                     var j = images.length;
                     for (var i = 0; i < j; i++) {
-                        html += "<img src='" + images[i] + "'>";
+                        html += `<img src='${images[i]}'>`;
                     }
-                    html += "<figcaption>rec ID: <a href='https://zenodo.org/record/" + record.split('/').pop() + "'>" + record.split('/').pop() + "</a></figcaption>";
-                    html += "</figure>";
+    
+                    html += `<figcaption>rec ID: <a href='https://zenodo.org/record/${record.split('/').pop()} target='_blank'>${record.split('/').pop()}</a></figcaption>
+                    </figure>`;
                 }
                 var imageDiv = document.getElementById('images');
                 imageDiv.innerHTML = html;
