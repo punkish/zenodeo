@@ -34,7 +34,14 @@ const goodOptions = {
     }
 };
 
-let server = new Hapi.Server();
+let server = new Hapi.Server({
+    connections: {
+        routes: {
+          cors: true
+        }
+    }
+});
+
 server.connection({
     host: 'localhost',
     port: Config.port

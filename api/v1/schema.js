@@ -2,6 +2,11 @@ const Joi = require('joi');
 
 const schema = {
     record: Joi.object().keys({
+        page: Joi.number()
+            .integer()
+            .description('starting page')
+            .required()
+            .default(1),
 
         size: Joi.number()
             .integer()
