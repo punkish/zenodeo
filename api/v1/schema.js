@@ -119,7 +119,10 @@ const schema = {
             .default(true),
 
         images: Joi.boolean()
-            .description('return only image links for each record')
+            .description('return only image links for each record'),
+
+        refreshCache: Joi.boolean()
+            .default(false)
     })
 };
 
