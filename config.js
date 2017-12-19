@@ -5,7 +5,7 @@ const config = {
     port: 3030,
     info: {
         title: "Zenodeo API documentation for BLR",
-        version: "1.5.2",
+        version: "1.6.1",
         description: Package.description,
         termsOfService: "/tos",
         contact: {

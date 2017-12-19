@@ -21,28 +21,34 @@ var x = new XMLHttpRequest();
 x.onload = function(event) {
     if (x.readyState === 4) {
         if (x.status === 200) {
-            var res = JSON.parse(x.responseText);
             var html = "";
-            for (var record in res) {
-                html += "&lt;figure&gt;";
-                var images = res[record];
-                var j = images.length;
-                for (var i = 0; i < j; i++) {
-                    html += `&lt;img src='${images[i]}'&gt;`;
+            if (x.responseText) {
+                var res = JSON.parse(x.responseText);
+                
+                for (var record in res) {
+                    html += "&lt;figure&gt;";
+                    var images = res[record];
+                    var j = images.length;
+                    for (var i = 0; i < j; i++) {
+                        html += `&lt;img src='${images[i]}'&gt;`;
+                    }
+    
+                    html += `&lt;figcaption&gt;
+                        rec ID: &lt;a href='https://zenodo.org/record/${record.split('/').pop()} target='_blank'&gt;
+                            ${record.split('/').pop()}&lt;/a&gt;
+                        &lt;/figcaption&gt;
+                    &lt;/figure&gt;`;
                 }
-
-                html += `&lt;figcaption&gt;
-                    rec ID: &lt;a href='https://zenodo.org/record/${record.split('/').pop()} target='_blank'&gt;
-                        ${record.split('/').pop()}&lt;/a&gt;
-                    &lt;/figcaption&gt;
-                &lt;/figure&gt;`;
+                var imageDiv = document.getElementById('images');
+                imageDiv.innerHTML = html;
+                
+                event.preventDefault();
+                event.stopPropagation();
+                return false;
             }
-            var imageDiv = document.getElementById('images');
-            imageDiv.innerHTML = html;
-            
-            event.preventDefault();
-            event.stopPropagation();
-            return false;
+            else {
+                html += "nothing found";
+            }
         }
     }
 };
