@@ -27,7 +27,13 @@ const getBuckets = async function(record) {
 
 const getImages = async function (uri, cacheKey, reply) {
     
+    // make sure imagesOfRecords is empty
+    for (let i in imagesOfRecords) {
+        delete imagesOfRecords[i];
+    }
+
     console.log(`searching for ${uri}`);
+    console.log(`cacheKey ${cacheKey}`);
     const {res, payload} =  await Wreck.get(uri);
     const result = JSON.parse(payload.toString()).hits;
     const numOfFoundRecords = result.total;
@@ -49,6 +55,8 @@ const getImages = async function (uri, cacheKey, reply) {
                 console.log("caching the result");
                 reply(imagesOfRecords).headers = res.headers;
             });
+        }).catch(error => { 
+            console.log(error)
         });
     }
     else {
