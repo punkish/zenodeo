@@ -9,20 +9,24 @@ const Cache = require('persistent-cache')({
 
 let imagesOfRecords = {};
 
-const getImageFiles = async function(uri, record) {
+const getImageFiles = async function(bucket_uri, record) {
 
-    const { res, payload } = await Wreck.get(uri);
+    const { res, payload } = await Wreck.get(bucket_uri);
     const contents = JSON.parse(payload.toString()).contents;
-    imagesOfRecords[record] = contents.map(function(el) {
-        return el.links.self; 
-    });
+    imagesOfRecords[record.links.self] = {
+        title: record.metadata.title,
+        creators: record.metadata.creators,
+        images: contents.map(function(el) {
+            return el.links.self; 
+        })
+    };
 };
 
 const getBuckets = async function(record) {
 
     const { res, payload } = await Wreck.get(record.links.self);
     const bucket = JSON.parse(payload.toString()).links.bucket;
-    await getImageFiles(bucket, record.links.self);
+    await getImageFiles(bucket, record);
 };
 
 const getImages = async function (uri, cacheKey, reply) {
