@@ -51,13 +51,18 @@ const getImages = async function (uri, cacheKey, reply) {
         done.then(function() {
             
             console.log(`found ${Object.keys(imagesOfRecords).length} images… done`);
-            Cache.put(cacheKey, imagesOfRecords, function(err) {
+            const data = {
+                numOfFoundRecords: numOfFoundRecords,
+                imagesOfRecords: imagesOfRecords
+            };
+
+            Cache.put(cacheKey, data, function(err) {
                 if (err) {
                     console.log(err);
                 }
 
                 console.log("caching the result");
-                reply(imagesOfRecords).headers = res.headers;
+                reply(data).headers = res.headers;
             });
         }).catch(error => { 
             console.log(error)
