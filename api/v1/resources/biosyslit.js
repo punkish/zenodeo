@@ -1,10 +1,10 @@
 const Wreck = require('wreck');
+const Schema = require('../schema.js');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
-
 const Cache = require('persistent-cache')({
-    name: 'root'
+    name: 'records'
 });
 
 const biosyslit = {

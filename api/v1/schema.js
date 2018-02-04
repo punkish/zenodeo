@@ -100,19 +100,7 @@ const schema = {
 
         keywords: Joi.array()
             .description('more than one keywords may be used')
-            .optional()
-            .valid(
-                'taxonomy', 
-                'animalia', 
-                'biodiversity', 
-                'arthropoda', 
-                'insecta', 
-                'coleoptera', 
-                'arachnida', 
-                'hymenoptera', 
-                'chordata', 
-                'new'
-            ),
+            .optional(),
 
         summary: Joi.boolean()
             .description('summarize the results to record IDs')

@@ -10,7 +10,7 @@ const config = {
         termsOfService: "/tos",
         contact: {
             name: Package.author,
-            url: "http://punkish.org/About",
+            url: "https://punkish.org/About",
             email: "punkish@plazi.org"
         },
         license: {

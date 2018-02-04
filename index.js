@@ -53,7 +53,8 @@ const swaggerOptions = {
     info: Config.info,
     sortEndpoints: 'ordered',
     jsonEditor: false,
-    validatorUrl: null
+    validatorUrl: null,
+    schemes: ['https']
 };
 
 const Apis = [
