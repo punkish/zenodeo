@@ -3,10 +3,7 @@ const Wreck = require('wreck');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
-
-const Cache = require('persistent-cache')({
-    name: 'files'
-});
+const Cache = Utils.cache('files');
 
 const files = {
 

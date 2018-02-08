@@ -3,9 +3,7 @@ const Schema = require('../schema.js');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
-const Cache = require('persistent-cache')({
-    name: 'records'
-});
+const Cache = Utils.cache('records');
 
 let imagesOfRecords = {};
 
@@ -40,11 +38,11 @@ const getImages = async function (uri, cacheKey, reply) {
     console.log(`cacheKey ${cacheKey}`);
     const {res, payload} =  await Wreck.get(uri);
     const result = JSON.parse(payload.toString()).hits;
-    const numOfFoundRecords = result.total;
+    const total = result.total;
 
-    if (numOfFoundRecords) {
+    if (total) {
 
-        console.log(`found ${numOfFoundRecords}… now getting images`);
+        console.log(`found ${total} records… now getting their images`);
         const foundRecords = result.hits.map(getBuckets);
 
         const done = Promise.all(foundRecords);
@@ -52,8 +50,9 @@ const getImages = async function (uri, cacheKey, reply) {
             
             console.log(`found ${Object.keys(imagesOfRecords).length} images… done`);
             const data = {
-                numOfFoundRecords: numOfFoundRecords,
-                imagesOfRecords: imagesOfRecords
+                uri: uri,
+                total: total,
+                result: imagesOfRecords
             };
 
             Cache.put(cacheKey, data, function(err) {
@@ -61,7 +60,7 @@ const getImages = async function (uri, cacheKey, reply) {
                     console.log(err);
                 }
 
-                console.log("caching the result");
+                console.log('caching the result');
                 reply(data).headers = res.headers;
             });
         }).catch(error => { 
@@ -78,12 +77,17 @@ const getRecords = async function (uri, cacheKey, reply) {
     
     const { res, payload } = await Wreck.get(uri);
     const result = JSON.parse(payload.toString());
-    Cache.put(cacheKey, result, function(err) {
+    const data = {
+        uri: uri,
+        result: result
+    };
+
+    Cache.put(cacheKey, data, function(err) {
         if (err) {
             console.log(err);
         }
 
-        reply(result).headers = res.headers;
+        reply(data).headers = res.headers;
     });
 };
 
@@ -97,12 +101,17 @@ const getSummaryOfRecords = async function (uri, cacheKey, reply) {
             return element.links.self;
         });
 
-    Cache.put(cacheKey, summary, function(err) {
+    const data = {
+        uri: uri,
+        result: summary
+    };
+
+    Cache.put(cacheKey, data, function(err) {
         if (err) {
             console.log(err);
         }
 
-        reply(summary).headers = res.headers;
+        reply(data).headers = res.headers;
     });
 };
 
@@ -162,7 +171,7 @@ const records = {
 
             if (request.query.refreshCache) {
                 try {
-                    getSummaryOfRecords(uri, cacheKey);
+                    getSummaryOfRecords(uri, cacheKey, reply);
                 }
                 catch (error) {
                     console.error(error);
@@ -179,7 +188,7 @@ const records = {
                         }
                         else {
                             try {
-                                getSummaryOfRecords(uri, cacheKey);
+                                getSummaryOfRecords(uri, cacheKey, reply);
                             }
                             catch (error) {
                                 console.error(error);
@@ -231,7 +240,7 @@ const records = {
 
             if (request.query.refreshCache) {
                 try {
-                    getRecords(uri, cacheKey);
+                    getRecords(uri, cacheKey, reply);
                 }
                 catch (error) {
                     console.error(error);
@@ -248,7 +257,7 @@ const records = {
                     }
                     else {
                         try {
-                            getRecords(uri, cacheKey);
+                            getRecords(uri, cacheKey, reply);
                         }
                         catch (error) {
                             console.error(error);

@@ -1,10 +1,19 @@
 'use strict';
 
 const Config = require('./config.js');
+
+// blipp is a simple hapi plugin to display  
+// the routes table at startup
 const Blipp = require('blipp');
 const Hapi = require('hapi');
+
+// Static file and directory handlers for hapi.js
 const Inert = require('inert');
+
+// Templates rendering support for hapi.js
 const Vision = require('vision');
+
+// hapi process monitoring
 const Good = require('good');
 const HapiSwagger = require('hapi-swagger');
 const Api1 = require('./api/v1/index.js');

@@ -1,6 +1,7 @@
 const Crypto = require('crypto');
 const Joi = require('joi');
 const ResponseMessages = require('../response-messages');
+const Config = require('../../config.js');
 
 const find = function(pattern, source) {
     const re = new RegExp(`^${pattern}`, 'i');
@@ -23,6 +24,13 @@ const utils = {
             .createHash('md5')
             .update(str.toLowerCase(), 'utf8')
             .digest('hex');
+    },
+
+    cache: function(name) {
+        return require('persistent-cache')({
+            base: Config.cacheBase,
+            name: name
+        })
     },
 
     facets: function(facet) {

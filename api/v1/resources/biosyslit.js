@@ -3,9 +3,7 @@ const Schema = require('../schema.js');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
-const Cache = require('persistent-cache')({
-    name: 'records'
-});
+const Cache = Utils.cache('root');
 
 const biosyslit = {
 
