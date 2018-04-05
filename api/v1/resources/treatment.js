@@ -48,13 +48,18 @@ const treatment = {
             else {
                 const result = db.prepare('SELECT * FROM treatments WHERE treatment_id = ?').get(request.params.id);
 
-                Cache.put(cacheKey, result, function(err) {
-                    if (err) {
-                        console.log(err);
-                    }
-
-                    reply(result);
-                });
+                if (result) {
+                    Cache.put(cacheKey, result, function(err) {
+                        if (err) {
+                            console.log(err);
+                        }
+    
+                        reply(result);
+                    });
+                }
+                else {
+                    reply('not found');
+                }
             }
         });
     }
