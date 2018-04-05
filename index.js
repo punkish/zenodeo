@@ -15,6 +15,7 @@ const Vision = require('vision');
 
 // hapi process monitoring
 const Good = require('good');
+
 const HapiSwagger = require('hapi-swagger');
 const Api1 = require('./api/v1/index.js');
 //const Api2 = require('./api/v2/index.js');

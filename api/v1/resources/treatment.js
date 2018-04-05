@@ -5,6 +5,9 @@ const Utils = require('../utils.js');
 const Cache = Utils.cache('record');
 const Database = require('better-sqlite3');
 
+// better messages
+const Boom = require('boom');
+
 const db = new Database('data/tb.sqlite');
 
 const treatment = {
@@ -58,7 +61,8 @@ const treatment = {
                     });
                 }
                 else {
-                    reply().code(204);
+                    //reply('not found').code(204);
+                    reply(Boom.notFound('Cannot find the requested treatment'))
                 }
             }
         });
