@@ -1,6 +1,6 @@
 {
   "name": "zenodeo",
-  "version": "1.6.1",
+  "version": "1.7.1",
   "description": "`nodejs` interface to the Zenodo/BLR community collection",
   "main": "index.js",
   "repository": "https://github.com/punkish/zenodeo",
