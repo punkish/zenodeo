@@ -58,7 +58,7 @@ const treatment = {
                     });
                 }
                 else {
-                    reply('not found');
+                    reply().code(204);
                 }
             }
         });
