@@ -7,7 +7,8 @@ exports.register = function(server, options, next) {
         require('./resources/authors.js'),
         require('./resources/keywords.js'),
         require('./resources/families.js'),
-        require('./resources/taxa.js')
+        require('./resources/taxa.js'),
+        require('./resources/treatment.js')
     ]);
     next();
 };
