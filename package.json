@@ -18,7 +18,8 @@
     "inert": "^4.2.1",
     "joi": "^11.1.1",
     "persistent-cache": "^1.1.1",
-    "vision": "^4.1.1"
+    "vision": "^4.1.1",
+    "xml2js": "^0.4.19"
   },
   "devDependencies": {}
 }
