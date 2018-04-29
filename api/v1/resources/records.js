@@ -15,8 +15,9 @@ const getImageFiles = async function(bucket_uri, record) {
         title: record.metadata.title,
         creators: record.metadata.creators,
         images: contents.map(function(el) {
-            return el.links.self; 
-        })
+            return el.links.self;
+        }),
+        thumb250: record.links.thumb250
     };
 };
 
@@ -37,6 +38,126 @@ const getImages = async function (uri, cacheKey, reply) {
     console.log(`searching for ${uri}`);
     console.log(`cacheKey ${cacheKey}`);
     const {res, payload} =  await Wreck.get(uri);
+
+    /*
+     The payload looks like so
+     
+        {
+            "aggregations": {
+                "access_right": {…
+                },
+                "file_type": {…
+                },
+                "keywords": {…
+                },
+                "type": {…
+                }
+            },
+            "hits": {
+                "hits": [
+                    {
+                        "conceptdoi": "10.5281/zenodo.1168647", 
+                        "conceptrecid": "1168647", 
+                        "created": "2018-02-07T18:50:09.513011+00:00", 
+                        "doi": "10.5281/zenodo.1168648", 
+                        "id": 1168648, 
+                        "links": {
+                            "badge": "https://zenodo.org/badge/doi/10.5281/zenodo.1168648.svg", 
+                            "bucket": "https://zenodo.org/api/files/b41da27b-ee34-4259-90b4-ab08c25b533c", 
+                            "conceptbadge": "https://zenodo.org/badge/doi/10.5281/zenodo.1168647.svg", 
+                            "conceptdoi": "https://doi.org/10.5281/zenodo.1168647", 
+                            "doi": "https://doi.org/10.5281/zenodo.1168648", 
+                            "html": "https://zenodo.org/record/1168648", 
+                            "latest": "https://zenodo.org/api/records/1168648", 
+                            "latest_html": "https://zenodo.org/record/1168648", 
+                            "self": "https://zenodo.org/api/records/1168648", 
+                            "thumb250": "https://zenodo.org/api/iiif/v2/b41da27b-ee34-4259-90b4-ab08c25b533c:8dbadf2e-cc29-4dfc-9473-f26fa775e720:figure.png/full/250,/0/default.png"
+                        }, 
+                        "metadata": {
+                            "access_right": "open", 
+                            "access_right_category": "success", 
+                            "communities": [
+                                { "id": "biosyslit" },
+                                {}
+                            ], 
+                            "creators": [
+                                { "name": "Cedric A. Collingwood" }, 
+                                { "name": "Donat Agosti" }, 
+                                {}
+                            ], 
+                            "description": "Plates 73\u201376. Tetramorium latinode Collingwood &amp; Agosti. 73: Full face view of head; 74: Head profile.75: Fullface view of head; 76: Headprofile.(Photographsfrom Sharaf&amp; Aldawood, in press).", 
+                            "doi": "10.5281/zenodo.1168648", 
+                            "journal": {
+                                "pages": "1-70", 
+                                "title": "Arthropod fauna of the UAE", 
+                                "volume": "4"
+                            }, 
+                            "keywords": [
+                                "Biodiversity", 
+                                "Taxonomy", 
+                                "Animalia", 
+                                "Arthropoda", 
+                                "Insecta", 
+                                "Hymenoptera", 
+                                "Formicidae", 
+                                "Tetramorium"
+                            ], 
+                            "license": {
+                                "id": "notspecified"
+                            }, 
+                            "publication_date": "2011-05-31", 
+                            "related_identifiers": [
+                                {
+                                    "identifier": "http://treatment.plazi.org/id/1A4C094D372BFFF0ED69A7641865EBD5", 
+                                    "relation": "isCitedBy", 
+                                    "scheme": "url"
+                                }, 
+                                {
+                                    "identifier": "10.5281/zenodo.1168586", 
+                                    "relation": "isPartOf", 
+                                    "scheme": "doi"
+                                }, 
+                                {}
+                            ], 
+                            "relations": {
+                                "version": [
+                                    {
+                                        "count": 1, 
+                                        "index": 0, 
+                                        "is_last": true, 
+                                        "last_child": {
+                                            "pid_type": "recid", 
+                                            "pid_value": "1168648"
+                                        }, 
+                                        "parent": {
+                                            "pid_type": "recid", 
+                                            "pid_value": "1168647"
+                                        }
+                                    }
+                                ]
+                            }, 
+                            "resource_type": {
+                                "subtype": "figure", 
+                                "title": "Figure", 
+                                "type": "image"
+                            }, 
+                            "title": "Plates 73\u201376. Tetramorium latinode Collingwood & Agosti. 73 in Order Hymenoptera, family Formicidae"
+                        }, 
+                        "owners": [ 1161 ], 
+                        "revision": 1, 
+                        "updated": "2018-02-07T18:50:09.877875+00:00"
+                    },
+                    {},
+                ],
+                total: 102
+            },
+            "links": {
+                "next": "https://zenodo.org/api/records/?sort=bestmatch&q=agosti&communities=biosyslit&type=image&page=2&size=30", 
+                "self": "https://zenodo.org/api/records/?sort=bestmatch&q=agosti&communities=biosyslit&type=image&page=1&size=30"
+            }
+        }
+    */
+
     const result = JSON.parse(payload.toString()).hits;
     const total = result.total;
 
@@ -182,17 +303,16 @@ const records = {
                     if (err) {
                         console.log(err);
                     }
+                    
+                    if (result) {
+                        reply(result);
+                    }
                     else {
-                        if (result) {
-                            reply(result);
+                        try {
+                            getSummaryOfRecords(uri, cacheKey, reply);
                         }
-                        else {
-                            try {
-                                getSummaryOfRecords(uri, cacheKey, reply);
-                            }
-                            catch (error) {
-                                console.error(error);
-                            }
+                        catch (error) {
+                            console.error(error);
                         }
                     }
                 });
@@ -201,7 +321,9 @@ const records = {
         else if (request.query.images) {
             
             cacheKey = Utils.createCacheKey(uri + '&image=' + request.query.images);
+
             if (request.query.refreshCache) {
+
                 console.log('refreshing cache');
                 try {
                     getImages(uri, cacheKey, reply);
@@ -213,6 +335,7 @@ const records = {
             else {
                 Cache.get(cacheKey, function(err, result) {
                     console.log('checking cache');
+
                     if (err) {
                         console.log(err);
                     }
