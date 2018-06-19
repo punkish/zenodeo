@@ -23,9 +23,11 @@ const getImageFiles = async function(bucket_uri, record) {
 
 const getBuckets = async function(record) {
 
-    const { res, payload } = await Wreck.get(record.links.self);
-    const bucket = JSON.parse(payload.toString()).links.bucket;
-    await getImageFiles(bucket, record);
+    if (record.metadata.access_right === 'open') {
+        const { res, payload } = await Wreck.get(record.links.self);
+        const bucket = JSON.parse(payload.toString()).links.bucket;
+        await getImageFiles(bucket, record);
+    }
 };
 
 const getImages = async function (uri, cacheKey, reply) {
@@ -158,13 +160,20 @@ const getImages = async function (uri, cacheKey, reply) {
         }
     */
 
-    const result = JSON.parse(payload.toString()).hits;
-    const total = result.total;
+    //const result = JSON.parse(payload.toString()).hits;
+    //const total = result.total;
+    const result = JSON.parse(payload.toString());
+    let total = 0;
+    for (let i in result.aggregations.access_right.buckets) {
+        if (result.aggregations.access_right.buckets[i].key === 'open') {
+            total = result.aggregations.access_right.buckets[i].doc_count;
+        }
+    }
 
     if (total) {
 
-        console.log(`found ${total} records… now getting their images`);
-        const foundRecords = result.hits.map(getBuckets);
+        console.log(`found ${total} open records… now getting their images`);
+        const foundRecords = result.hits.hits.map(getBuckets);
 
         const done = Promise.all(foundRecords);
         done.then(function() {
