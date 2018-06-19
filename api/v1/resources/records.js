@@ -17,17 +17,15 @@ const getImageFiles = async function(bucket_uri, record) {
         images: contents.map(function(el) {
             return el.links.self;
         }),
-        thumb250: record.links.thumb250
+        thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
     };
 };
 
 const getBuckets = async function(record) {
 
-    if (record.metadata.access_right === 'open') {
-        const { res, payload } = await Wreck.get(record.links.self);
-        const bucket = JSON.parse(payload.toString()).links.bucket;
-        await getImageFiles(bucket, record);
-    }
+    const { res, payload } = await Wreck.get(record.links.self);
+    const bucket = JSON.parse(payload.toString()).links.bucket;
+    await getImageFiles(bucket, record);
 };
 
 const getImages = async function (uri, cacheKey, reply) {
@@ -163,12 +161,7 @@ const getImages = async function (uri, cacheKey, reply) {
     //const result = JSON.parse(payload.toString()).hits;
     //const total = result.total;
     const result = JSON.parse(payload.toString());
-    let total = 0;
-    for (let i in result.aggregations.access_right.buckets) {
-        if (result.aggregations.access_right.buckets[i].key === 'open') {
-            total = result.aggregations.access_right.buckets[i].doc_count;
-        }
-    }
+    let total = result.hits.total;
 
     if (total) {
 
