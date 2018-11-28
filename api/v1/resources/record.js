@@ -1,18 +1,110 @@
-const Joi = require('joi');
 const Wreck = require('wreck');
+const Schema = require('../schema.js');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
 const Cache = Utils.cache('record');
 
+const getResult = function(uri, getImages) {
+
+    let result;
+
+    try {
+        result = getRemoteData(uri);
+        
+        if (getImages) {
+            
+            try {
+                const imagesPayload = getRemoteData(result.links.bucket);
+
+                let images = [];
+                imagesPayload.contents.forEach(function(element) {
+                    images.push(element.links.self);
+                });
+
+                result = images;
+            }
+            catch(err) {
+                console.error(err);
+            }
+        }
+
+        return result;
+    }
+    catch(err) {
+        console.error(err);
+    }
+};
+
+const getRemoteData = async function(uri) {
+
+    const { res, payload } = await Wreck.get(uri);
+    return JSON.parse(payload);
+};
+
 const record = {
-
     method: 'GET',
+    path: '/record/{id}',
 
-    path: "/record/{id}",
+    handler: function(request, h) {
+
+        // construct the URI
+        const uri = Config.uri + 'records/' + encodeURIComponent(request.params.id);
+        
+        // construct the cacheKey
+        let cacheUri = uri;
+        let getImages = false;
+        if (request.query.images) {
+            cacheUri += `?images=${request.query.images}`;
+            getImages = request.query.images;
+        }
+        const cacheKey = Utils.createCacheKey(cacheUri);
+
+        let result;
+        if (request.query.refreshCache) {
+
+            if (result = getResult(uri, getImages)) {
+        
+                Utils.updateCache(Cache, cacheKey, result);
+                return result;
+            }
+            else {
+                
+                // getResult failed
+                if (result = Cache.getSync(cacheKey)) {
+        
+                    // return result from cache
+                    return result;
+                }
+                else {
+        
+                    // no result in cache
+                    return Utils.errorMsg;
+                }
+            }
+        }
+        else {
+            if (result = Cache.getSync(cacheKey)) {
+        
+                // return result from cache
+                return result;
+            }
+            else {
+                if (result = getResult(uri, getImages)) {
+
+                    Utils.updateCache(Cache, cacheKey, result);
+                    return result;
+                }
+                else {
+
+                    return Utils.errorMsg;
+                }
+            }
+        }
+    },
 
     config: {
-        description: "records",
+        description: "fetch a single record from Zenodo",
         tags: ['record', 'api'],
         plugins: {
             'hapi-swagger': {
@@ -20,74 +112,10 @@ const record = {
                 responseMessages: ResponseMessages
             }
         },
-        validate: {
-            params: {
-                id: Joi.number().integer().positive().required()
-            },
-            query: {
-                images: Joi.boolean()
-            }
-        },
+        validate: Schema.record,
         notes: [
             'This is the main route for fetching a record matching an id or a set of records matching the provided query parameters.'
         ]
-    },
-    
-    handler: function(request, reply) {
-        const uri = Config.uri + 'records/' + encodeURIComponent(request.params.id);
-
-        const cacheKey = Utils.createCacheKey(uri);
-
-        Cache.get(cacheKey, function(err, result) {
-            if (err) {
-                console.log(err);
-            }
-
-            if (result) {
-                reply(result);
-            }
-            else {
-                Wreck.get(uri, (err, res, payload) => {
-                    
-                    if (err) {
-                        reply(err);
-                        return;
-                    }
-        
-                    if (request.query.images) {
-                        
-                        let images = [];
-                        const bucket = JSON.parse(payload.toString())
-                            .links
-                            .bucket;
-            
-                        Wreck.get(bucket, (err, res, payload) => {
-                            JSON.parse(payload.toString()).contents.forEach(function(element) {
-                                images.push(element.links.self);
-                            });
-            
-                            Cache.put(cacheKey, images, function(err) {
-                                if (err) {
-                                    console.log(err);
-                                }
-
-                                reply(images).headers = res.headers;
-                            });
-                        });
-                    }
-                    else {
-                        const result = JSON.parse(payload.toString());
-                        Cache.put(cacheKey, result, function(err) {
-                            if (err) {
-                                console.log(err);
-                            }
-
-                            reply(result).headers = res.headers;
-                        });
-                    }
-                });
-            }
-        });
     }
 };
 

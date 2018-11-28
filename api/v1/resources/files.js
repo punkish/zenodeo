@@ -1,18 +1,81 @@
-const Joi = require('joi');
 const Wreck = require('wreck');
+const Schema = require('../schema.js');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
 const Cache = Utils.cache('files');
 
+const getResult = async function(uri) {
+
+    const { res, payload } = await Wreck.get(uri);
+    const result = JSON.parse(payload);
+    return result;
+};
+
 const files = {
 
     method: 'GET',
-
     path: '/files/{file_id}',
+    
+    handler: function(request, h) {
+
+        // construct the URI
+        const uri = Config.uri + 'files/' + encodeURIComponent(request.params.file_id);
+
+        // construct the cacheKey
+        const cacheKey = Utils.createCacheKey(uri);
+
+        let result;
+        if (request.query.refreshCache) {
+
+            result = getResult(uri)
+            if (result) {
+        
+                // getResult succeeded
+                utils.updateCache(Cache, cacheKey, result);
+                return result;
+            }
+            else {
+                
+                // getResult failed, so check if result 
+                // exists in cache
+                result = Cache.getSync(cacheKey)
+                if (result) {
+        
+                    // return result from cache
+                    return result;
+                }
+                else {
+        
+                    // no result in cache
+                    return Utils.errorMsg;
+                }
+            }
+        }
+        else {
+
+            result = Cache.getSync(cacheKey);
+            if (result) {
+        
+                // return result from cache
+                return result;
+            }
+            else {
+
+                result = getResult(uri)
+                if (result) {
+                    updateCache(Cache, cacheKey, result);
+                    return result;
+                }
+                else {
+                    return Utils.errorMsg;
+                }
+            }
+        }
+    },
 
     config: {
-        description: "files",
+        description: "fetch files from Zenodo",
         tags: ['file', 'api'],
         plugins: {
             'hapi-swagger': {
@@ -20,49 +83,11 @@ const files = {
                 responseMessages: ResponseMessages
             }
         },
-        validate: {
-            params: {
-                file_id: Joi.string()
-            }
-        },
+        validate: Schema.files,
         notes: [
-            'This is just a note',
+            'Files inside Zenodo records',
         ]
     },
-    
-    handler: function(request, reply) {
-        const uri = Config.uri + 'files/' + encodeURIComponent(request.params.file_id);
-
-        const cacheKey = Utils.createCacheKey(uri);
-
-        Cache.get(cacheKey, function(err, result) {
-            if (err) {
-                console.log(err);
-            }
-
-            if (result) {
-                reply(result);
-            }
-            else {
-                Wreck.get(uri, (err, res, payload) => {
-    
-                    if (err) {
-                        reply(err);
-                        return;
-                    }
-                    
-                    const result = JSON.parse(payload.toString());
-                    Cache.put(cacheKey, result, function(err) {
-                        if (err) {
-                            console.log(err);
-                        }
-
-                        reply(result).headers = res.headers;
-                    });
-                });
-            }
-        });
-    }
 };
 
 module.exports = files;

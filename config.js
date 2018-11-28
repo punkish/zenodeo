@@ -4,10 +4,11 @@ module.exports = (function(mode) {
     const config = {
         base: {
             uri: 'https://zenodo.org/api/',
+            tb: 'http://tb.plazi.org/GgServer/xml/',
             port: 3030,
             info: {
                 title: "Zenodeo API documentation for BLR",
-                version: "1.6.1",
+                version: "2.0.0",
                 description: Package.description,
                 termsOfService: "/tos",
                 contact: {
@@ -22,10 +23,10 @@ module.exports = (function(mode) {
             }
         },
         development: {
-            cacheBase: '/Users/punkish/Projects/zenodeo/zenodeoCache'
+            cache: '/Users/punkish/Projects/zenodeo/cache'
         },
         production: {
-            cacheBase: '/home/punkish/tmp/zenodeoCache'
+            cache: '/home/punkish/Nodes/zenodeo/cache'
         }
     };
 

@@ -13,8 +13,18 @@ const docs = {
         ]
     },
 
-    handler: function(request, reply) {
-        reply.view('docs', null, {layout: 'docs'});
+    handler: function(request, h) {
+        return h.view(
+
+            // content template
+            'docs', 
+
+            // data
+            null,
+
+            // layout
+            { layout: 'docs' }
+        );
     }
 };
     

@@ -13,8 +13,18 @@ const about = {
         ]
     },
 
-    handler: function(request, reply) {
-        reply.view('about');
+    handler: function(request, h) {
+        return h.view(
+
+            // content template
+            'about', 
+
+            // data
+            null,
+
+            // layout
+            { layout: 'main' }
+        );
     }
 };
     

@@ -1,7 +1,7 @@
 const inert = {
     method: 'GET',
 
-    path: '/{param*}',
+    path: '/public/{param*}',
 
     config: {
         description: "static files",

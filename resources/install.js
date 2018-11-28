@@ -13,8 +13,18 @@ const install = {
         ]
     },
 
-    handler: function(request, reply) {
-        reply.view('install');
+    handler: function(request, h) {
+        return h.view(
+
+            // content template
+            'install', 
+
+            // data
+            null,
+
+            // layout
+            { layout: 'main' }
+        );
     }
 };
     

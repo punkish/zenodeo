@@ -26,26 +26,6 @@ const utils = {
             .digest('hex');
     },
 
-    updateCache: async function(cache, cacheKey, result) {
-
-        const r = await result;
-    
-        // getResult succeeded
-        if (cache.getSync(cacheKey)) {
-                
-            // delete old cached value and 
-            // cache the new result
-            cache.deleteSync(cacheKey);
-            cache.putSync(cacheKey, r);
-        }
-        else {
-    
-            // no result in cache so nothing 
-            // to delete
-            cache.putSync(cacheKey, r);
-        }
-    },
-
     cache: function(name) {
         return require('persistent-cache')({
             base: Config.cacheBase,
@@ -57,15 +37,11 @@ const utils = {
         return {
 
             method: 'GET',
+        
             path: `/${facet}/{term?}`,
-            handler: function (request, h) {
-                if (request.params.term) {
-                    
-                    return find(request.params.term, facet);
-                }
-            },
+        
             config: {
-                description: `retrieve all ${facet} starting with the provided letters`,
+                description: facet,
                 tags: [facet, 'api'],
                 plugins: {
                     'hapi-swagger': {
@@ -81,16 +57,15 @@ const utils = {
                 notes: [
                     `This route fetches ${facet} matching the search term (the portion after /${facet}/ in the URI).`
                 ]
+            },
+            
+            handler: function (request, h) {
+                if (request.params.term) {
+                    return find(request.params.term, facet);
+                }
             }
         };
-    },
-
-    errorMsg: {
-        "data": [],
-        "error": "nothing found"
-    },
-
-    jsonHeader: "application/json"
+    }
 };
 
 module.exports = utils;

@@ -13,8 +13,18 @@ const tos = {
         ]
     },
 
-    handler: function(request, reply) {
-        reply.view('tos');
+    handler: function(request, h) {
+        return h.view(
+
+            // content template
+            'tos', 
+
+            // data
+            null,
+
+            // layout
+            { layout: 'main' }
+        );
     }
 };
     

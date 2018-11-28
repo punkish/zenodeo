@@ -13,8 +13,18 @@ const examples = {
         ]
     },
 
-    handler: function(request, reply) {
-        reply.view('examples');
+    handler: function(request, h) {
+        return h.view(
+
+            // content template
+            'examples', 
+
+            // data
+            null,
+
+            // layout
+            { layout: 'main' }
+        );
     }
 };
     
