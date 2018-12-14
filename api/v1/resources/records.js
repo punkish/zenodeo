@@ -168,41 +168,47 @@ const getBuckets = async function(record) {
 const getImages = async function(uri) {
 
     console.log(`searching for ${uri}`);
-    const {res, payload} =  await Wreck.get(uri);
 
-    const result = JSON.parse(payload);
-    let total = result.hits.total;
+    try {
+        const {res, payload} =  await Wreck.get(uri);
 
-    if (total) {
+        const result = JSON.parse(payload);
+        let total = result.hits.total;
 
-        console.log(`found ${total} open records… now getting their images`);
-        console.log(`number of hits: ${result.hits.hits.length}`);
+        if (total) {
 
-        let imagesOfRecords = {};
-        await Promise.all(result.hits.hits.map(async (record) => {
-            const bucket = await getBuckets(record);
-            const contents = await getImageFiles(bucket, record);
-            imagesOfRecords[record.links.self] = {
-                title: record.metadata.title,
-                creators: record.metadata.creators,
-                images: contents.map(function(el) {
-                    return el.links.self;
-                }),
-                thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
+            console.log(`found ${total} open records… now getting their images`);
+            console.log(`number of hits: ${result.hits.hits.length}`);
+
+            let imagesOfRecords = {};
+            await Promise.all(result.hits.hits.map(async (record) => {
+                const bucket = await getBuckets(record);
+                const contents = await getImageFiles(bucket, record);
+                imagesOfRecords[record.links.self] = {
+                    title: record.metadata.title,
+                    creators: record.metadata.creators,
+                    images: contents.map(function(el) {
+                        return el.links.self;
+                    }),
+                    thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
+                };
+            }));
+
+            const data = {
+                uri: uri,
+                total: total,
+                result: imagesOfRecords
             };
-        }));
 
-        const data = {
-            uri: uri,
-            total: total,
-            result: imagesOfRecords
-        };
-
-        return data;
+            return data;
+        }
+        else {
+            console.log('nothing found');
+            return Utils.errorMsg;
+        }
     }
-    else {
-        console.log('nothing found');
-        return Utils.errorMsg;
+    catch(err) {
+        console.error(err);
     }
 };
 

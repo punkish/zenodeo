@@ -1,3 +1,10 @@
+/*
+Start this program from the command line with `pm2`
+
+    ~/Nodes/punkish$ NODE_ENV=production pm2 start index.js --name zenodeo
+    ~/Nodes/punkish$ NODE_ENV=production pm2 restart zenodeo
+*/
+
 'use strict';
 
 const Config = require('./config.js');
