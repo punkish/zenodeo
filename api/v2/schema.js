@@ -1,12 +1,43 @@
+// v2 schema
 const Joi = require('joi');
 
 const schema = {
+
+    communities: {
+        query: {
+            name: Joi.string()
+                .description('The Zenodo Community to be queried for the records; defaults to "biosyslit"')
+                .valid('all', 'biosyslit', 'icedig')
+                .required(),
+
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .default(false),
+        }
+    },
+
     record: {
         params: {
-            id: Joi.number().integer().positive().required()
+            id: Joi.number()
+                .description("record id")
+                .integer()
+                .positive()
+                .required()
         },
         query: {
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .default(false),
+
             images: Joi.boolean()
+                .description("retrieve only the images for the record")
+                .optional()
+                .default(false),
+
+            communities: Joi.string()
+                .description('The community on Zenodo; defaults to "biosyslit"')
+                .valid('all', 'biosyslit', 'icedig')
+                .default('biosyslit')
         }
     },
 
@@ -14,27 +45,26 @@ const schema = {
         query: {
             page: Joi.number()
                 .integer()
-                .description('starting page')
+                .description('Starting page, defaults to 1')
                 .required()
                 .default(1),
 
             size: Joi.number()
                 .integer()
-                .description('number of records to fetch per query')
+                .description('Number of records to fetch per query, defaults to 30')
                 .required()
                 .default(30),
 
             communities: Joi.string()
-                .description('the Biodiversity Literatutre Repository community on Zenodo')
-                .required()
-                .default('biosyslit')
-                .valid('biosyslit'),
+                .description('The community on Zenodo; defaults to "biosyslit"')
+                .valid('all', 'biosyslit', 'icedig')
+                .default('biosyslit'),
 
             q: Joi.string()
-                .description('text string for full-text search'),
+                .description('Text string for full-text search'),
 
             file_type: Joi.string()
-                .description('file type, usually determined by the extension')
+                .description('File type, usually determined by the extension')
                 .optional()
                 .valid(
                     'png', 
@@ -50,7 +80,7 @@ const schema = {
                 ),
 
             type: Joi.string()
-                .description('type of resource')
+                .description('Type of resource')
                 .optional()
                 .valid(
                     'image', 
@@ -61,8 +91,8 @@ const schema = {
                 ),
         
             image_subtype: Joi.string()
+                .description('Subtype based on the file_type \"image\"')
                 .optional()
-                .description('subtype based on the file_type \"image\"')
                 .when(
                     'type', {
                         is: 'image',
@@ -78,7 +108,7 @@ const schema = {
                 ),
 
             publication_subtype: Joi.string()
-                .description('subtype based on the file_type \"publication\"')
+                .description('Subtype based on the file_type \"publication\"')
                 .optional()
                 .when(
                     'type', {
@@ -99,7 +129,7 @@ const schema = {
                 ),
 
             access_right: Joi.string()
-                .description('access rights for the resource')
+                .description('Access rights for the resource')
                 .optional()
                 .valid(
                     'open', 
@@ -109,15 +139,15 @@ const schema = {
                 ),
 
             keywords: Joi.array()
-                .description('more than one keywords may be used')
+                .description('More than one keywords may be used')
                 .optional(),
 
             summary: Joi.boolean()
-                .description('summarize the results to record IDs')
+                .description('Summarize the results to record IDs')
                 .default(true),
 
             images: Joi.boolean()
-                .description('return only image links for each record'),
+                .description('Return only image links for each record'),
 
             refreshCache: Joi.boolean()
                 .default(false)
@@ -130,9 +160,39 @@ const schema = {
         }
     },
 
-    treatments: {
+    treatment: {
         params: {
             id: Joi.string().required()
+        }
+    },
+
+    treatments: {
+        query: {
+            q: Joi.string().description('freetext search')
+        }
+    },
+
+    authors: {
+        params: {
+            term: Joi.string().required()
+        }
+    },
+
+    keywords: {
+        params: {
+            term: Joi.string().required()
+        }
+    },
+
+    families: {
+        params: {
+            term: Joi.string().required()
+        }
+    },
+
+    taxa: {
+        params: {
+            term: Joi.string().required()
         }
     }
 };

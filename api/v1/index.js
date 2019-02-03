@@ -12,7 +12,7 @@ exports.plugin = {
             require('./resources/keywords.js'),
             require('./resources/families.js'),
             require('./resources/taxa.js'),
-            require('./resources/treatment.js')
+            //require('./resources/treatment.js')
         ])
     }
 };

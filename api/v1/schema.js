@@ -1,12 +1,18 @@
+// v1 schema
 const Joi = require('joi');
 
 const schema = {
     record: {
         params: {
-            id: Joi.number().integer().positive().required()
+            id: Joi.number()
+                .description("record id")
+                .integer()
+                .positive()
+                .required()
         },
         query: {
             images: Joi.boolean()
+                .description("force refresh cache")
         }
     },
 

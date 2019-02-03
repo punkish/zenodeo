@@ -3,6 +3,7 @@ const Schema = require('../schema.js');
 const Config = require('../../../config.js');
 const ResponseMessages = require('../../response-messages');
 const Utils = require('../utils.js');
+const Debug = require('debug')('v1: records');
 const Cache = Utils.cache('records');
 
 /*
@@ -121,14 +122,14 @@ The payload looks like so
 */
 
 const getResult = function(uri, images, summary) {
-    console.log(`uri: ${uri}`);
-    console.log(`images: ${images}`);
-    console.log(`summary: ${summary}`);
+    Debug(`uri: ${uri}`);
+    Debug(`images: ${images}`);
+    Debug(`summary: ${summary}`);
 
     let result;
 
     if (images) {
-        console.log('getting images');
+        Debug('getting images');
         try {
             result = getImages(uri);
             return result;
@@ -140,7 +141,7 @@ const getResult = function(uri, images, summary) {
     }
 
     if (summary) {
-        console.log('getting summary');
+        Debug('getting summary');
         try {
             result = getSummaryOfRecords(uri);
             return result;
@@ -151,7 +152,7 @@ const getResult = function(uri, images, summary) {
     }
 };
 
-const getImageFiles = async function(uri, record) {
+const getImageFiles = async function(uri) {
 
     const { res, payload } = await Wreck.get(uri);
     const contents = JSON.parse(payload.toString()).contents;
@@ -167,7 +168,7 @@ const getBuckets = async function(record) {
 
 const getImages = async function(uri) {
 
-    console.log(`searching for ${uri}`);
+    Debug(`searching for ${uri}`);
 
     try {
         const {res, payload} =  await Wreck.get(uri);
@@ -177,13 +178,13 @@ const getImages = async function(uri) {
 
         if (total) {
 
-            console.log(`found ${total} open records… now getting their images`);
-            console.log(`number of hits: ${result.hits.hits.length}`);
+            Debug(`found ${total} open records… now getting their images`);
+            Debug(`number of hits: ${result.hits.hits.length}`);
 
             let imagesOfRecords = {};
             await Promise.all(result.hits.hits.map(async (record) => {
                 const bucket = await getBuckets(record);
-                const contents = await getImageFiles(bucket, record);
+                const contents = await getImageFiles(bucket);
                 imagesOfRecords[record.links.self] = {
                     title: record.metadata.title,
                     creators: record.metadata.creators,
@@ -203,7 +204,7 @@ const getImages = async function(uri) {
             return data;
         }
         else {
-            console.log('nothing found');
+            Debug('nothing found');
             return Utils.errorMsg;
         }
     }

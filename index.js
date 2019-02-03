@@ -43,39 +43,40 @@ const swaggerOptions = {
 /*
  * Hapi process monitoring
  */
-const Good = require('good');
-const goodOptions = {
-    ops: {
-        interval: 1000
-    },
-    reporters: {
-        console: [
-            {
-                module: 'good-squeeze',
-                name: 'Squeeze',
-                args: [{
-                    log: '*',
-                    response: '*'
-                }]
-            }, {
-                module: 'good-console'
-            },
-            'stdout'
-        ]
-    }
-};
+// const Good = require('good');
+// const goodOptions = {
+//     ops: {
+//         interval: 1000
+//     },
+//     reporters: {
+//         console: [
+//             {
+//                 module: 'good-squeeze',
+//                 name: 'Squeeze',
+//                 args: [{ log: '*', response: 'api' }]
+//             }, 
+//             { 
+//                 module: 'good-console',
+//                 args: [{ format: 'MMM Do YYYY, h:mm:ss A' }]
+//             },
+//             'stdout'
+//         ]
+//     }
+// };
+
+const Debug = require('debug')('server: index')
 
 // API versions
 const APIs = [
-    { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } }
-    //{ plugin: require('./api/v2/index.js'), routes: { prefix: '/v2' } }
+    { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } },
+    { plugin: require('./api/v2/index.js'), routes: { prefix: '/v2/' } }
 ];
 
 let plugins = [
     { plugin: Inert, options: {} },
     { plugin: Vision, options: {} },
     { plugin: Blipp, options: {} } ,
-    { plugin: Good, options: goodOptions }, 
+    //{ plugin: Good, options: goodOptions }, 
     { plugin: HapiSwagger, options: swaggerOptions }
 ];
 
@@ -105,45 +106,23 @@ const init = async () => {
     });
 
     server.route([
-
         require('./resources/inert'),
         require('./resources/docs'),
         require('./resources/tos'),
         require('./resources/install'),
         require('./resources/examples'),
         require('./resources/about'),
-
-        // default route, redirects to the most recent API
-        {
-            method: 'GET',
-            path: '/{param*}',
-            config: {
-                description: "default route",
-                tags: ['private']
-            },
-            handler: function(request, h) {
-
-                let uri = '';
-                if (request.params.param) {
-
-                    uri = `/v${APIs.length}/${request.params.param}`;
-                }
-                else {
-                    uri = `/v${APIs.length}`;
-                }
-
-                return h.redirect(uri);
-            }
-        }
+        //require('./resources/deefault'),
     ]);
+    
 
     await server.start();
-    console.log(`Server running at: ${server.info.uri}`);
+    Debug(`Server running at: ${server.info.uri}`);
 };
 
 process.on('unhandledRejection', (err) => {
 
-    console.log(err);
+    Debug(err);
     process.exit(1);
 });
 

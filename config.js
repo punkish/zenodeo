@@ -4,6 +4,7 @@ module.exports = (function(mode) {
     const config = {
         base: {
             uri: 'https://zenodo.org/api/',
+            zenodo: 'https://zenodo.org/api',
             tb: 'http://tb.plazi.org/GgServer/xml/',
             port: 3030,
             info: {
@@ -23,10 +24,14 @@ module.exports = (function(mode) {
             }
         },
         development: {
-            cache: '/Users/punkish/Projects/zenodeo/cache'
+            data: '/Users/punkish/Projects/zenodeo/data',
+            cache: '/Users/punkish/Projects/zenodeo/cache',
+            zenodeo: 'http://localhost:3030'
         },
         production: {
-            cache: '/home/punkish/Nodes/zenodeo/cache'
+            data: '/home/punkish/Nodes/zenodeo/data',
+            cache: '/home/punkish/Nodes/zenodeo/cache',
+            zenodeo: 'https://zenodeo.punkish.org'
         }
     };
 

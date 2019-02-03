@@ -4,8 +4,17 @@ exports.plugin = {
     register: async function(server, options) {
 
         server.route([
-            require('./resources/biosyslit.js')['biosyslit'],
-            require('./resources/record.js')['record']
+            require('./resources/root.js'),
+            require('./resources/communities.js'),
+            require('./resources/record.js'),
+            require('./resources/records.js'),
+            require('./resources/wpsummary.js'),
+            require('./resources/treatment.js'),
+            require('./resources/treatments.js'),
+            require('./resources/authors.js'),
+            require('./resources/keywords.js'),
+            require('./resources/families.js'),
+            require('./resources/taxa.js')
         ])
     }
 };
