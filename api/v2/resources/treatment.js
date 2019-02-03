@@ -79,7 +79,8 @@ const treatment = {
         directory: {
             path: `${Config.data}/treatmentxmls`,
             redirectToSlash: true,
-            index: true
+            index: true,
+            defaultExtension: 'xml'
         }
     }
 }

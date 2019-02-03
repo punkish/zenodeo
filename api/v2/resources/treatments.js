@@ -7,8 +7,9 @@ const db = new Database('data/plazi.sqlite');
 const Debug = require('debug')('v2: treatments');
 
 const t = `'${Config.zenodeo}/v2/treatment/'`;
-//const selectStmt = db.prepare(`SELECT ${t} || t.treatment_id AS t, v.docTitle FROM vtreatments v JOIN treatments t ON v.rowid = t.rowid WHERE vtreatments MATCH ?`);
-const selectStmt = db.prepare(`SELECT treatment_id, ${t} || treatment_id || ".xml" AS uri, snippet(vtreatments, 1, '<b>', '</b>', '', 25) s FROM vtreatments WHERE vtreatments MATCH ?`);
+const selectStmt = db.prepare(`SELECT treatment_id, ${t} || treatment_id AS uri, snippet(vtreatments, 1, '<b>', '</b>', '', 25) s FROM vtreatments WHERE vtreatments MATCH ?`);
+
+const selectByLoc = db.prepare('SELECT treatment_id, location, latitude, longitude FROM `materialcitations` WHERE latitude != 0 AND longitude != 0');
 
 const treatments = {
     method: 'GET',
