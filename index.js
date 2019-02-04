@@ -37,8 +37,8 @@ const swaggerOptions = {
     info: Config.info,
     sortEndpoints: 'ordered',
     jsonEditor: false,
-    validatorUrl: null,
-    schemes: Config.schemes
+    validatorUrl: null
+    //schemes: Config.schemes
 };
 
 /*
