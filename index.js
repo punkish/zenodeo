@@ -29,6 +29,7 @@ const Vision = require('vision');
 /*
  * Generate Swagger-compatible documentation for the app
  */
+console.log(Config.schemes)
 const HapiSwagger = require('hapi-swagger');
 const swaggerOptions = {
     documentationPage: false,
@@ -37,7 +38,7 @@ const swaggerOptions = {
     sortEndpoints: 'ordered',
     jsonEditor: false,
     validatorUrl: null,
-    schemes: ['http', 'https']
+    schemes: Config.schemes
 };
 
 /*
