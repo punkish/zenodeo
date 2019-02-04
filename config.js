@@ -23,9 +23,11 @@ module.exports = (function(mode) {
             }
         },
         development: {
+            schemes: ['http'],
             cache: '/Users/punkish/Projects/zenodeo/cache'
         },
         production: {
+            schemes: ['https'],
             cache: '/home/punkish/Nodes/zenodeo/cache'
         }
     };
