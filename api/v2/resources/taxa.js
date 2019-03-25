@@ -1,30 +1,41 @@
-const Utils = require('../utils.js');
-const ResponseMessages = require('../../response-messages');
-const Config = require('../../../config.js');
+const Wreck = require('wreck');
+const Utils = require('../utils');
 const Schema = require('../schema.js');
 
-const taxa = {
-    method: 'GET',
-    path: 'taxa/{term?}',
-    handler: function (request, h) {
-        if (request.params.term) {
-            return Utils.packageResult(`${Config.zenodeo}/v2/taxa/${request.params.term}`, Utils.find(request.params.term, 'taxa'));
-        }
-    },
-    config: {
-        description: 'retrieve all taxa starting with the provided letters',
-        tags: ['taxa', 'api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 11,
-                responseMessages: ResponseMessages
-            }
+module.exports = {
+    plugin: {
+        name: 'taxa2',
+        register: async function(server, options) {
+
+            server.route([
+                { 
+                    path: '/taxa', 
+                    method: 'GET', 
+                    config: {
+                        description: 'retrieve all taxa starting with the provided letters',
+                        tags: ['taxa', 'api'],
+                        plugins: {
+                            'hapi-swagger': {
+                                order: 9,
+                                //responseMessages: ResponseMessages
+                            }
+                        },
+                        validate: Schema.taxa,
+                        notes: [
+                            'This route fetches taxa starting with the provided letters.'
+                        ]
+                    },
+                    handler 
+                }
+            ]);
         },
-        validate: Schema.taxa,
-        notes: [
-            'This route fetches taxa matching the search term (the portion after /taxa/ in the URI).'
-        ]
-    }
+    },
 };
 
-module.exports = taxa;
+const handler = async function(request, h) {
+    
+    if (request.query.q) {
+        return Utils.find(request.query.q, 'taxa');
+    } 
+
+};

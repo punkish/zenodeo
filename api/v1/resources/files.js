@@ -1,93 +1,65 @@
 const Wreck = require('wreck');
 const Schema = require('../schema.js');
-const Config = require('../../../config.js');
-const ResponseMessages = require('../../response-messages');
-const Utils = require('../utils.js');
-const Cache = Utils.cache('files');
 
-const getResult = async function(uri) {
+const ResponseMessages = require('../../responseMessages');
+const Utils = require('../utils.js');
+const Cache = Utils.cache('files')
+
+const getResult = async function(uri, cacheKey) {
 
     const { res, payload } = await Wreck.get(uri);
-    const result = JSON.parse(payload);
-    return result;
+
+    if (payload) {
+
+        let result = JSON.parse(payload);
+        if (Cache.getSync(cacheKey)) {
+            Cache.deleteSync(cacheKey)
+        }
+        Cache.putSync(cacheKey, result)
+        return result;
+    }
+    else {
+        
+        return Utils.errorMsg;
+    }
+
 };
 
-const files = {
+module.exports = {
+    plugin: {
+        name: 'files',
+        register: async function(server, options) {
 
-    method: 'GET',
-    path: '/files/{file_id}',
-    
-    handler: function(request, h) {
+            server.route([{ 
+                path: '/files/{file_id}', 
+                method: 'GET', 
+                config: {
+                    description: "fetch files from Zenodo",
+                    tags: ['file', 'api'],
+                    plugins: {
+                        'hapi-swagger': {
+                            order: 4,
+                            responseMessages: ResponseMessages
+                        }
+                    },
+                    validate: Schema.files,
+                    notes: [
+                        'Files inside Zenodo records',
+                    ]
+                },
+                handler: async function(request, h) {
 
-        // construct the URI
-        const uri = Config.uri + 'files/' + encodeURIComponent(request.params.file_id);
+                    const [ cacheKey, uri ] = Utils.makeUriAndCacheKey(request, 'files')
 
-        // construct the cacheKey
-        const cacheKey = Utils.createCacheKey(uri);
-
-        let result;
-        if (request.query.refreshCache) {
-
-            result = getResult(uri)
-            if (result) {
-        
-                // getResult succeeded
-                utils.updateCache(Cache, cacheKey, result);
-                return result;
-            }
-            else {
+                    if (request.query.refreshCache) {
+                        return getResult(uri, cacheKey)
+                    }
+                    else {
+                        return (Cache.getSync(cacheKey) || getResult(uri, cacheKey))
+                    }
                 
-                // getResult failed, so check if result 
-                // exists in cache
-                result = Cache.getSync(cacheKey)
-                if (result) {
-        
-                    // return result from cache
-                    return result;
                 }
-                else {
-        
-                    // no result in cache
-                    return Utils.errorMsg;
-                }
-            }
-        }
-        else {
-
-            result = Cache.getSync(cacheKey);
-            if (result) {
-        
-                // return result from cache
-                return result;
-            }
-            else {
-
-                result = getResult(uri)
-                if (result) {
-                    updateCache(Cache, cacheKey, result);
-                    return result;
-                }
-                else {
-                    return Utils.errorMsg;
-                }
-            }
-        }
-    },
-
-    config: {
-        description: "fetch files from Zenodo",
-        tags: ['file', 'api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 4,
-                responseMessages: ResponseMessages
-            }
+            }]);
         },
-        validate: Schema.files,
-        notes: [
-            'Files inside Zenodo records',
-        ]
     },
 };
-
-module.exports = files;

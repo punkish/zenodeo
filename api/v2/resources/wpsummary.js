@@ -1,64 +1,62 @@
-'use strict';
-
-//const ib = require('wiki-infobox');
-//const Wreck = require('wreck');
 const wiki = require('wikijs').default;
-//const Config = require('../../../config.js');
-const ResponseMessages = require('../../response-messages');
-const Utils = require('../utils.js');
-const Debug = require('debug')('v2: wpsummary');
-const Cache = Utils.cache('wpsummary');
- 
-const newQuery = async function(zenodeoUri, term) {
-    let result = await wiki().page(term).then(page => page.summary()).then(summary => { return summary })
-    return Utils.packageResult(zenodeoUri, result);
-}
+const Schema = require('../schema.js');
 
-const wpsummary = {
+module.exports = {
+    plugin: {
+        name: 'wpsummary2',
+        register: async function(server, options) {
 
-    method: 'GET',
-    path: 'wpsummary/{term}',
-    handler: async function(request, h) {
+            const wpCache = server.cache({
+                cache: options.cacheName,
+                expiresIn: options.expiresIn,
+                generateTimeout: options.generateTimeout,
+                segment: 'wpsummary2', 
+                generateFunc: async (q) => { return await wp(q); },
+                getDecoratedValue: options.getDecoratedValue
+            });
 
-        const [ZenodoUri, zenodeoUri, cacheKey] = Utils.makeIncomingUri(request, 'wpsummary');
-        const term = request.params.term;
-        let result;
+            // binds wpCache to every route registered **within 
+            // this plugin** after this line
+            server.bind({ wpCache });
 
-        // perform a new query only if refreshCache is true
-        if (request.query.refreshCache) {
-            result = newQuery(zenodeoUri, term);
-            Utils.updateCache(Cache, cacheKey, result);
-            return result;
-        }
-
-        // serve result from cache if it exists in cache
-        else {
-            if (result = Cache.getSync(cacheKey)) {
-                return result;
-            }
-            else {
-                result = newQuery(zenodeoUri, term);
-                Utils.updateCache(Cache, cacheKey, result);
-                return result;
-            }
-        }
-        
-    },
-
-    config: {
-        description: "wikipedia summary",
-        tags: ['wikipedia', 'summary', 'api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 5,
-                responseMessages: ResponseMessages
-            }
+            server.route([
+                { 
+                    path: '/wpsummary', 
+                    method: 'GET', 
+                    config: {
+                        description: "Retrieve summary from the English Wikipedia page",
+                        tags: ['wikipedia', 'api'],
+                        plugins: {
+                            'hapi-swagger': {
+                                order: 5,
+                                //responseMessages: ResponseMessages
+                            }
+                        },
+                        validate: Schema.wpsummary,
+                        notes: [
+                            'Summary from the Wikipedia page',
+                        ]
+                    },
+                    handler 
+                }
+            ]);
         },
-        validate: {},
-        notes: [
-            'Summary from the Wikipedia.',
-        ]
-    }
+    },
 };
 
-module.exports = wpsummary;
+const handler = async function(request, h) {
+
+    let q = request.query.q;
+
+    if (request.query.refreshCache) {
+        await this.wpCache.drop(q);
+    }
+
+    // uses the bound wpCache instance from index.js
+    return await this.wpCache.get(q); 
+};
+
+const wp = async (term) => {
+
+    return await wiki().page(term).then(page => page.summary()).then(summary => { return summary })
+};

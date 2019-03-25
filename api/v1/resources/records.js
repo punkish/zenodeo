@@ -1,10 +1,10 @@
 const Wreck = require('wreck');
 const Schema = require('../schema.js');
-const Config = require('../../../config.js');
-const ResponseMessages = require('../../response-messages');
+
+const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils.js');
 const Debug = require('debug')('v1: records');
-const Cache = Utils.cache('records');
+const Cache = Utils.cache('records')
 
 /*
 The payload looks like so
@@ -121,7 +121,7 @@ The payload looks like so
 }
 */
 
-const getResult = function(uri, images, summary) {
+const getResult = async function(uri, images, summary, cacheKey) {
     Debug(`uri: ${uri}`);
     Debug(`images: ${images}`);
     Debug(`summary: ${summary}`);
@@ -131,7 +131,13 @@ const getResult = function(uri, images, summary) {
     if (images) {
         Debug('getting images');
         try {
-            result = getImages(uri);
+            result = await getImages(uri);
+
+            if (Cache.getSync(cacheKey)) {
+                Cache.deleteSync(cacheKey)
+            }
+        
+            Cache.putSync(cacheKey, result)
             return result;
         }
         catch(err) {
@@ -143,7 +149,13 @@ const getResult = function(uri, images, summary) {
     if (summary) {
         Debug('getting summary');
         try {
-            result = getSummaryOfRecords(uri);
+            result = await getSummaryOfRecords(uri);
+
+            if (Cache.getSync(cacheKey)) {
+                Cache.deleteSync(cacheKey)
+            }
+        
+            Cache.putSync(cacheKey, result)
             return result;
         }
         catch(err) {
@@ -170,47 +182,43 @@ const getImages = async function(uri) {
 
     Debug(`searching for ${uri}`);
 
-    try {
-        const {res, payload} =  await Wreck.get(uri);
+    const { res, payload } = await Wreck.get(uri);
+    const result =  JSON.parse(payload);
 
-        const result = JSON.parse(payload);
-        let total = result.hits.total;
+    let total = result.hits.total;
 
-        if (total) {
+    if (total) {
 
-            Debug(`found ${total} open records… now getting their images`);
-            Debug(`number of hits: ${result.hits.hits.length}`);
+        Debug(`found ${total} open records… now getting their images`);
+        Debug(`number of hits: ${result.hits.hits.length}`);
 
-            let imagesOfRecords = {};
-            await Promise.all(result.hits.hits.map(async (record) => {
-                const bucket = await getBuckets(record);
-                const contents = await getImageFiles(bucket);
-                imagesOfRecords[record.links.self] = {
-                    title: record.metadata.title,
-                    creators: record.metadata.creators,
-                    images: contents.map(function(el) {
-                        return el.links.self;
-                    }),
-                    thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
-                };
-            }));
-
-            const data = {
-                uri: uri,
-                total: total,
-                result: imagesOfRecords
+        let imagesOfRecords = {};
+        await Promise.all(result.hits.hits.map(async (record) => {
+            const bucket = await getBuckets(record);
+            const contents = await getImageFiles(bucket);
+            imagesOfRecords[record.links.self] = {
+                title: record.metadata.title,
+                creators: record.metadata.creators,
+                images: contents.map(function(el) {
+                    return el.links.self;
+                }),
+                thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
             };
+        }));
 
-            return data;
-        }
-        else {
-            Debug('nothing found');
-            return Utils.errorMsg;
-        }
+        const data = {
+            uri: uri,
+            total: total,
+            result: imagesOfRecords
+        };
+
+        return data;
     }
-    catch(err) {
-        console.error(err);
+    else {
+        Debug('nothing found');
+        return Utils.errorMsg;
     }
+
 };
 
 const getSummaryOfRecords = async function (uri) {
@@ -226,120 +234,43 @@ const getSummaryOfRecords = async function (uri) {
     return summary;
 };
 
-const getUriAndCacheKey = function(request) {
+module.exports = {
+    plugin: {
+        name: 'records',
+        register: async function(server, options) {
+            server.route([{
+                path: "/records",
+                method: 'GET',
+                config: {
+                    description: "fetch records from Zenodo",
+                    tags: ['record', 'api'],
+                    plugins: {
+                        'hapi-swagger': {
+                            order: 3,
+                            responseMessages: ResponseMessages
+                        }
+                    },
+                    validate: Schema.records,
+                    notes: [
+                        'This is the main route for fetching records matching the provided query parameters.'
+                    ]
+                },
+                handler: function(request, h) {
 
-    // construct the URI
-    let uri = Config.uri + 'records/?communities=biosyslit';
+                    const [ cacheKey, uri ] = Utils.makeUriAndCacheKey(request, 'records')
 
-    // construct the 'uri' based on the query params that will 
-    // be sent to Zenodo. Note that the following query params 
-    // are NOT sent to Zenodo. They are only for local logic
-    //    request.query.summary
-    //    request.query.refreshCache
-    //    request.query.images
-    [
-        'q', 
-        'file_type', 
-        'type', 
-        'image_subtype', 
-        'publication_subtype', 
-        'access_right', 
-        'keywords',
-        'size',
-        'page'
-    ].forEach(function(param) {
-        if (request.query[param]) {
-            uri += `&${param}=${encodeURIComponent(request.query[param])}`;
+                    const getImages = request.query.images || false;
+                    const getSummary = request.query.summary || false;
+
+                    if (request.query.refreshCache) {
+                        return getResult(uri, getImages, getSummary, cacheKey)
+                    }
+                    else {
+                        return (Cache.getSync(cacheKey) || getResult(uri, getImages, getSummary, cacheKey))
+                    }
+
+                }
+            }]);
         }
-    });
-
-    // construct the cacheKey
-    // now that the 'uri' has been constructed, let's get either 
-    // a summary OR images OR complete details
-    let queryStr = [];
-
-    if (request.query.images) {
-        queryStr.push(`images=${request.query.images}`);
-    }
-
-    if (request.query.summary) {
-        queryStr.push(`summary=${request.query.summary}`);
-    }
-
-    const cacheUri = uri + (queryStr.length ? `?${queryStr.join('&')}` : '');
-    const cacheKey = Utils.createCacheKey(cacheUri);
-
-    return {uri, cacheKey};
-};
-
-const records = {
-
-    method: 'GET',
-    path: "/records",
-
-    handler: function(request, h) {
-
-        const {uri, cacheKey} = getUriAndCacheKey(request);
-        const getImages = request.query.images || false;
-        const getSummary = request.query.summary || false;
-
-        let result;
-        if (request.query.refreshCache) {
-
-            if (result = getResult(uri, getImages, getSummary)) {
-                
-                Utils.updateCache(Cache, cacheKey, result);
-                return result;
-            }
-            else {
-
-                // getResult failed, so check if result 
-                // exists in cache
-                if (result = Cache.getSync(cacheKey)) {
-
-                    // return result from cache
-                    return result;
-                }
-                else {
-
-                    // no result in cache
-                    return Utils.errorMsg;
-                }
-            }  
-        }
-        else {
-            if (result = Cache.getSync(cacheKey)) {
-
-                // return result from cache
-                return result;
-            }
-            else {
-
-                if (result = getResult(uri, getImages, getSummary)) {
-                    Utils.updateCache(Cache, cacheKey, result);
-                    return result;
-                }
-                else {
-                    return Utils.errorMsg;
-                }
-            }
-        }
-    },
-
-    config: {
-        description: "fetch records from Zenodo",
-        tags: ['record', 'api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 3,
-                responseMessages: ResponseMessages
-            }
-        },
-        validate: Schema.records,
-        notes: [
-            'This is the main route for fetching records matching the provided query parameters.'
-        ]
     }
 };
-
-module.exports = records;

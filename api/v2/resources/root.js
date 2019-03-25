@@ -1,39 +1,52 @@
-const ResponseMessages = require('../../response-messages');
-const Config = require('../../../config.js');
-const Utils = require('../utils.js');
+const ResponseMessages = require('../../responseMessages')
 
-const root = {
+module.exports = {
+    plugin: {
+        name: 'root2',
+        register: function(server, options) {
 
-    method: 'GET',
-    path: '/',
-    handler: function(request, h) {
+            
+            server.route([
+                { 
+                    path: '/', 
+                    method: 'GET', 
+                    config: {
+                        description: 'API root listing all available resources',
+                        tags: ['root', 'api'],
+                        plugins: {
+                            'hapi-swagger': {
+                                order: 1,
+                                responseMessages: ResponseMessages
+                            }
+                        },
+                        notes: [
+                            'This is the root of the API. It lists all available resources.'
+                        ]
+                    },
+                    handler: function(request, h) {
+    
+                        const routes = server.table().filter(r => { 
+                            
+                            return r.path.split('/')[1] === 'v2'
 
-        const r = request.server.plugins.blipp.info()[0].routes;
-        const p = [];
-        for (let i = 0, j = r.length; i < j; i++) {
-            if ((r[i].path.substr(0, 3) === '/v2') && (r[i].path.length > 4)) {
-                r[i].path = Config.zenodeo + r[i].path;
-                p.push(r[i]);
-            }
-        }
-        
-        return Utils.packageResult(Config.zenodeo + '/v2/', p);
-    },
+                        }).map(r => {
 
-    config: {
-        description: "root",
-        tags: ['api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 1,
-                responseMessages: ResponseMessages
-            }
+                            let description = r.settings.description;
+                            const path = r.path;
+                            let name = path.split('/')[2] || 'root'
+                            
+                            return {
+                                name: name,
+                                description: description,
+                                path: path
+                            }
+                        });
+                        
+                        return routes;
+                    
+                    }
+                }
+            ]);
         },
-        validate: {},
-        notes: [
-            'Zenodeo API root.',
-        ]
-    }
+    },
 };
-
-module.exports = root;

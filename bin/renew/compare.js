@@ -21,10 +21,3 @@ const compare = {
 };
 
 module.exports = compare;
-
-
-// download new files zip archive
-// unzip new file zip archive
-// compare new files with old files
-// import added new files to db
-// add FTS rows for newly added files

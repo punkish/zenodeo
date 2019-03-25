@@ -1,7 +1,9 @@
 const Wreck = require('wreck');
 const Schema = require('../schema.js');
-const Config = require('../../../config.js');
-const ResponseMessages = require('../../response-messages');
+const config = require('config');
+const tb = config.get('tb');
+
+const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils.js');
 const xml2js = require('xml2js');
 const Database = require('better-sqlite3');
@@ -53,7 +55,7 @@ const insertXmlIntoDb = function(data) {
 
 const getResult = async function(treatment_id) {
 
-    const uri = Config.tb + treatment_id;
+    const uri = tb + treatment_id;
     console.log(`getting result for ${uri}`);
     
     const { res, payload } = await Wreck.get(uri);

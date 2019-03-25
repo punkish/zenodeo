@@ -1,14 +1,75 @@
 'use strict';
 
-const Debug = require('debug')('db      :');
+const Debug = require('debug')('db');
 const Config = require('../../config');
+const dataDict = require('./data-dictionary');
 const Database = require('better-sqlite3');
-const ds = new Database(`${Config.data}/plazi.sqlite`);
+const ds = new Database(`${Config.data}/plazi2.sqlite`);
 const { performance } = require('perf_hooks');
 
 const db = {
 
     createTables: function() {
+
+        const dataTypes = {
+            string: 'TEXT',
+            real: 'REAL',
+            date: 'DATETIME',
+            year: 'DATETIME',
+            latitude: 'REAL',
+            longitude: 'REAL',
+            uri: 'TEXT',
+            'string.guid()': 'TEXT'
+        }
+        
+        for (let table in dataDict) {
+
+            let fields = dataDict[table].map(f => { 
+                if (f.plazi === 'order') {
+                    return '"order"';
+                }
+                else {
+                    return f.plazi
+                }
+            });
+
+            let fieldsWithTypes = dataDict[table].map(f => { 
+                if (f.plazi === 'order') {
+                    return '"order" TEXT';
+                }
+                else {
+                    return f.plazi + ' ' + dataTypes[f.type] 
+                }
+            });
+
+            let fieldsForBinding = dataDict[table].map(f => { 
+                return `@${f.plazi}` 
+            });
+
+            // add a primary key to all the tables
+            fieldsWithTypes.unshift('id INTEGER PRIMARY KEY');
+
+            // add the treatmentId field to all tables other 
+            // than 'treatments' (which already has 'treatmentId') 
+            // to serve as a foreign key
+            if (table !== 'treatments') {
+                fields.unshift('treatmentId');
+                fieldsWithTypes.unshift('treatmentId TEXT');
+                fieldsForBinding.unshift('@treatmentId');
+            }
+
+            const createStmt = `CREATE TABLE IF NOT EXISTS ${table} ( ${fieldsWithTypes.join(', ')} )`;
+            //Debug(createStmt)
+            ds.prepare(createStmt).run();
+
+            const insertStmt = `INSERT INTO ${table} ( ${fields.join(', ')} ) VALUES ( ${fieldsForBinding.join(', ')} )`;
+            Debug(insertStmt);
+            this.insertStmts[table] = ds.prepare(insertStmt);
+        }
+    },
+
+    /*
+    createTables_orig: function() {
         // Debug('creating tables');
         // const t0 = performance.now();
 
@@ -25,21 +86,30 @@ const db = {
         // const t1 = performance.now();
         // Debug('creating tables took ' + (t1 - t0) + ' ms')
     },
+    */
 
-    loadTreatments: function(rows) {
-        Debug('loading treatments table');
-        const t0 = performance.now();
+    insertStmts: {},
 
-        const insert = ds.prepare('INSERT INTO treatments (treatment_id, document_attr, taxonomicname_attr, treatment_text) VALUES (@treatment_id, @document_attr, @taxonomicname_attr, @treatment_text)');
+    loadData: function(rows, treatmentId) {
 
-        const insertMany = ds.transaction((rows) => {
-            for (const row of rows) insert.run(row);
-        });
+        for (let table in dataDict) {
+            Debug(`loading ${table}`);
+            const t0 = performance.now();
 
-        insertMany(rows);
+            const insertMany = ds.transaction((rows) => {
+                for (const row of rows) {
+                    // if (table !== 'treatments') {
+                    //     row[table].treatmentId = 
+                    // }
+                    this.insertStmts[table].run(row[table]);
+                }
+            });
 
-        const t1 = performance.now();
-        Debug('loading treatments table took ' + (t1 - t0) + ' ms')
+            insertMany(rows);
+
+            const t1 = performance.now();
+            Debug(`loading ${table} took ${(t1 - t0)} ms`)
+        }
     },
 
     indexTreatments: function() {
@@ -47,7 +117,7 @@ const db = {
         const t0 = performance.now();
 
         Debug('creating index on treatments table');
-        ds.prepare('CREATE INDEX ix_treatements ON treatments (treatment_id)').run();
+        ds.prepare('CREATE INDEX ix_treatements ON treatments (treatmentId)').run();
 
         const t1 = performance.now();
         Debug('indexing treatments table took ' + (t1 - t0) + ' ms')
@@ -57,12 +127,13 @@ const db = {
         Debug('loading treatments FTS table');
         const t0 = performance.now();
 
-        ds.prepare(`INSERT INTO vtreatments SELECT treatment_id, treatment_text FROM treatments`).run();
+        ds.prepare(`INSERT INTO vtreatments SELECT treatmentId, treatmentText FROM treatments`).run();
 
         const t1 = performance.now();
         Debug('loading treatments FTS table took ' + (t1 - t0) + ' ms')
     },
 
+    /*
     loadMaterialCitations: function(rows) {
         // Debug('loading materialcitations table');
         // const t0 = performance.now();
@@ -94,6 +165,7 @@ const db = {
         // const t1 = performance.now();
         // Debug('loading treatmentcitations table took ' + (t1 - t0) + ' ms')
     }
+    */
 };
 
 module.exports = db;

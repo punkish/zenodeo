@@ -1,13 +1,71 @@
-// v2 schema
-const Joi = require('joi');
+'use strict';
 
-const schema = {
+const fs = require('fs');
+const Joi = require('joi');
+//const csv = require('csvtojson');
+const csvFilePath = './dataDictionary/data-dictionary.csv';
+
+// async function run() {
+
+//     const jsObj = await csv().fromFile(csvFilePath)
+//     const schemaObj = {};
+
+//     const j = jsObj.length
+//     for (let i = 0; i < j; i++) {
+//         const el = jsObj[i]
+//         schemaObj[el.table] = {}
+//     }
+
+//     const b = {};
+//     for (let i = 0; i < j; i++) {
+//         const el = jsObj[i]
+//         const table = el.table
+//         const plaziName = el.plaziName
+//         delete(el.table)
+//         delete(el.plaziName)
+
+//         schemaObj[table][plaziName] = el;
+//     }
+
+//     return schemaObj
+// }
+
+const csvjson = require('csvjson');
+const data = fs.readFileSync(csvFilePath, { encoding : 'utf8'});
+
+const jsObj = csvjson.toObject(data, {
+    delimiter : ',',
+    quote     : '"'
+});
+
+const schemaObj = {};
+
+const j = jsObj.length
+for (let i = 0; i < j; i++) {
+    const el = jsObj[i]
+    schemaObj[el.table] = {}
+}
+
+const b = {};
+for (let i = 0; i < j; i++) {
+    const el = jsObj[i]
+    const table = el.table
+    const plaziName = el.plaziName
+    delete(el.table)
+    delete(el.plaziName)
+
+    schemaObj[table][plaziName] = el;
+}
+
+
+module.exports = {
 
     communities: {
         query: {
             name: Joi.string()
                 .description('The Zenodo Community to be queried for the records; defaults to "biosyslit"')
-                .valid('all', 'biosyslit', 'icedig')
+                .valid('all', 'biosyslit', 'belgiumherbarium')
+                .default('biosyslit')
                 .required(),
 
             refreshCache: Joi.boolean()
@@ -16,52 +74,48 @@ const schema = {
         }
     },
 
-    record: {
-        params: {
-            id: Joi.number()
-                .description("record id")
-                .integer()
-                .positive()
-                .required()
-        },
-        query: {
-            refreshCache: Joi.boolean()
-                .description("force refresh cache")
-                .default(false),
-
-            images: Joi.boolean()
-                .description("retrieve only the images for the record")
-                .optional()
-                .default(false),
-
-            communities: Joi.string()
-                .description('The community on Zenodo; defaults to "biosyslit"')
-                .valid('all', 'biosyslit', 'icedig')
-                .default('biosyslit')
-        }
-    },
-
     records: {
         query: {
+            
+            id: Joi.number()
+                .description("record id. All other query params are ignored if id is provided.")
+                .integer()
+                .positive()
+                .optional(),
+
+            // If 'id' is present in the queryString, all of 
+            // the below are ignored if also present.
+            // The following rules apply *only* if 'id' is 
+            // not present
             page: Joi.number()
                 .integer()
                 .description('Starting page, defaults to 1')
-                .required()
-                .default(1),
+                .default(1)
+                .when('id', {
+                    is: Joi.number().integer().positive(), 
+                    then: Joi.optional(),
+                    otherwise: Joi.required() 
+                }),
 
             size: Joi.number()
                 .integer()
                 .description('Number of records to fetch per query, defaults to 30')
-                .required()
-                .default(30),
+                .default(30)
+                .when('id', {
+                    is: Joi.number().integer().positive(), 
+                    then: Joi.optional(),
+                    otherwise: Joi.required() 
+                }),
 
             communities: Joi.string()
                 .description('The community on Zenodo; defaults to "biosyslit"')
-                .valid('all', 'biosyslit', 'icedig')
-                .default('biosyslit'),
+                .valid('all', 'biosyslit', 'belgiumherbarium')
+                .default('biosyslit')
+                .optional(),
 
             q: Joi.string()
-                .description('Text string for full-text search'),
+                .description(schemaObj.treatments.treatmentId.description)
+                .optional(),
 
             file_type: Joi.string()
                 .description('File type, usually determined by the extension')
@@ -140,16 +194,19 @@ const schema = {
 
             keywords: Joi.array()
                 .description('More than one keywords may be used')
+                .when('id', {is: Joi.number().integer().positive(), then: Joi.optional() } )
                 .optional(),
 
-            summary: Joi.boolean()
-                .description('Summarize the results to record IDs')
-                .default(true),
+            // summary: Joi.boolean()
+            //     .description('Summarize the results to record IDs')
+            //     .default(true),
 
-            images: Joi.boolean()
-                .description('Return only image links for each record'),
+            // images: Joi.boolean()
+            //     .description('Return only image links for each record'),
 
             refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .optional()
                 .default(false)
         }
     },
@@ -160,41 +217,112 @@ const schema = {
         }
     },
 
-    treatment: {
-        params: {
-            id: Joi.string().required()
-        }
-    },
-
     treatments: {
         query: {
-            q: Joi.string().description('freetext search')
+            
+            // treatmentId: Joi.string()
+            //     .description("All other query params are ignored if treatmentId is provided.")
+            //     .optional(),
+            treatmentId: Joi.string()
+                .description(schemaObj.treatments.treatmentId.description)
+                .optional(),
+
+            // If 'treatmentId' is present in the 
+            // queryString, all of the below are 
+            // ignored if also present.
+            // The following rules apply *only* if 
+            // 'treatmentId' is not present
+            treatmentTitle: Joi.string()
+                .description(schemaObj.treatments.treatmentTitle.description)
+                .optional(),
+
+            journalTitle: Joi.string()
+                .description(schemaObj.treatments.journalTitle.description)
+                .optional(),
+
+            journalYear: Joi.string()
+                .description(schemaObj.treatments.journalYear.description)
+                .optional(),
+
+            authorityName: Joi.string()
+                .description(schemaObj.treatments.authorityName.description)
+                .optional(),
+
+            authorityYear: Joi.string()
+                .description(schemaObj.treatments.authorityYear.description)
+                .optional(),
+
+            kingdom: Joi.string()
+                .description(schemaObj.treatments.kingdom.description)
+                .optional(),
+
+            phylum: Joi.string()
+                .description(schemaObj.treatments.phylum.description)
+                .optional(),
+
+            order: Joi.string()
+                .description(schemaObj.treatments.order.description)
+                .optional(),
+
+            family: Joi.string()
+                .description(schemaObj.treatments.family.description)
+                .optional(),
+
+            genus: Joi.string()
+                .description(schemaObj.treatments.genus.description)
+                .optional(),
+
+            species: Joi.string()
+                .description(schemaObj.treatments.species.description)
+                .optional(),
+
+            rank: Joi.string()
+                .description(schemaObj.treatments.rank.description)
+                .optional(),
+
+            q: Joi.string()
+                .description(schemaObj.treatments.fullText.description)
+                .optional()
         }
     },
 
+    treatmentAuthors: {
+        query: {
+            treatmentAuthor: Joi.string()
+                .description(schemaObj.treatmentAuthors.treatmentAuthor.description)
+                .optional()
+        }
+    },
+
+    wpsummary: {
+        query: {
+            q: Joi.string().required()
+        }
+    },
+
+    // no caching for any of the resources below
     authors: {
-        params: {
-            term: Joi.string().required()
+        query: {
+            q: Joi.string().required()
         }
     },
 
     keywords: {
-        params: {
-            term: Joi.string().required()
+        query: {
+            q: Joi.string().required()
         }
     },
 
     families: {
-        params: {
-            term: Joi.string().required()
+        query: {
+            q: Joi.string().required()
         }
     },
 
     taxa: {
-        params: {
-            term: Joi.string().required()
+        query: {
+            q: Joi.string().required()
         }
     }
-};
 
-module.exports = schema;
+}

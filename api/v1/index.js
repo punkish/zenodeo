@@ -3,15 +3,15 @@ exports.plugin = {
     version: '1.0.1',
     register: async function(server, options) {
 
-        server.route([
-            require('./resources/biosyslit.js'),
-            require('./resources/record.js'),
-            require('./resources/records.js'),
-            require('./resources/files.js'),
-            require('./resources/authors.js'),
-            require('./resources/keywords.js'),
-            require('./resources/families.js'),
-            require('./resources/taxa.js'),
+        await server.register([
+            { plugin: require('./resources/biosyslit') },
+            { plugin: require('./resources/record') },
+            { plugin: require('./resources/records') },
+            { plugin: require('./resources/files') },
+            { plugin: require('./resources/authors') },
+            { plugin: require('./resources/keywords') },
+            { plugin: require('./resources/families') },
+            { plugin: require('./resources/taxa') },
             //require('./resources/treatment.js')
         ])
     }

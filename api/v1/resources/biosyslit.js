@@ -1,54 +1,64 @@
 const Wreck = require('wreck');
-const Config = require('../../../config.js');
-const ResponseMessages = require('../../response-messages');
+
+const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils.js');
-const Cache = Utils.cache('root');
+const Cache = Utils.cache('root')
 
-const uri = Config.uri + 'communities/biosyslit';
-const cacheKey = Utils.createCacheKey(uri);
+const getResult = async function(uri, cacheKey) {
 
-const biosyslit = {
+    const { res, payload } = await Wreck.get(uri);
 
-    method: 'GET',
-    path: '/',
+    if (payload) {
 
-    handler: async function(request, h) {
-
-        let result = Cache.getSync(cacheKey);
-        if (result) {
-
-            return result;
+        let result = JSON.parse(payload);
+        if (Cache.getSync(cacheKey)) {
+            Cache.deleteSync(cacheKey)
         }
-        else {
-            
-            const { res, payload } = await Wreck.get(uri);
-            if (payload) {
-
-                result = JSON.parse(payload);
-                Cache.putSync(cacheKey, result);
-                return result;
-            }
-            else {
-                
-                return Utils.errorMsg;
-            }
-        }
-    },
-
-    config: {
-        description: "The API root of the 'biosyslit' community at Zenodo",
-        tags: ['biosyslit', 'communities', 'api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 1,
-                responseMessages: ResponseMessages
-            }
-        },
-        validate: {},
-        notes: [
-            'A community to share publications related to bio-systematics. The goal is to provide open access to publications cited in publications or in combination with scientific names a digital object identifier (DOI) to enable citation of the publications including direct access to its digital representation. For additional search functionality  can be used. This includes also searches in CrossRef, DataCite, PubMed, RefBank, GNUB and Mendeley.',
-        ]
+        Cache.putSync(cacheKey, result)
+        return result;
     }
+    else {
+        
+        return Utils.errorMsg;
+    }
+
 };
 
-module.exports = biosyslit;
+module.exports = {
+    plugin: {
+        name: 'biosyslit',
+        register: async function(server, options) {
+
+            server.route([{ 
+                path: '/', 
+                method: 'GET', 
+                config: {
+                    description: "The API root of the 'biosyslit' community at Zenodo",
+                    tags: ['biosyslit', 'communities', 'api'],
+                    plugins: {
+                        'hapi-swagger': {
+                            order: 1,
+                            responseMessages: ResponseMessages
+                        }
+                    },
+                    validate: {},
+                    notes: [
+                        'A community to share publications related to bio-systematics. The goal is to provide open access to publications cited in publications or in combination with scientific names a digital object identifier (DOI) to enable citation of the publications including direct access to its digital representation. For additional search functionality  can be used. This includes also searches in CrossRef, DataCite, PubMed, RefBank, GNUB and Mendeley.',
+                    ]
+                },
+                handler: async function(request, h) {
+                    
+                    const [ cacheKey, uri ] = Utils.makeUriAndCacheKey(request, '/')
+
+                    if (request.query.refreshCache) {
+                        return getResult(uri, cacheKey)
+                    }
+                    else {
+                        return (Cache.getSync(cacheKey) || getResult(uri, cacheKey))
+                    }
+                
+                }
+            }]);
+        },
+    },
+};

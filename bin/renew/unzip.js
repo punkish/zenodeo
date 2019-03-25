@@ -1,6 +1,6 @@
 'use strict';
 
-const Debug = require('debug')('unzip   :');
+const Debug = require('debug')('unzip');
 
 const unzip = {
     msg: function() {

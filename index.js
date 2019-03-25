@@ -7,8 +7,16 @@ Start this program from the command line with `pm2`
 
 'use strict';
 
-const Config = require('./config.js');
+//const Config = require('./config.js');
 const Hapi = require('hapi');
+const Disk = require('catbox-disk');
+
+const config = require('config');
+const cacheName = config.get('cache.v2.name');
+const cachePath = config.get('cache.path');
+const info = config.get('info');
+const swaggeredScheme = config.get('swaggered-scheme');
+const port = config.get('port')
 
 /*
  * blipp is a simple hapi plugin to display  
@@ -33,65 +41,67 @@ const HapiSwagger = require('hapi-swagger');
 const swaggerOptions = {
     documentationPage: false,
     documentationPath: "/docs",
-    info: Config.info,
+    info: info,
     sortEndpoints: 'ordered',
     jsonEditor: false,
     validatorUrl: null,
-    schemes: ['http', 'https']
+    schemes: swaggeredScheme
 };
 
 /*
  * Hapi process monitoring
  */
-// const Good = require('good');
-// const goodOptions = {
-//     ops: {
-//         interval: 1000
-//     },
-//     reporters: {
-//         console: [
-//             {
-//                 module: 'good-squeeze',
-//                 name: 'Squeeze',
-//                 args: [{ log: '*', response: 'api' }]
-//             }, 
-//             { 
-//                 module: 'good-console',
-//                 args: [{ format: 'MMM Do YYYY, h:mm:ss A' }]
-//             },
-//             'stdout'
-//         ]
-//     }
-// };
+const Good = require('good');
+const goodOptions = {
+    ops: {
+        interval: 1000
+    },
+    reporters: {
+        console: [
+            {
+                module: 'good-squeeze',
+                name: 'Squeeze',
+                args: [{ log: '*', response: 'api' }]
+            }, 
+            { 
+                module: 'good-console',
+                args: [{ format: 'MMM Do YYYY, h:mm:ss A' }]
+            },
+            'stdout'
+        ]
+    }
+};
 
 const Debug = require('debug')('server: index')
 
-// API versions
-const APIs = [
-    { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } },
-    { plugin: require('./api/v2/index.js'), routes: { prefix: '/v2/' } }
-];
-
-let plugins = [
-    { plugin: Inert, options: {} },
-    { plugin: Vision, options: {} },
-    { plugin: Blipp, options: {} } ,
-    //{ plugin: Good, options: goodOptions }, 
-    { plugin: HapiSwagger, options: swaggerOptions }
-];
-
-// Add the API versions to the list of plugins
-APIs.forEach(x => { plugins.push(x) });
-
-const server = Hapi.server({
-    port: Config.port,
+const server = new Hapi.server({
+    port: port,
     host: 'localhost',
-    routes: { cors: true }
+    routes: { cors: true },
+    cache: [{
+		name: cacheName,
+		engine: new Disk({
+            cachePath: cachePath,
+            cleanEvery: 0,
+            partition: 'cache'
+        })
+    }],
+    router: {
+        stripTrailingSlash: true
+    }
 });
 
-const init = async () => {
+const start = async () => {
 
-    await server.register(plugins);
+    await server.register([
+        { plugin: Inert, options: {} },
+        { plugin: Vision, options: {} },
+        { plugin: Blipp, options: {} } ,
+        { plugin: Good, options: goodOptions }, 
+        { plugin: HapiSwagger, options: swaggerOptions },
+        { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } },
+        { plugin: require('./api/v2/index.js'), routes: { prefix: '/v2' } }
+    ]);
     
     server.views({
         engines: {
@@ -120,10 +130,4 @@ const init = async () => {
     Debug(`Server running at: ${server.info.uri}`);
 };
 
-process.on('unhandledRejection', (err) => {
-
-    Debug(err);
-    process.exit(1);
-});
-
-init();
+start();
