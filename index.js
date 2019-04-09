@@ -37,7 +37,7 @@ const Vision = require('vision');
 /*
  * Generate Swagger-compatible documentation for the app
  */
-console.log(Config.schemes)
+//console.log(Config.schemes)
 const HapiSwagger = require('hapi-swagger');
 const swaggerOptions = {
     documentationPage: false,
@@ -45,13 +45,8 @@ const swaggerOptions = {
     info: info,
     sortEndpoints: 'ordered',
     jsonEditor: false,
-<<<<<<< HEAD
-    validatorUrl: null
-    //schemes: Config.schemes
-=======
     validatorUrl: null,
     schemes: swaggeredScheme
->>>>>>> blr
 };
 
 /*
