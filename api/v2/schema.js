@@ -282,6 +282,18 @@ module.exports = {
 
             q: Joi.string()
                 .description(schemaObj.treatments.fullText.description)
+                .optional(),
+
+            lat: Joi.number()
+                .min(-180)
+                .max(180)
+                .description('latitude')
+                .optional(),
+
+            lon: Joi.number()
+                .min(-180)
+                .max(180)
+                .description('longitude')
                 .optional()
         }
     },

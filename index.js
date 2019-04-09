@@ -121,8 +121,7 @@ const start = async () => {
         require('./resources/tos'),
         require('./resources/install'),
         require('./resources/examples'),
-        require('./resources/about'),
-        //require('./resources/deefault'),
+        require('./resources/about')
     ]);
     
 

@@ -22,7 +22,7 @@ exports.plugin = {
             { plugin: require('./resources/taxa') },
             { plugin: require('./resources/wpsummary'), options: cacheOptions },
             { plugin: require('./resources/records'), options: cacheOptions },
-            { plugin: require('./resources/treatments') }
+            { plugin: require('./resources/treatments'), options: cacheOptions }
         ]);
     }
 };

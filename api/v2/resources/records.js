@@ -12,7 +12,7 @@ module.exports = {
                 expiresIn: options.expiresIn,
                 generateTimeout: options.generateTimeout,
                 segment: 'records2', 
-                generateFunc: async (query) => { return await getRecords(query); },
+                generateFunc: async (query) => { return await getRecords(query) },
                 getDecoratedValue: options.getDecoratedValue
             });
 
@@ -89,7 +89,7 @@ const handler = async function(request, h) {
         query = queryMaker(request);
     }
 
-    if (request.query.refreshCache) {
+    if (request.query.refreshCache === 'true') {
         await this.recordsCache.drop(query);
     }
 
