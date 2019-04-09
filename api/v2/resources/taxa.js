@@ -1,39 +1,41 @@
+const Wreck = require('wreck');
 const Utils = require('../utils');
 const Schema = require('../schema.js');
-const ResponseMessages = require('../../responseMessages')
 
 module.exports = {
     plugin: {
-        name: 'taxa',
+        name: 'taxa2',
         register: async function(server, options) {
 
             server.route([
                 { 
-                    path: '/taxa/{term?}', 
+                    path: '/taxa', 
                     method: 'GET', 
-                     config: {
+                    config: {
                         description: 'retrieve all taxa starting with the provided letters',
                         tags: ['taxa', 'api'],
                         plugins: {
                             'hapi-swagger': {
-                                order: 8,
-                                responseMessages: ResponseMessages
+                                order: 9,
+                                //responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.authors,
+                        validate: Schema.taxa,
                         notes: [
                             'This route fetches taxa starting with the provided letters.'
                         ]
                     },
-                    handler: async function(request, h) {
-                        
-                        if (request.params.term) {
-                            return Utils.find(request.params.term, 'taxa');
-                        } 
-                    
-                    }
+                    handler 
                 }
             ]);
         },
     },
+};
+
+const handler = async function(request, h) {
+    
+    if (request.query.q) {
+        return Utils.find(request.query.q, 'taxa');
+    } 
+
 };

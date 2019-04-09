@@ -1,39 +1,41 @@
+const Wreck = require('wreck');
 const Utils = require('../utils');
 const Schema = require('../schema.js');
-const ResponseMessages = require('../../responseMessages')
 
 module.exports = {
     plugin: {
-        name: 'keywords',
+        name: 'keywords2',
         register: async function(server, options) {
 
             server.route([
                 { 
-                    path: '/keywords/{term?}', 
+                    path: '/keywords', 
                     method: 'GET', 
-                     config: {
+                    config: {
                         description: 'retrieve all keywords starting with the provided letters',
                         tags: ['keywords', 'api'],
                         plugins: {
                             'hapi-swagger': {
-                                order: 9,
-                                responseMessages: ResponseMessages
+                                order: 8,
+                                //responseMessages: ResponseMessages
                             }
                         },
                         validate: Schema.keywords,
                         notes: [
-                            'This route fetches the keywords starting with the provided letters.'
+                            'retrieve all keywords starting with the provided letters'
                         ]
                     },
-                    handler: async function(request, h) {
-                        
-                        if (request.params.term) {
-                            return Utils.find(request.params.term, 'keywords');
-                        } 
-                    
-                    }
+                    handler 
                 }
             ]);
         },
     },
+};
+
+const handler = async function(request, h) {
+    
+    if (request.query.q) {
+        return Utils.find(request.query.q, 'keywords');
+    } 
+
 };

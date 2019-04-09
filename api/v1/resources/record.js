@@ -1,39 +1,30 @@
 const Wreck = require('wreck');
 const Schema = require('../schema.js');
-const Config = require('../../../config.js');
-const ResponseMessages = require('../../response-messages');
+
+const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils.js');
-const Cache = Utils.cache('record');
+const Cache = Utils.cache('record')
 
-const getResult = function(uri, getImages) {
+const getResult = async function(uri, getImages, cacheKey) {
 
-    let result;
+    let result = await getRemoteData(uri);
 
-    try {
-        result = getRemoteData(uri);
-        
-        if (getImages) {
-            
-            try {
-                const imagesPayload = getRemoteData(result.links.bucket);
+    if (getImages) {
+        const imagesPayload = await getRemoteData(result.links.bucket);
+        let images = [];
+        imagesPayload.contents.forEach(function(element) {
+            images.push(element.links.self);
+        });
 
-                let images = [];
-                imagesPayload.contents.forEach(function(element) {
-                    images.push(element.links.self);
-                });
-
-                result = images;
-            }
-            catch(err) {
-                console.error(err);
-            }
-        }
-
-        return result;
+        result = images;
     }
-    catch(err) {
-        console.error(err);
+
+    if (Cache.getSync(cacheKey)) {
+        Cache.deleteSync(cacheKey)
     }
+
+    Cache.putSync(cacheKey, result)
+    return result;
 };
 
 const getRemoteData = async function(uri) {
@@ -42,81 +33,40 @@ const getRemoteData = async function(uri) {
     return JSON.parse(payload);
 };
 
-const record = {
-    method: 'GET',
-    path: '/record/{id}',
+module.exports = {
+    plugin: {
+        name: 'record',
+        register: async function(server, options) {
+            server.route([{
+                path: '/record/{id}',
+                method: 'GET',
+                config: {
+                    description: "fetch a single record from Zenodo",
+                    tags: ['record', 'api'],
+                    plugins: {
+                        'hapi-swagger': {
+                            order: 2,
+                            responseMessages: ResponseMessages
+                        }
+                    },
+                    validate: Schema.record,
+                    notes: [
+                        'This is the main route for fetching a record matching an id or a set of records matching the provided query parameters.'
+                    ]
+                },
+                handler: function(request, h) {
 
-    handler: function(request, h) {
+                    const [ cacheKey, uri ] = Utils.makeUriAndCacheKey(request, 'record')
 
-        // construct the URI
-        const uri = Config.uri + 'records/' + encodeURIComponent(request.params.id);
-        
-        // construct the cacheKey
-        let cacheUri = uri;
-        let getImages = false;
-        if (request.query.images) {
-            cacheUri += `?images=${request.query.images}`;
-            getImages = request.query.images;
+                    if (request.query.refreshCache) {
+                        return getResult(uri, request.query.images, cacheKey)
+                    }
+                    else {
+                        return (Cache.getSync(cacheKey) || getResult(uri, request.query.images, cacheKey))
+                    }
+            
+                }
+            }])
         }
-        const cacheKey = Utils.createCacheKey(cacheUri);
-
-        let result;
-        if (request.query.refreshCache) {
-
-            if (result = getResult(uri, getImages)) {
-        
-                Utils.updateCache(Cache, cacheKey, result);
-                return result;
-            }
-            else {
-                
-                // getResult failed
-                if (result = Cache.getSync(cacheKey)) {
-        
-                    // return result from cache
-                    return result;
-                }
-                else {
-        
-                    // no result in cache
-                    return Utils.errorMsg;
-                }
-            }
-        }
-        else {
-            if (result = Cache.getSync(cacheKey)) {
-        
-                // return result from cache
-                return result;
-            }
-            else {
-                if (result = getResult(uri, getImages)) {
-
-                    Utils.updateCache(Cache, cacheKey, result);
-                    return result;
-                }
-                else {
-
-                    return Utils.errorMsg;
-                }
-            }
-        }
-    },
-
-    config: {
-        description: "fetch a single record from Zenodo",
-        tags: ['record', 'api'],
-        plugins: {
-            'hapi-swagger': {
-                order: 2,
-                responseMessages: ResponseMessages
-            }
-        },
-        validate: Schema.record,
-        notes: [
-            'This is the main route for fetching a record matching an id or a set of records matching the provided query parameters.'
-        ]
     }
 };
-
-module.exports = record;

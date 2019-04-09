@@ -1,12 +1,21 @@
+// v1 schema
 const Joi = require('joi');
 
 const schema = {
     record: {
         params: {
-            id: Joi.number().integer().positive().required()
+            id: Joi.number()
+                .description("record id")
+                .integer()
+                .positive()
+                .required()
         },
         query: {
             images: Joi.boolean()
+                .description("force refresh cache"),
+
+            refreshCache: Joi.boolean()
+                .default(false)
         }
     },
 
@@ -127,12 +136,20 @@ const schema = {
     files: {
         params: {
             file_id: Joi.string()
+        },
+        query: {                
+            refreshCache: Joi.boolean()
+                .default(false)
         }
     },
 
     treatments: {
         params: {
             id: Joi.string().required()
+        },
+        query: {
+            refreshCache: Joi.boolean()
+                .default(false)
         }
     }
 };

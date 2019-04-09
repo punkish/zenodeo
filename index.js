@@ -7,8 +7,16 @@ Start this program from the command line with `pm2`
 
 'use strict';
 
-const Config = require('./config.js');
+//const Config = require('./config.js');
 const Hapi = require('hapi');
+const Disk = require('catbox-disk');
+
+const config = require('config');
+const cacheName = config.get('cache.v2.name');
+const cachePath = config.get('cache.path');
+const info = config.get('info');
+const swaggeredScheme = config.get('swaggered-scheme');
+const port = config.get('port')
 
 /*
  * blipp is a simple hapi plugin to display  
@@ -34,11 +42,16 @@ const HapiSwagger = require('hapi-swagger');
 const swaggerOptions = {
     documentationPage: false,
     documentationPath: "/docs",
-    info: Config.info,
+    info: info,
     sortEndpoints: 'ordered',
     jsonEditor: false,
+<<<<<<< HEAD
     validatorUrl: null
     //schemes: Config.schemes
+=======
+    validatorUrl: null,
+    schemes: swaggeredScheme
+>>>>>>> blr
 };
 
 /*
@@ -54,44 +67,47 @@ const goodOptions = {
             {
                 module: 'good-squeeze',
                 name: 'Squeeze',
-                args: [{
-                    log: '*',
-                    response: '*'
-                }]
-            }, {
-                module: 'good-console'
+                args: [{ log: '*', response: 'api' }]
+            }, 
+            { 
+                module: 'good-console',
+                args: [{ format: 'MMM Do YYYY, h:mm:ss A' }]
             },
             'stdout'
         ]
     }
 };
 
-// API versions
-const APIs = [
-    { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } }
-    //{ plugin: require('./api/v2/index.js'), routes: { prefix: '/v2' } }
-];
+const Debug = require('debug')('server: index')
 
-let plugins = [
-    { plugin: Inert, options: {} },
-    { plugin: Vision, options: {} },
-    { plugin: Blipp, options: {} } ,
-    { plugin: Good, options: goodOptions }, 
-    { plugin: HapiSwagger, options: swaggerOptions }
-];
-
-// Add the API versions to the list of plugins
-APIs.forEach(x => { plugins.push(x) });
-
-const server = Hapi.server({
-    port: Config.port,
+const server = new Hapi.server({
+    port: port,
     host: 'localhost',
-    routes: { cors: true }
+    routes: { cors: true },
+    cache: [{
+		name: cacheName,
+		engine: new Disk({
+            cachePath: cachePath,
+            cleanEvery: 0,
+            partition: 'cache'
+        })
+    }],
+    router: {
+        stripTrailingSlash: true
+    }
 });
 
-const init = async () => {
+const start = async () => {
 
-    await server.register(plugins);
+    await server.register([
+        { plugin: Inert, options: {} },
+        { plugin: Vision, options: {} },
+        { plugin: Blipp, options: {} } ,
+        { plugin: Good, options: goodOptions }, 
+        { plugin: HapiSwagger, options: swaggerOptions },
+        { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } },
+        { plugin: require('./api/v2/index.js'), routes: { prefix: '/v2' } }
+    ]);
     
     server.views({
         engines: {
@@ -106,46 +122,17 @@ const init = async () => {
     });
 
     server.route([
-
         require('./resources/inert'),
         require('./resources/docs'),
         require('./resources/tos'),
         require('./resources/install'),
         require('./resources/examples'),
-        require('./resources/about'),
-
-        // default route, redirects to the most recent API
-        {
-            method: 'GET',
-            path: '/{param*}',
-            config: {
-                description: "default route",
-                tags: ['private']
-            },
-            handler: function(request, h) {
-
-                let uri = '';
-                if (request.params.param) {
-
-                    uri = `/v${APIs.length}/${request.params.param}`;
-                }
-                else {
-                    uri = `/v${APIs.length}`;
-                }
-
-                return h.redirect(uri);
-            }
-        }
+        require('./resources/about')
     ]);
+    
 
     await server.start();
-    console.log(`Server running at: ${server.info.uri}`);
+    Debug(`Server running at: ${server.info.uri}`);
 };
 
-process.on('unhandledRejection', (err) => {
-
-    console.log(err);
-    process.exit(1);
-});
-
-init();
+start();

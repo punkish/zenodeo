@@ -1,24 +1,24 @@
-// api v1
+// api v2
+const Wreck = require('wreck');
 const Utils = require('../utils');
 const Schema = require('../schema.js');
-const ResponseMessages = require('../../responseMessages')
 
 module.exports = {
     plugin: {
-        name: 'authors',
+        name: 'authors2',
         register: async function(server, options) {
 
             server.route([
                 { 
-                    path: '/authors/{term?}', 
+                    path: '/authors', 
                     method: 'GET', 
-                     config: {
+                    config: {
                         description: 'retrieve all authors starting with the provided letters',
                         tags: ['authors', 'api'],
                         plugins: {
                             'hapi-swagger': {
                                 order: 6,
-                                responseMessages: ResponseMessages
+                                //responseMessages: ResponseMessages
                             }
                         },
                         validate: Schema.authors,
@@ -26,15 +26,17 @@ module.exports = {
                             'This route fetches authors starting with the provided letters.'
                         ]
                     },
-                    handler: async function(request, h) {
-                        
-                        if (request.params.term) {
-                            return Utils.find(request.params.term, 'authors');
-                        } 
-                    
-                    }
+                    handler 
                 }
             ]);
         },
     },
+};
+
+const handler = async function(request, h) {
+    
+    if (request.query.q) {
+        return Utils.find(request.query.q, 'authors');
+    } 
+
 };
