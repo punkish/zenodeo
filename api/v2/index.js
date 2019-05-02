@@ -8,7 +8,9 @@ exports.plugin = {
 
         let cacheOptions = {
             cacheName: cacheName,
-            expiresIn: 120 * 1000,
+
+            // expires in 1440 mins, or one day
+            expiresIn: 60 * 1000 * 1440,
             generateTimeout: false,
             getDecoratedValue: true
         };
@@ -21,7 +23,8 @@ exports.plugin = {
             { plugin: require('./resources/families') },
             { plugin: require('./resources/taxa') },
             { plugin: require('./resources/wpsummary'), options: cacheOptions },
-            { plugin: require('./resources/records'), options: cacheOptions },
+            //{ plugin: require('./resources/records'), options: cacheOptions },
+            { plugin: require('./resources/images'), options: cacheOptions },
             { plugin: require('./resources/treatments'), options: cacheOptions }
         ]);
     }

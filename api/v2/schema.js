@@ -227,6 +227,30 @@ module.exports = {
                 .description(schemaObj.treatments.treatmentId.description)
                 .optional(),
 
+            // If 'treatmentId' is present in the queryString, all of 
+            // the below are ignored if also present.
+            // The following rules apply *only* if 'treatmentId' is 
+            // not present
+            page: Joi.number()
+                .integer()
+                .description('Starting page, defaults to 1')
+                .default(1)
+                .when('treatmentId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    otherwise: Joi.required() 
+                }),
+
+            size: Joi.number()
+                .integer()
+                .description('Number of records to fetch per query, defaults to 30')
+                .default(30)
+                .when('treatmentId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    otherwise: Joi.required() 
+                }),
+
             // If 'treatmentId' is present in the 
             // queryString, all of the below are 
             // ignored if also present.

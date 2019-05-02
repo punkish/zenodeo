@@ -6,6 +6,8 @@ const config = require('config');
 const sqliteDatabase = config.get('data.sqliteDatabase');
 const db = new Database(sqliteDatabase);
 
+const fs = require('fs');
+
 module.exports = {
 
     plugin: {
@@ -65,7 +67,24 @@ const getTreatments = function(query) {
     if (qryObj.treatmentId) {
 
         selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
-        return db.prepare(selectTreatments).get(qryObj.treatmentId)
+
+        const one = qryObj.treatmentId.substr(0, 1);
+        const two = qryObj.treatmentId.substr(0, 2);
+        const thr = qryObj.treatmentId.substr(0, 3);
+
+        let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
+        
+        const file = `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`
+        //console.log(file)
+        const xml = fs.readFileSync(
+            file,
+            'utf8'
+        )
+
+        //console.log(xml)
+        data['xml'] = xml;
+
+        return data
     }
 
     
@@ -115,7 +134,7 @@ const getTreatments = function(query) {
         }
 
         selectTreatments = 'SELECT treatmentId, treatmentTitle FROM treatments WHERE ' + cols.join(' AND ');
-        //console.log(selectTreatments)
+        console.log(selectTreatments)
         return db.prepare(selectTreatments).all(vals)
     }
 
