@@ -1,12 +1,11 @@
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
 const Database = require('better-sqlite3');
-
 const config = require('config');
 const sqliteDatabase = config.get('data.sqliteDatabase');
 const db = new Database(sqliteDatabase);
-
 const fs = require('fs');
+const Utils = require('../utils');
 
 module.exports = {
 
@@ -52,7 +51,7 @@ module.exports = {
     },
 };
 
-const getTreatments = function(query) {
+const getTreatments = async function(query) {
 
     qryObj = {};
     query.split('&').forEach(el => { a = el.split('='); qryObj[ a[0] ] = a[1]; })
@@ -75,14 +74,14 @@ const getTreatments = function(query) {
         let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
         
         const file = `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`
-        //console.log(file)
+        
         const xml = fs.readFileSync(
             file,
             'utf8'
         )
 
-        //console.log(xml)
         data['xml'] = xml;
+        data['images'] = await Utils.getImages(qryObj.treatmentId);
 
         return data
     }
