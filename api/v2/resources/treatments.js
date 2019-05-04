@@ -73,15 +73,22 @@ const getTreatments = async function(query) {
 
         let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
         
-        const file = `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`
-        
         const xml = fs.readFileSync(
-            file,
+            `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
             'utf8'
         )
 
-        data['xml'] = xml;
+        const selectMaterialCitations = 'SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE treatmentId = ?';
+
+        const mcData = db.prepare(selectMaterialCitations).all(qryObj.treatmentId);
+
+        if (mcData) {
+            data['materialCitations'] = mcData
+        }
+        
+
         data['images'] = await Utils.getImages(qryObj.treatmentId);
+        data['xml'] = xml;
 
         return data
     }
