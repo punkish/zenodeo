@@ -65,32 +65,43 @@ const getTreatments = async function(query) {
 
     if (qryObj.treatmentId) {
 
-        selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
-
         const one = qryObj.treatmentId.substr(0, 1);
         const two = qryObj.treatmentId.substr(0, 2);
         const thr = qryObj.treatmentId.substr(0, 3);
 
-        let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
-        
-        const xml = fs.readFileSync(
-            `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
-            'utf8'
-        )
+        if (qryObj.format === 'xml') {
 
-        const selectMaterialCitations = 'SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE treatmentId = ?';
+            return fs.readFileSync(
+                `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
+                'utf8'
+            )
 
-        const mcData = db.prepare(selectMaterialCitations).all(qryObj.treatmentId);
-
-        if (mcData) {
-            data['materialCitations'] = mcData
+        }
+        else {
+            selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
+    
+            let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
+            
+            const xml = fs.readFileSync(
+                `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
+                'utf8'
+            )
+    
+            const selectMaterialCitations = 'SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE treatmentId = ?';
+    
+            const mcData = db.prepare(selectMaterialCitations).all(qryObj.treatmentId);
+    
+            if (mcData) {
+                data['materialCitations'] = mcData
+            }
+            
+    
+            data['images'] = await Utils.getImages(qryObj.treatmentId);
+            data['xml'] = xml;
+    
+            return data
         }
         
-
-        data['images'] = await Utils.getImages(qryObj.treatmentId);
-        data['xml'] = xml;
-
-        return data
     }
 
     

@@ -227,6 +227,13 @@ module.exports = {
                 .description(schemaObj.treatments.treatmentId.description)
                 .optional(),
 
+            format: Joi.string()
+                .description('Respose format')
+                .when('treatmentId', {
+                    is: Joi.string(), 
+                    then: Joi.optional()
+                }),
+
             // If 'treatmentId' is present in the queryString, all of 
             // the below are ignored if also present.
             // The following rules apply *only* if 'treatmentId' is 
