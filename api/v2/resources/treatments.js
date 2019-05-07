@@ -39,7 +39,7 @@ module.exports = {
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.treatments,
+                        //validate: Schema.treatments,
                         notes: [
                             'A taxonomic treatment.',
                         ]
@@ -79,7 +79,6 @@ const getTreatments = async function(query) {
         }
         else {
             selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
-    
             let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
             
             const xml = fs.readFileSync(
@@ -87,11 +86,11 @@ const getTreatments = async function(query) {
                 'utf8'
             )
     
-            const selectMaterialCitations = 'SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE treatmentId = ?';
+            const selectMaterialCitations = "SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE latitude != '' AND longitude != '' AND treatmentId = ?";
     
             const mcData = db.prepare(selectMaterialCitations).all(qryObj.treatmentId);
     
-            if (mcData) {
+            if (mcData.length) {
                 data['materialCitations'] = mcData
             }
             
@@ -118,7 +117,7 @@ const getTreatments = async function(query) {
         // queryParams.splice(queryParams.indexOf('q'), 1);
         // for (let i = 0, j = queryParams.length; i < j; i++) {
         // }
-
+        console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.q)
 
     }
@@ -129,10 +128,11 @@ const getTreatments = async function(query) {
     else if (qryObj.lat && qryObj.lon) {
 
         selectTreatments = 'SELECT * FROM materialcitations WHERE latitude = ? AND longitude = ?'
-        
+        console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.lat, qryObj.lon)
         //const selectTreatment = db.prepare('SELECT * FROM treatments WHERE treatmentId = @treatmentId');
         //lat=20.719528&lon=104.99638
+        
     }
 
     // 4. Neither the 'treatmentId' nor 'q' are present. The query 
@@ -145,14 +145,19 @@ const getTreatments = async function(query) {
 
         for (let col in qryObj) {
 
-            cols.push(col + ' = ?');
             vals.push( qryObj[col] )
+
+            // we add double quotes to 'order' otherwise the 
+            // sql statement would choke since order is a  
+            // reserved word
+            if (col === 'order') col = '"order"';
+            cols.push(col + ' = ?');
 
         }
 
-        selectTreatments = 'SELECT treatmentId, treatmentTitle FROM treatments WHERE ' + cols.join(' AND ');
-        console.log(selectTreatments)
+        selectTreatments = `SELECT treatmentId, treatmentTitle, journalTitle || ', ' || journalYear || ', ' || pages || ', ' || journalVolume || ', ' || journalIssue AS s FROM treatments WHERE ${cols.join(' AND ')} LIMIT 30`;
         return db.prepare(selectTreatments).all(vals)
+        
     }
 
 }
@@ -173,6 +178,7 @@ const handler = function(request, h) {
     const query = arr.sort().join('&');
 
     if (request.query.refreshCache === 'true') {
+        console.log('forcing refreshCache')
         this.treatmentsCache.drop(query);
     }
 

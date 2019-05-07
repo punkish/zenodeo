@@ -234,10 +234,6 @@ module.exports = {
                     then: Joi.optional()
                 }),
 
-            // If 'treatmentId' is present in the queryString, all of 
-            // the below are ignored if also present.
-            // The following rules apply *only* if 'treatmentId' is 
-            // not present
             page: Joi.number()
                 .integer()
                 .description('Starting page, defaults to 1')
@@ -245,7 +241,7 @@ module.exports = {
                 .when('treatmentId', {
                     is: Joi.string(), 
                     then: Joi.optional(),
-                    otherwise: Joi.required() 
+                    //otherwise: Joi.required() 
                 }),
 
             size: Joi.number()
@@ -255,13 +251,11 @@ module.exports = {
                 .when('treatmentId', {
                     is: Joi.string(), 
                     then: Joi.optional(),
-                    otherwise: Joi.required() 
+                    //otherwise: Joi.required() 
                 }),
 
-            // If 'treatmentId' is present in the 
-            // queryString, all of the below are 
-            // ignored if also present.
-            // The following rules apply *only* if 
+            // If 'treatmentId' is present in the queryString, all of the below are 
+            // ignored if also present. The following rules apply *only* if 
             // 'treatmentId' is not present
             treatmentTitle: Joi.string()
                 .description(schemaObj.treatments.treatmentTitle.description)
