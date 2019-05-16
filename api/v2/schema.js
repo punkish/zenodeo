@@ -74,7 +74,7 @@ module.exports = {
         }
     },
 
-    records: {
+    images: {
         query: {
             
             id: Joi.number()

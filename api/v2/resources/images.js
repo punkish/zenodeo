@@ -46,7 +46,7 @@ module.exports = {
 };
 
 const queryMaker = function(request) {
-    const queryParams = Object.keys(Schema.records.query);
+    const queryParams = Object.keys(Schema.images.query);
     let query = [];
 
     // remove 'id' and 'refreshCache' from the queryParams
