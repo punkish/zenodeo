@@ -1,7 +1,8 @@
 'use strict';
 
 const cheerio = require('cheerio');
-const dataDict = require('./data-dictionary');
+//const dataDict = require('./data-dictionary');
+const dataDict = require('../../dataDictionary/data-dictionary');
 const fs = require('fs');
 const path = require('path');
 

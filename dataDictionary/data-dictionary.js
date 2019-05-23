@@ -1,11 +1,10 @@
 module.exports = {
-    "treatments": [
-        {
+    treatments: [{
             "plazi": "treatmentId",
             "zenodo": "",
             "type": "string.guid()",
             "element": "$('document').attr('docId')",
-            "definition": "The uniquest ID of the treatment"
+            "definition": "The unique ID of the treatment"
         },
         {
             "plazi": "treatmentTitle",
@@ -148,17 +147,17 @@ module.exports = {
             "definition": "Full text of the treatment"
         }
     ],
-    "treatmentAuthors": [
-        {
-            "plazi": "treatmentAuthor",
-            "zenodo": "creators",
-            "type": "string",
-            "element": "$('mods\\\\:namePart')",
-            "definition": "Authors of article (used if no treatment authority is found)"
-        }
-    ],
-    "materialCitations": [
-        {
+    // vernacularNames: [
+    //     {"plazi": "vernacularName", "zenodo": "", "type": "string", "element": "@.each().text()","definition": ""}
+    // ],
+    treatmentAuthors: [{
+        "plazi": "treatmentAuthor",
+        "zenodo": "creators",
+        "type": "string",
+        "element": "$('mods\\\\:namePart')",
+        "definition": "Authors of article (used if no treatment authority is found)"
+    }],
+    materialCitations: [{
             "plazi": "collectionCode",
             "zenodo": "subjects",
             "type": "string",
@@ -306,24 +305,22 @@ module.exports = {
             "definition": "The persistent identifier of the specimen"
         }
     ],
-    "treatmentCitations": [
-        {
+    treatmentCitations: [{
             "plazi": "treatmentCitation",
             "zenodo": "subjects; AND if there is a DOI for the treatmentCitation, relatedIdentifiers[cites];",
             "type": "string",
-            "element": "$('subSubSection[type=reference_group] treatmentCitationGroup taxonomicName').text() + ' ' + $('subSubSection[type=reference_group] treatmentCitationGroup taxonomicName').attr('authority') + ' sec. ' + $('subSubSection[type=reference_group] treatmentCitationGroup bibRefCitation').text()",
+            "element": "$('subSubSection[type=reference_group] treatmentCitationGroup taxonomicName').text() + ' ' + $('subSubSection[type=reference_Group] treatmentCitationGroup taxonomicName').attr('authority') + ' sec. ' + $('subSubSection[type=reference_Group] treatmentCitationGroup bibRefCitation').text()",
             "definition": "The taxonomic name and the author of the species, plus the author of the treatment being cited."
         },
         {
             "plazi": "refString",
             "zenodo": "references",
             "type": "string",
-            "element": "$('subSubSection[type=reference_group] treatmentCitationGroup treatmentCitation bibRefCitation').attr('refString')",
+            "element": "$('subSubSection[type=referenceGroup] treatmentCitationGroup treatmentCitation bibRefCitation').attr('refString')",
             "definition": "The bibliographic reference string of the treatments cited by this treatment"
         }
     ],
-    "figureCitations": [
-        {
+    figureCitations: [{
             "plazi": "captionText",
             "zenodo": "relatedIdentifiers[cites]",
             "type": "uri",
@@ -338,22 +335,11 @@ module.exports = {
             "definition": "The figures cited by this treatment"
         }
     ],
-    "bibRefCitations": [
-        {
-            "plazi": "refString",
-            "zenodo": "relatedIdentifiers[cites]",
-            "type": "uri",
-            "element": "",
-            "definition": "The figures cited by this treatment"
-        }
-    ]
-    // "vernacularNames": [
-    //     {
-    //         "plazi": "vernacularName", 
-    //         "zenodo": "", 
-    //         "type": "string", 
-    //         "element": "@.each().text()",
-    //         "definition": ""
-    //     }
-    // ]
+    bibRefCitations: [{
+        "plazi": "refString",
+        "zenodo": "relatedIdentifiers[cites]",
+        "type": "uri",
+        "element": "",
+        "definition": "The figures cited by this treatment"
+    }]
 };
