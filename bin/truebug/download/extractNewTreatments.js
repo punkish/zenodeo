@@ -3,8 +3,8 @@
 const fs = require('fs');
 const cheerio = require('cheerio');
 
-
-
+const config = require('config');
+const treatmentListDir = config.get('paths.treatmentsListDir');
 
 module.exports = {
 

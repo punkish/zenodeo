@@ -2,9 +2,10 @@
 
 const download = require('download');
 
-const base_url = 'http://tb.plazi.org/GgServer/xml/';
-const downloadDir = '../../../data/treatmentsNew2';
+const config = require('config');
+const downloadDir = config.get('paths.newTreatmentsDir');
 
+const downloadTreatmentsURL = config.get('URLs.downloadTreatmentsURL');
 
 module.exports = {
 
@@ -17,7 +18,7 @@ module.exports = {
 
             for (let i = 0, j = treatmentIDs.length; i < j; i++) {
 
-                let url = base_url + treatmentIDs[i] + '.xml';
+                let url = downloadTreatmentsURL + treatmentIDs[i] + '.xml';
 
                 download(url, downloadDir);
             }        
