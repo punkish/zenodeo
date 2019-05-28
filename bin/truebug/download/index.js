@@ -1,15 +1,46 @@
 'use strict';
 
-const download = require('./downloadNewTreatments')
-const idsList = require('./extractNewTreatments');
+const fs = require('fs');
+const download = require('download');
 
-const pathToXML = '../../../data/search.xml';
+const td = require('./downloadNewTreatments');
+const tIDs = require('./extractNewTreatments');
 
-// Testing the program
+const config = require('config');
+const pathToTimestamp = config.get('paths.timestampDir');
+const treatmentListDir = config.get('paths.treatmentsListDir');
 
-/* 
+let treatmentListURL = config.get('URLs.downloadListURL');
 
-// Testing lists
+
+    
+const ddd = {
+
+    readTS: function() {
+        return fs.readFileSync(pathToTimestamp, 'utf8')
+    },
+
+    writeTimestamp: function(nowTS) {
+        fs.writeFileSync(pathToTimestamp, nowTS, 'utf8')
+    },
+
+    getTreatmentList: function(latestTS) {
+
+        console.log(treatmentListURL)
+
+        treatmentListURL += this.readTS()
+
+        console.log(treatmentListURL)
+
+        console.log(treatmentListDir)
+    }
+}
+
+
+// ddd.getTreatmentList()
+
+// console.log(pathToTimestamp)
+
 
 const treatmentIDs = [
     '006F87D3FFC5EC39B594F9F8FC44D7B3',
@@ -19,8 +50,10 @@ const treatmentIDs = [
     '006F87D3FFE3EC1EB594FBD9FE92D518'
 ];
 
-const treatmentIDs2 = []
-*/
+const treatmentIDs2 = [];
+
+
+td.downloadNewTreatments(treatmentIDs)
 
 // FUNCION: Getting XML Dump Based on Timestamp recorded somewhere (probably sqlite db with other logging info)
 
@@ -29,7 +62,39 @@ const treatmentIDs2 = []
 // console.log(newTimeStamp)
 // download(newTimeStamp, downloadDir);
 
-download.downloadNewTreatments(idsList.extractNewTreatments(pathToXML))
+// download.downloadNewTreatments(idsList.extractNewTreatments(pathToXML))
+//download.downloadNewTreatments(treatmentIDs)
+
+/* Playing around with Date() and timestamps
+let hj = new Date()
+let hjTS = new Date().getTime()
+let lastDown = new Date(timestamp.latest)
+
+let lastDownTS = timestamp.latest
+
+let newnewDate = new Date(hj - (hj - lastDown))
+
+console.log(hj)
+console.log(hjTS)
+console.log()
+console.log(lastDown)
+console.log(lastDownTS)
+console.log()
+console.log(newnewDate)
+console.log(hj - (hj - lastDown))
+
+timestamp.latest = 'bbb'
+*/
+
+/*
+const nowTS = new Date().getTime();
+
+console.log(nowTS)
+
+fs.writeFileSync(timestamp, nowTS, 'utf8');
+*/
+
+// fs.writeFileSync('reports/variance-on-attr-type.tsv', rep, 'utf8');
 
 // TO DO: For the Log
 // Time that started; How many files it was downloaded; When it finished;
