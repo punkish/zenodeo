@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const download = require('download');
+const path = require('path');
 
 const td = require('./downloadNewTreatments');
 const tIDs = require('./extractNewTreatments');
@@ -13,8 +14,7 @@ const treatmentListDir = config.get('paths.treatmentsListDir');
 let treatmentListURL = config.get('URLs.downloadListURL');
 
 
-    
-const ddd = {
+const downloadAndUpdate = {
 
     readTS: function() {
         return fs.readFileSync(pathToTimestamp, 'utf8')
@@ -22,79 +22,29 @@ const ddd = {
 
     writeTimestamp: function(nowTS) {
         fs.writeFileSync(pathToTimestamp, nowTS, 'utf8')
+        console.log(`TimeStamp ${nowTS} Updated!`)
     },
 
     getTreatmentList: function(latestTS) {
 
-        console.log(treatmentListURL)
+        download(treatmentListURL + this.readTS(), treatmentListDir, {
+            filename: 'listOfTreatments.xml'
+        }).then(() => {
 
-        treatmentListURL += this.readTS()
+            // Build the path to the listOfTreatments.xml
+            const path = treatmentListDir + '\\listOfTreatments.xml'
 
-        console.log(treatmentListURL)
+            // Call the functions that extracts the IDs and download the *.xmls
+            td.downloadNewTreatments(tIDs.extractNewTreatments(path))
 
-        console.log(treatmentListDir)
+            // Writes the new timestamp into the current 'database'
+            const nowTS = new Date()
+            this.writeTimestamp(nowTS.getTime())
+            })
+        }
     }
-}
 
 
-// ddd.getTreatmentList()
+downloadAndUpdate.getTreatmentList()
 
-// console.log(pathToTimestamp)
-
-
-const treatmentIDs = [
-    '006F87D3FFC5EC39B594F9F8FC44D7B3',
-    '006F87D3FFE0EC1DB594FC70FD9FD4B5',
-    '006F87D3FFE1EC1DB594FDC0FC32D0D2',
-    '006F87D3FFE2EC11B594F889FAACD3A2',
-    '006F87D3FFE3EC1EB594FBD9FE92D518'
-];
-
-const treatmentIDs2 = [];
-
-
-td.downloadNewTreatments(treatmentIDs)
-
-// FUNCION: Getting XML Dump Based on Timestamp recorded somewhere (probably sqlite db with other logging info)
-
-// const a = new Date();
-// const newTimeStamp = 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince=' + a.setHours(a.getHours() -4)
-// console.log(newTimeStamp)
-// download(newTimeStamp, downloadDir);
-
-// download.downloadNewTreatments(idsList.extractNewTreatments(pathToXML))
-//download.downloadNewTreatments(treatmentIDs)
-
-/* Playing around with Date() and timestamps
-let hj = new Date()
-let hjTS = new Date().getTime()
-let lastDown = new Date(timestamp.latest)
-
-let lastDownTS = timestamp.latest
-
-let newnewDate = new Date(hj - (hj - lastDown))
-
-console.log(hj)
-console.log(hjTS)
-console.log()
-console.log(lastDown)
-console.log(lastDownTS)
-console.log()
-console.log(newnewDate)
-console.log(hj - (hj - lastDown))
-
-timestamp.latest = 'bbb'
-*/
-
-/*
-const nowTS = new Date().getTime();
-
-console.log(nowTS)
-
-fs.writeFileSync(timestamp, nowTS, 'utf8');
-*/
-
-// fs.writeFileSync('reports/variance-on-attr-type.tsv', rep, 'utf8');
-
-// TO DO: For the Log
-// Time that started; How many files it was downloaded; When it finished;
+// Add filename of the list of treatments file to config.
