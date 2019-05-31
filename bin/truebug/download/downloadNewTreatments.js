@@ -15,6 +15,7 @@ module.exports = {
 
             // I tried to create a counter with the number of
             // downloads, but the async part of javascript stopped me
+            // for now. I'll come back to this later.
 
             for (let i = 0, j = treatmentIDs.length; i < j; i++) {
 
