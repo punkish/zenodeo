@@ -1,3 +1,6 @@
+const path = require('path');
+const cwd = process.cwd();
+
 module.exports = {
     
     "info": { 
@@ -56,6 +59,7 @@ module.exports = {
     //         } 
     //     }
     // },
+    'logs': path.join(cwd, 'data', 'logs.sqlite'),
     "data": {
         "db": "plazi.sqlite",
         "authors": "../../data/authors",
@@ -103,7 +107,8 @@ module.exports = {
                 "xmlDumpDir": "./data/treatmentsDump"
             },
             "database": {
-                "sqliteDatabase": "./data/plazi.sqlite"
+                "sqliteDatabase": "./data/plazi.sqlite",
+                "logDatabase": "./data/logs.sqlite"
             },
             "rearrangefiles": {
                 "srcdir": "data/treatmentsDump",

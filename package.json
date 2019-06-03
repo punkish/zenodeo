@@ -20,7 +20,9 @@
     "good-squeeze": "^5.1.0",
     "handlebars": "^4.0.12",
     "hapi": "^18.1.0",
+    "hapi-good-winston": "^2.1.0",
     "hapi-swagger": "^9.4.1",
+    "hapi-winston": "^2.5.0",
     "inert": "^5.1.2",
     "joi": "^14.3.1",
     "minimist": "^1.2.0",
@@ -28,6 +30,8 @@
     "progress": "^2.0.3",
     "vision": "^5.4.4",
     "wikijs": "^5.0.0-alpha.1",
+    "winston": "^3.2.1",
+    "winston-better-sqlite3": "^1.0.0",
     "wreck": "^14.1.4"
   },
   "devDependencies": {}

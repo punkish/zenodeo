@@ -78,6 +78,8 @@ const queryMaker = function(request) {
 }
 
 const handler = async function(request, h) {
+    
+    
 
     let query;
 

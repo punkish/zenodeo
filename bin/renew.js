@@ -1,17 +1,18 @@
 'use strict';
 
-const fs = require('fs');
-const timer = require('./renew/utils')
+// const fs = require('fs');
+// const timer = require('./renew/utils')
 const params = require('./renew/opts')
 const download = require('./renew/download');
 const database = require('./renew/database');
 const parsex = require('./renew/parsex');
 const rearrangefile = require('./renew/rearrangefiles');
-
 const config = require('config');
+
 const xmlDumpDir = config.get('bin.renew.xmlDumpDir');
 
-const t0 = timer({ startMsg: 'Starting the process\n'})
+const interval = setInterval(log, 1000)
+
 
 if (params.download) {
 
@@ -19,8 +20,12 @@ if (params.download) {
     download();
 }
 
-// create tables in the database *only* if they don't already exist
-database.createTables();
+if (params.database) {
+
+    // create tables in the database *only* if they don't already exist
+    database.createTables();
+}
+
 
 if (params.parseOne) {
     
@@ -77,4 +82,4 @@ else if (params.parseAll) {
 }
 
 
-timer({ startTime: t0 });
+//timer({ startTime: t0 });

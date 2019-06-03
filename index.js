@@ -7,7 +7,6 @@ Start this program from the command line with `pm2`
 
 'use strict';
 
-//const Config = require('./config.js');
 const Hapi = require('hapi');
 const Disk = require('catbox-disk');
 
@@ -16,7 +15,8 @@ const cacheName = config.get('cache.v2.name');
 const cachePath = config.get('cache.path');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
-const port = config.get('port')
+const port = config.get('port');
+const logger = require('./utils/logger');
 
 /*
  * blipp is a simple hapi plugin to display  
@@ -37,7 +37,6 @@ const Vision = require('vision');
 /*
  * Generate Swagger-compatible documentation for the app
  */
-//console.log(Config.schemes)
 const HapiSwagger = require('hapi-swagger');
 const swaggerOptions = {
     documentationPage: false,
@@ -48,32 +47,6 @@ const swaggerOptions = {
     validatorUrl: null,
     schemes: swaggeredScheme
 };
-
-/*
- * Hapi process monitoring
- */
-const Good = require('good');
-const goodOptions = {
-    ops: {
-        interval: 1000
-    },
-    reporters: {
-        console: [
-            {
-                module: 'good-squeeze',
-                name: 'Squeeze',
-                args: [{ log: '*', response: 'api' }]
-            }, 
-            { 
-                module: 'good-console',
-                args: [{ format: 'MMM Do YYYY, h:mm:ss A' }]
-            },
-            'stdout'
-        ]
-    }
-};
-
-const Debug = require('debug')('server: index')
 
 const server = new Hapi.server({
     port: port,
@@ -92,13 +65,13 @@ const server = new Hapi.server({
     }
 });
 
+
 const start = async () => {
 
     await server.register([
         { plugin: Inert, options: {} },
         { plugin: Vision, options: {} },
         { plugin: Blipp, options: {} } ,
-        { plugin: Good, options: goodOptions }, 
         { plugin: HapiSwagger, options: swaggerOptions },
         { plugin: require('./api/v1/index.js'), routes: { prefix: '/v1' } },
         { plugin: require('./api/v2/index.js'), routes: { prefix: '/v2' } }
@@ -124,10 +97,42 @@ const start = async () => {
         require('./resources/examples'),
         require('./resources/about')
     ]);
-    
 
+    
+    
     await server.start();
-    Debug(`Server running at: ${server.info.uri}`);
+
+    server.events.on('log', (event, tags) => {
+
+        if (tags.error) {
+            console.log(`Server error: ${event.error ? event.error.message : 'unknown'}`);
+        }
+        
+    });
+
+    server.events.on('response', function (request) {
+        
+        const query = JSON.stringify(request.query);
+        const params = {
+            start: request.info.received,
+            end: request.info.completed,
+            status: request.response.statusCode,
+            resource: request.route.path.split('/').pop(),
+            query: query,
+            message: 'all good'
+        };
+
+        logger.log(params);
+
+        if (process.env.NODE_ENV !== 'production') {
+            const resp = `${request.info.host}: ${request.method.toUpperCase()}, ${request.path}, ${query} → ${request.response.statusCode} (${request.info.completed - request.info.received}ms)`;
+            console.log(resp)
+        }
+
+    });
+
+
+    console.info(`Server running at: ${server.info.uri}`);
 };
 
 start();

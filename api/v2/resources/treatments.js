@@ -117,7 +117,7 @@ const getTreatments = async function(query) {
         // queryParams.splice(queryParams.indexOf('q'), 1);
         // for (let i = 0, j = queryParams.length; i < j; i++) {
         // }
-        console.log(selectTreatments)
+        //console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.q)
 
     }
