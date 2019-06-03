@@ -11,5 +11,9 @@ module.exports = {
     "URLs": {
         "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
         "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
-    }
+    },
+
+    "filename": {
+        "treatmentsListFilename": "listOfTreatments.xml"
+    } 
 }
