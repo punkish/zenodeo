@@ -59,9 +59,16 @@ module.exports = {
     //         } 
     //     }
     // },
-    'logs': path.join(cwd, 'data', 'logs.sqlite'),
+
+ 
+    'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+    'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    'logger': path.join(cwd, 'lib', 'logger.js'),
+    'logfields': ['host', 'start', 'end', 'status', 'resource', 'query', 'message'],
     "data": {
-        "db": "plazi.sqlite",
+        'logs': path.join(cwd, 'data', 'logs.sqlite'),
+        'treatments': path.join(cwd, 'data', 'treatments.sqlite'),
+        //"db": "plazi.sqlite",
         "authors": "../../data/authors",
         "keywords": "../../data/keywords",
         "taxa": "../../data/taxa.min",

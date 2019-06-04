@@ -2,8 +2,7 @@ const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
 const Database = require('better-sqlite3');
 const config = require('config');
-const sqliteDatabase = config.get('data.sqliteDatabase');
-const db = new Database(sqliteDatabase);
+const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
 const Utils = require('../utils');
 

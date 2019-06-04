@@ -1,14 +1,12 @@
 'use strict';
 
-const dataDict = require('../../dataDictionary/data-dictionary');
 const Database = require('better-sqlite3');
-const timer = require('./utils');
+//const timer = require('./utils');
 const Schema = require('../../api/v1/schema');
 
 const config = require('config');
-const sqliteDatabase = config.get('bin.renew.database.sqliteDatabase');
-
-const db = new Database(sqliteDatabase);
+const dataDict = require(config.get('dataDict'));
+const db = new Database(config.get('data.treatments'));
 
 module.exports = {
 

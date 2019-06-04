@@ -16,7 +16,7 @@ const cachePath = config.get('cache.path');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
-const logger = require('./utils/logger');
+const logger = require(config.get('logger'));
 
 /*
  * blipp is a simple hapi plugin to display  
@@ -111,26 +111,18 @@ const start = async () => {
     });
 
     server.events.on('response', function (request) {
-        
-        const query = JSON.stringify(request.query);
-        const params = {
+
+        logger({
+            host: request.info.host,
             start: request.info.received,
             end: request.info.completed,
             status: request.response.statusCode,
             resource: request.route.path.split('/').pop(),
-            query: query,
+            query: JSON.stringify(request.query),
             message: 'all good'
-        };
-
-        logger.log(params);
-
-        if (process.env.NODE_ENV !== 'production') {
-            const resp = `${request.info.host}: ${request.method.toUpperCase()}, ${request.path}, ${query} → ${request.response.statusCode} (${request.info.completed - request.info.received}ms)`;
-            console.log(resp)
-        }
+        });
 
     });
-
 
     console.info(`Server running at: ${server.info.uri}`);
 };
