@@ -3,16 +3,25 @@
 const fs = require('fs');
 const download = require('download');
 const path = require('path');
+const config = require('config');
+
+const logger = require(config.get('logger'))
 
 const td = require('./downloadNewTreatments');
 const tIDs = require('./extractNewTreatments');
 
-const config = require('config');
+
+/*
 const pathToTimestamp = config.get('paths.timestampDir');
 const treatmentListDir = config.get('paths.treatmentsListDir');
 const treatmentListFile = config.get('filename.treatmentsListFilename')
+*/
 
-let treatmentListURL = config.get('URLs.downloadListURL');
+const pathToTimestamp = config.get('download-program.timestampDir');
+const treatmentListDir = config.get('download-program.treatmentsListDir');
+const treatmentListFile = config.get('download-program.treatmentsListFilename');
+
+let treatmentListURL = config.get('download-program.downloadListURL');
 
 
 const downloadAndUpdate = {
@@ -46,4 +55,8 @@ const downloadAndUpdate = {
     }
 
 
-downloadAndUpdate.getTreatmentList()
+// downloadAndUpdate.getTreatmentList()
+
+console.log(pathToTimestamp)
+console.log(treatmentListDir)
+console.log(treatmentListFile)

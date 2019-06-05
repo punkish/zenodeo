@@ -4,7 +4,7 @@ const fs = require('fs');
 const cheerio = require('cheerio');
 
 const config = require('config');
-const treatmentListDir = config.get('paths.treatmentsListDir');
+const treatmentListDir = config.get('download-program.treatmentsListDir');
 
 module.exports = {
 

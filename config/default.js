@@ -31,8 +31,17 @@ module.exports = {
         'local': 'http://localhost:3000',
         'remote': 'https://zenodo.org/api'
     },
+    'download-program': {
+        "timestampDir": path.join('.', 'download', 'timestamp.txt'),
+        "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
+        "treatmentsListDir": path.join(cwd, 'data'),
+        "treatmentsListFilename": "listOfTreatments.xml",
+        "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
+        "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
+    },
     'swaggered-scheme': ['http'],
     'port': 3030,
+<<<<<<< HEAD
     
     'v1': {
         'cache': {
@@ -54,6 +63,15 @@ module.exports = {
 
     'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
     'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+||||||| parent of 0e39319... merge local config file into main config file
+    'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+    'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
+=======
+    'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+    //'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    //'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
+>>>>>>> 0e39319... merge local config file into main config file
     'xmlRearrangedDest': path.join(cwd, 'data', 'treatments'),
     'logger': path.join(cwd, 'lib', 'logger.js'),
     'logfields': [
