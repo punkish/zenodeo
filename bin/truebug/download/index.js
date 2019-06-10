@@ -55,8 +55,10 @@ const downloadAndUpdate = {
     }
 
 
-// downloadAndUpdate.getTreatmentList()
+downloadAndUpdate.getTreatmentList()
 
+/*
 console.log(pathToTimestamp)
 console.log(treatmentListDir)
 console.log(treatmentListFile)
+*/
