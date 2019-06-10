@@ -67,10 +67,7 @@ module.exports = {
         'families': path.join(cwd, 'data', 'families.min'),
     },
 
-    /* Telegram bot settings */
-    // bot token and chat id… see README.md
-    'bot' : '253125261:AAGHnpONfoGVLFUT6ZbCSsLrkayN3r4_uis',
-    'chat_id' : '-170396027'
+    
 
     // 'cacheBase': '/Users/punkish/Projects/zenodeo/cache',
     // 'uri': {
