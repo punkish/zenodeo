@@ -1,7 +1,7 @@
 'use strict';
 
 const opts = require('./truebug/opts')
-const download = require('./truebug/download');
+//const download = require('./truebug/download');
 const parse = require('./truebug/parse');
 
 if (opts.download) {

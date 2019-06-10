@@ -33,7 +33,7 @@ module.exports = {
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.images,
+                        //validate: Schema.images,
                         notes: [
                             'This is the main route for fetching images matching the provided query parameters.',
                         ]
@@ -45,40 +45,53 @@ module.exports = {
     },
 };
 
+// const queryMakerOld = function(request) {
+//     const queryParams = Object.keys(Schema.images.query);
+//     let query = [];
+
+//     // remove 'id' and 'refreshCache' from the queryParams
+//     ['id', 'refreshCache'].forEach(el => { queryParams.splice(queryParams.indexOf(el), 1) });
+//     const validCommunities = ['biosyslit', 'belgiumherbarium'];
+
+//     for (let i = 0, j = queryParams.length; i < j; i++) {
+
+//         // check communities, and convert it to valid communities if 'all' 
+//         // communities are requested in the queryString
+//         if (queryParams[i] === 'communities') {
+
+//             if (request.query[queryParams[i]] === 'all') {
+//                 validCommunities.forEach( el => query.push('communities=' + el) )
+//             }
+
+//         }
+//         else {
+
+//             if (request.query[queryParams[i]]) {
+//                 query.push(queryParams[i] + '=' + request.query[queryParams[i]])
+//             }
+
+//         }
+//     }
+
+//     query.sort();
+//     return query.join('&')
+// };
+
 const queryMaker = function(request) {
-    const queryParams = Object.keys(Schema.images.query);
-    let query = [];
 
-    // remove 'id' and 'refreshCache' from the queryParams
-    ['id', 'refreshCache'].forEach(el => { queryParams.splice(queryParams.indexOf(el), 1) });
-    const validCommunities = ['biosyslit', 'belgiumherbarium'];
-
-    for (let i = 0, j = queryParams.length; i < j; i++) {
-
-        // check communities, and convert it to valid communities if 'all' 
-        // communities are requested in the queryString
-        if (queryParams[i] === 'communities') {
-
-            if (request.query[queryParams[i]] === 'all') {
-                validCommunities.forEach( el => query.push('communities=' + el) )
-            }
-
-        }
-        else {
-
-            if (request.query[queryParams[i]]) {
-                query.push(queryParams[i] + '=' + request.query[queryParams[i]])
-            }
-
+    let hrefArray = [];
+    for (let p in request.query) {
+        if (p !== 'refreshCache') {
+            hrefArray.push(p + '=' + request.query[p]);
         }
     }
 
-    query.sort();
-    return query.join('&')
+    return hrefArray.sort().join('&');
 }
 
 const handler = async function(request, h) {
 
+    //console.log(request.query);
     let query;
 
     // ignore all other query params if id is present
@@ -127,32 +140,29 @@ const getRecords = async (query) => {
             const {res, payload} =  await Wreck.get(Zenodo);
             const result = await JSON.parse(payload);
             const total = result.hits.total;
+            const images = result.hits.hits;
 
             if (total) {
 
                 console.log(`found ${total} open records… now getting their images`);
-                console.log(`number of hits: ${result.hits.hits.length}`);
+                console.log(`number of images: ${images.length}`);
 
                 let imagesOfRecords = {};
-                await Promise.all(result.hits.hits.map(async (record) => {
+                await Promise.all(images.map(async (record) => {
                     
                     const bucket = await getBuckets(record.links.self);
-                    if (bucket) {
-                        const contents = await getImageFiles(bucket);
+                    const contents = await getImageFiles(bucket);
 
-                        imagesOfRecords[record.links.self] = {
-                            title: record.metadata.title,
-                            creators: record.metadata.creators,
-                            images: contents.map(function(el) {
-                                return el.links.self;
-                            }),
-                            thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
-                        };
-                    }
+                    imagesOfRecords[record.links.self] = {
+                        title: record.metadata.title,
+                        creators: record.metadata.creators,
+                        images: contents.map(el => { return el.links.self }),
+                        thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
+                    };
                     
                 }));
 
-                return {"total": total, "images": imagesOfRecords};
+                return {'total': total, 'imagesOfRecords': imagesOfRecords};
             }
             else {
                 console.log('nothing found');
@@ -167,18 +177,11 @@ const getRecords = async (query) => {
 };
 
 const getImageFiles = async function(uri) {
-
-    if (uri) {
-        const { res, payload } = await Wreck.get(uri);
-        const contents = JSON.parse(payload.toString()).contents;
-        return contents;
-    }
-    
+    const { res, payload } = await Wreck.get(uri);
+    return JSON.parse(payload.toString()).contents;
 };
 
 const getBuckets = async function(uri) {
-
     const { res, payload } = await Wreck.get(uri);
-    const bucket = JSON.parse(payload.toString()).links.bucket;
-    return bucket;
+    return JSON.parse(payload.toString()).links.bucket;
 };

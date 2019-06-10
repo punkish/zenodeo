@@ -7,7 +7,7 @@ const cheerio = require('cheerio');
 const { performance } = require('perf_hooks');
 
 const config = require('config');
-const dataDict = require(config.get('dataDict'));
+const dataDict = require(config.get('v2.dataDict'));
 const xmlDumpDir = config.get('xmlDumpDir');
 const logger = require(config.get('logger'));
 
@@ -127,7 +127,7 @@ const parseTreatmentCitations = function($) {
                     let refString = $('bibRefCitation', treatmentCitations[k]).attr('refString');
 
                     tc.push({
-                        treatmentCitationText: treatmentCitationText,
+                        treatmentCitation: treatmentCitationText,
                         refString: refString
                     })
                 }
@@ -234,11 +234,9 @@ const cheerioparse = function(xml, treatmentId) {
     let treatment = {};
     treatment['treatment'] = parseTreament($)
 
-    // The following two functions are used to 
-    // filter out any empty objects returned from 
-    // parsing, and to add the 'treatmentId' to each
-    // remaining object so it can be used as a 
-    // foreign key to connect the object to the 
+    // The following two functions are used to filter out any empty objects  
+    // returned from parsing, and to add the 'treatmentId' to each remaining 
+    // object so it can be used as a foreign key to connect the object to the 
     // parent treatment
     const emptyObjs = (el) => Object.keys(el).length > 0;
     const addTreatmentId = (el) => {
@@ -259,9 +257,8 @@ const cheerioparse = function(xml, treatmentId) {
     }
 
 
-    // Parse the XML for the sections with attributes
-    // only. As mentinoed above, these sections can 
-    // be processed with a common logic.
+    // Parse the XML for the sections with attributes only. As mentinoed above, 
+    // these sections can be processed with a common logic.
     [
         ['materialCitations', $('subSubSection[type=materials_examined] materialsCitation')],
         ['figureCitations', $('figureCitation')],
@@ -278,7 +275,11 @@ const cheerioparse = function(xml, treatmentId) {
         
 };
 
-module.exports = function(n, rearrange = false, database = false) {
+module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
+
+    if (databaseOpt) {
+        database.createTables();
+    }
 
     //const xmlre = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$/i;
     if (n.length === 32) {
@@ -313,6 +314,7 @@ module.exports = function(n, rearrange = false, database = false) {
         let treatments = [];
     
         let endProc = false;
+        let count = 0;
         for (; i < j; i++) {
 
             if (i == (j - 1)) {
@@ -324,7 +326,7 @@ module.exports = function(n, rearrange = false, database = false) {
                 bar.tick(tickInterval)
             }
 
-            if (rearrange) {
+            if (rearrangeOpt) {
 
                 // rearrange XMLs into a hierachical structure
                 rearrange(xmlsArr[i])
@@ -335,29 +337,27 @@ module.exports = function(n, rearrange = false, database = false) {
         
             if (!(i % batch)) {
 
-                //database.loadData(treatments);
+                database.loadData(treatments);
                 stats(treatments, endProc);
                 treatments = [];
                     
             }
             
         }
+
+        database.loadData(treatments);
+        database.indexTables();
+        database.loadFTSTreatments();
         
         logger({
             host: 'localhost',
             start: start,
             end: performance.now().toFixed(2),
-            status: 'done',
+            status: 'OK',
             resource: 'parse',
             query: n,
             message: stats(treatments, endProc)
         });
-
-        // database.loadData(treatments);
-        // database.indexTables();
-        // database.loadFTSTreatments();
-
-        // database.countRows();
         
     }
 

@@ -17,7 +17,7 @@ const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
 const logger = require(config.get('logger'));
-
+const httpStatusCodes = require(config.get('httpStatusCodes'));
 /*
  * blipp is a simple hapi plugin to display  
  * the routes table at startup
@@ -105,7 +105,17 @@ const start = async () => {
     server.events.on('log', (event, tags) => {
 
         if (tags.error) {
-            console.log(`Server error: ${event.error ? event.error.message : 'unknown'}`);
+            const msg = `Server error: ${event.error ? event.error.message : 'unknown'}`;
+            console.log(msg);
+            logger({
+                host: request.info.host,
+                start: request.info.received,
+                end: request.info.completed,
+                status: request.response.statusCode,
+                resource: request.route.path.split('/').pop(),
+                query: JSON.stringify(request.query),
+                message: msg
+            });
         }
         
     });
@@ -119,7 +129,7 @@ const start = async () => {
             status: request.response.statusCode,
             resource: request.route.path.split('/').pop(),
             query: JSON.stringify(request.query),
-            message: 'all good'
+            message: httpStatusCodes[request.response.statusCode]
         });
 
     });

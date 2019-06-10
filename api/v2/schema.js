@@ -1,62 +1,19 @@
+// v2 schema
 'use strict';
 
-const fs = require('fs');
 const Joi = require('joi');
-//const csv = require('csvtojson');
-const csvFilePath = './dataDictionary/data-dictionary.csv';
+const config = require('config');
+const dataDict = require(config.get('v2.dataDict'));
 
-// async function run() {
+let descriptions = {};
 
-//     const jsObj = await csv().fromFile(csvFilePath)
-//     const schemaObj = {};
 
-//     const j = jsObj.length
-//     for (let i = 0; i < j; i++) {
-//         const el = jsObj[i]
-//         schemaObj[el.table] = {}
-//     }
-
-//     const b = {};
-//     for (let i = 0; i < j; i++) {
-//         const el = jsObj[i]
-//         const table = el.table
-//         const plaziName = el.plaziName
-//         delete(el.table)
-//         delete(el.plaziName)
-
-//         schemaObj[table][plaziName] = el;
-//     }
-
-//     return schemaObj
-// }
-
-const csvjson = require('csvjson');
-const data = fs.readFileSync(csvFilePath, { encoding : 'utf8'});
-
-const jsObj = csvjson.toObject(data, {
-    delimiter : ',',
-    quote     : '"'
-});
-
-const schemaObj = {};
-
-const j = jsObj.length
-for (let i = 0; i < j; i++) {
-    const el = jsObj[i]
-    schemaObj[el.table] = {}
+for (let table in dataDict) {
+    const cols = dataDict[table];
+    for (let i = 0, j = cols.length; i < j; i++) {
+        descriptions[cols[i].plazi] = cols[i].definition
+    }
 }
-
-const b = {};
-for (let i = 0; i < j; i++) {
-    const el = jsObj[i]
-    const table = el.table
-    const plaziName = el.plaziName
-    delete(el.table)
-    delete(el.plaziName)
-
-    schemaObj[table][plaziName] = el;
-}
-
 
 module.exports = {
 
@@ -109,12 +66,12 @@ module.exports = {
 
             communities: Joi.string()
                 .description('The community on Zenodo; defaults to "biosyslit"')
-                .valid('all', 'biosyslit', 'belgiumherbarium')
-                .default('biosyslit')
+                .valid('all', 'BLR', 'belgiumherbarium')
+                .default('BLR')
                 .optional(),
 
             q: Joi.string()
-                .description(schemaObj.treatments.treatmentId.description)
+                .description('any text string')
                 .optional(),
 
             file_type: Joi.string()
@@ -220,18 +177,15 @@ module.exports = {
     treatments: {
         query: {
             
-            // treatmentId: Joi.string()
-            //     .description("All other query params are ignored if treatmentId is provided.")
-            //     .optional(),
             treatmentId: Joi.string()
-                .description(schemaObj.treatments.treatmentId.description)
+                .description(descriptions.treatmentId)
                 .optional(),
 
             format: Joi.string()
-                .description('Respose format')
+                .description('Response format')
                 .when('treatmentId', {
                     is: Joi.string(), 
-                    then: Joi.optional()
+                    then: Joi.required()
                 }),
 
             page: Joi.number()
@@ -258,67 +212,67 @@ module.exports = {
             // ignored if also present. The following rules apply *only* if 
             // 'treatmentId' is not present
             treatmentTitle: Joi.string()
-                .description(schemaObj.treatments.treatmentTitle.description)
+                .description(descriptions.treatmentTitle)
                 .optional(),
 
             journalTitle: Joi.string()
-                .description(schemaObj.treatments.journalTitle.description)
+                .description(descriptions.journalTitle)
                 .optional(),
 
             journalYear: Joi.string()
-                .description(schemaObj.treatments.journalYear.description)
+                .description(descriptions.journalYear)
                 .optional(),
 
             authorityName: Joi.string()
-                .description(schemaObj.treatments.authorityName.description)
+                .description(descriptions.authorityName)
                 .optional(),
 
             authorityYear: Joi.string()
-                .description(schemaObj.treatments.authorityYear.description)
+                .description(descriptions.authorityYear)
                 .optional(),
 
             kingdom: Joi.string()
-                .description(schemaObj.treatments.kingdom.description)
+                .description(descriptions.kingdom)
                 .optional(),
 
             phylum: Joi.string()
-                .description(schemaObj.treatments.phylum.description)
+                .description(descriptions.phylum)
                 .optional(),
 
             order: Joi.string()
-                .description(schemaObj.treatments.order.description)
+                .description(descriptions.order)
                 .optional(),
 
             family: Joi.string()
-                .description(schemaObj.treatments.family.description)
+                .description(descriptions.family)
                 .optional(),
 
             genus: Joi.string()
-                .description(schemaObj.treatments.genus.description)
+                .description(descriptions.genus)
                 .optional(),
 
             species: Joi.string()
-                .description(schemaObj.treatments.species.description)
+                .description(descriptions.species)
                 .optional(),
 
             rank: Joi.string()
-                .description(schemaObj.treatments.rank.description)
+                .description(descriptions.rank)
                 .optional(),
 
             q: Joi.string()
-                .description(schemaObj.treatments.fullText.description)
+                .description(descriptions.fullText)
                 .optional(),
 
             lat: Joi.number()
                 .min(-180)
                 .max(180)
-                .description('latitude')
+                .description(descriptions.latitude)
                 .optional(),
 
             lon: Joi.number()
                 .min(-180)
                 .max(180)
-                .description('longitude')
+                .description(descriptions.longitude)
                 .optional()
         }
     },
@@ -326,7 +280,7 @@ module.exports = {
     treatmentAuthors: {
         query: {
             treatmentAuthor: Joi.string()
-                .description(schemaObj.treatmentAuthors.treatmentAuthor.description)
+                .description(descriptions.treatmentAuthor)
                 .optional()
         }
     },

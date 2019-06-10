@@ -3,8 +3,8 @@
 const fs = require('fs');
 
 const config = require('config');
-const srcdir = config.get('bin.renew.rearrangefiles.srcdir');
-const destdir = config.get('bin.renew.rearrangefiles.destdir');
+const srcdir = config.get('xmlDumpDir'); 
+const destdir = config.get('xmlRearrangedDest');
 
 module.exports = function(file) {
     const one = file.substr(0, 1);

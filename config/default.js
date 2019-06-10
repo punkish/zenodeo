@@ -33,20 +33,44 @@ module.exports = {
     },
     'swaggered-scheme': ['http'],
     'port': 3030,
-    'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
-    'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    
+    'v1': {
+        'cache': {
+            'path': path.join(cwd, 'cache'),
+            'name': 'persistent'
+        },
+        'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+        'schema': path.join(cwd, 'api', 'v1', 'schema.js')
+    },
+
+    'v2': {
+        'cache': {
+            'path': path.join(cwd, 'cache'),
+            'name': 'catbox'
+        },
+        'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+        'schema': path.join(cwd, 'api', 'v2', 'schema.js')
+    },
+
     'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
+    'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
     'xmlRearrangedDest': path.join(cwd, 'data', 'treatments'),
     'logger': path.join(cwd, 'lib', 'logger.js'),
     'logfields': ['host', 'start', 'end', 'status', 'resource', 'query', 'message'],
+    'httpStatusCodes': path.join(cwd, 'lib', 'httpStatusCodes.js'),
     'data': {
         'logs': path.join(cwd, 'data', 'logs.sqlite'),
         'treatments': path.join(cwd, 'data', 'treatments.sqlite'),
-        'authors': '../../data/authors',
-        'keywords': '../../data/keywords',
-        'taxa': '../../data/taxa.min',
-        'families': '../../data/families.min',
-    }
+        'authors': path.join(cwd, 'data', 'authors'),
+        'keywords': path.join(cwd, 'data', 'keywords'),
+        'taxa': path.join(cwd, 'data', 'taxa.min'),
+        'families': path.join(cwd, 'data', 'families.min'),
+    },
+
+    /* Telegram bot settings */
+    // bot token and chat id… see README.md
+    'bot' : '253125261:AAGHnpONfoGVLFUT6ZbCSsLrkayN3r4_uis',
+    'chat_id' : '-170396027'
 
     // 'cacheBase': '/Users/punkish/Projects/zenodeo/cache',
     // 'uri': {

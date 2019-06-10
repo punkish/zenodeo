@@ -1,18 +1,13 @@
 'use strict';
 
 const Database = require('better-sqlite3');
-//const timer = require('./utils');
-const Schema = require('../../api/v1/schema');
-
 const config = require('config');
-const dataDict = require(config.get('dataDict'));
+const dataDict = require(config.get('v2.dataDict'));
 const db = new Database(config.get('data.treatments'));
 
 module.exports = {
 
     createTables: function() {
-
-        const t0 = timer({ startMsg: 'creating tables… '});
 
         const dataTypes = {
             string: 'TEXT',
@@ -69,63 +64,49 @@ module.exports = {
 
         }
 
-        timer({ startTime: t0});
+        //timer({ startTime: t0});
     },
 
     insertStmts: {},
-
-    rowsLoaded: {
-            treatments: 0,
-            treatmentAuthors: 0,
-            materialCitations: 0,
-            treamentCitations: 0,
-            figureCitations: 0,
-            bibRefCitations: 0 
-    },
-
-    // The data structure submitted to `loadData()` looks as follows
-    // 
-    // data = [ 
-    //     { 
-    //         treatment: { },
-    //         treatmentAuthors: [ [Object] ],
-    //         materialCitations: undefined,
-    //         treamentCitations: undefined,
-    //         figureCitations: undefined,
-    //         bibRefCitations: [ [Object] ] 
-    //     } 
-    // ]
-    //
+    
     loadData: function(data) {
 
+        // The data structure submitted to `loadData()` looks as follows
+        // 
+        // data = [ 
+        //     { 
+        //         treatment: { },
+        //         treatmentAuthors:    [ [{}, {} … ] ],
+        //         materialCitations:   [ [{}, {} … ] ],
+        //         treatmentCitations:   [ [{}, {} … ] ],
+        //         figureCitations:     [ [{}, {} … ] ],
+        //         bibRefCitations:     [ [{}, {} … ] ] 
+        //     } 
+        // ]
+        //
+        // We need to convert this hierarchical array of treatments into 
+        // a separate array for each part of the treatment so they can be 
+        // inserted into the separate SQL tables. However, we also have 
+        // add an extra 'treatmentId' key to all the componoents of a 
+        // treatment so they can be linked together in a SQL JOIN query.
+        // So the above data structure will be converted to the following
+        //
+        // d = {
+        //     treatments: [],
+        //     treatmentAuthors: [],
+        //     materialCitations: [],
+        //     treatmentCitations: [],
+        //     figureCitations: [],
+        //     bibRefCitations: []
+        // }
+
         for (let table in dataDict) {
-
-            let rowCount = 0;
-            let t0;
-
-            if (table === 'treatments') {
-
-                rowCount = data.length;
-                //t0 = timer({ startMsg: `adding ${rowCount} rows to ${table} (${this.rowsLoaded[table]} already loaded)… ` });
-                //this.rowsLoaded['treatments'] = +(this.rowsLoaded['treatments'] + rowCount);
-
-            }
-            else {
-            
-                data.forEach(el => {
-                    if (el[table]) {
-                        rowCount += el[table].length;
-                    }
-                })
-                //t0 = timer({ startMsg: `   - ${rowCount} rows to ${table} (${this.rowsLoaded[table]} already loaded)… ` });
-                //this.rowsLoaded[table] = +(this.rowsLoaded[table] + rowCount);
-            }
-
+ 
             let d = {
                 treatments: [],
                 treatmentAuthors: [],
                 materialCitations: [],
-                treamentCitations: [],
+                treatmentCitations: [],
                 figureCitations: [],
                 bibRefCitations: []
             }
@@ -133,16 +114,28 @@ module.exports = {
             for (let i = 0, j = data.length; i < j; i++) {
 
                 if (table === 'treatments') {
-                    d[table].push(data[i].treatment)
+                    d['treatments'].push(data[i].treatment)
                 }
                 else {
 
-                    if (typeof data[i][table] !== 'undefined') {
+                    // While processing different parts of a 'treatment'
+                    // such as 'treatmentCitations', 'materialsCitation'
+                    // 'treatmentAuthors', 'figureCitations' and 
+                    // 'bibrefCitations' we have to check whether not the
+                    // array exists. For example, if no 'treatmentAuthors'
+                    // were found for a specific treatment, for that 
+                    // 'treatment' the 'treatmentAuthors' array will be 
+                    // undefined. In that case we don't process it because 
+                    // there is nothing to insert into the database.
+                    if (typeof(data[i][table]) !== 'undefined') {
 
+                        // for each component of the 'treatment', we take each 
+                        // element of the array, ultimately a new row in the 
+                        // database, and insert it into a separate array.
                         for (let r in data[i][table]) {
                             d[table].push(data[i][table][r])
                         }
-                        
+    
                     }
                     
                 }
@@ -150,67 +143,47 @@ module.exports = {
 
             const insertMany = db.transaction((rows) => {
                 for (const row of rows) {
-                    
                     this.insertStmts[table].run(row);
                 }
             });
 
+            
             for (let t in d) {
-                
-                insertMany(d[t]);
+                if (d[t].length) {
+                    insertMany(d[t]);
+                }
             }
             
-            //timer({ startTime: t0 });
         }
     },
 
     indexTables: function() {
 
-        // index all tables on treatmentId
-        // for (let table in dataDict) {
-
-        //     const t0 = timer({ startMsg: `indexing ${table} table… `});
-
-        //     db.prepare(`CREATE INDEX ix_${table}_treatments ON ${table} (treatmentId)`).run();
-
-        //     timer({ startTime: t0 });
-        // }
-
         // index treatents table on each queryable field
-        for (let table in dataDict) {
-            const queryAble = Object.keys(Schema[table].query);
-            // remove 'order' because it is a pain in the ass
-            queryAble.splice(queryAble.indexOf('order'), 1);
-            // remove 'q' because no such column
-            queryAble.splice(queryAble.indexOf('q'), 1);
+        for (let t in dataDict) {
 
-            for (let k in queryAble) {
+            const table = dataDict[t];
+            for (let i = 0, j = table.length; i < j; i++) {
 
-                    const t0 = timer({ startMsg: `indexing ${table} table on ${queryAble[k]}… `});
-                    db.prepare(`CREATE INDEX IF NOT EXISTS ix_${table}_${queryAble[k]} ON ${table} (${queryAble[k]})`).run()
-                    timer({ startTime: t0 });
-                
+                if (table[i].queryable) {
+
+                    // remove 'order' because it is a pain in the ass and 
+                    // remove 'fullText' because that is searched differently
+                    if (table[i].plazi !== 'order' && table[i].plazi !== 'fullText') {
+                        db.prepare(`CREATE INDEX IF NOT EXISTS ix_${t}_${table[i].plazi} ON ${t} (${table[i].plazi})`).run()
+                    }
+                }
             }
+            
         }
 
     },
 
     loadFTSTreatments: function() {
-        
-        const t0 = timer({ startMsg: 'loading treatments FTS table… ' });
-        
+                
         db.prepare('CREATE VIRTUAL TABLE vtreatments USING FTS5(treatmentId, fullText)').run();
         db.prepare(`INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments`).run();
 
-        timer({ startTime: t0 });
-    },
-
-    countRows: function() {
-
-        console.log('\nTotal rows inserted\n' + '-'.repeat(30))
-        for (let table in dataDict) {
-            const rows = db.prepare(`SELECT Count(*) AS c FROM ${table}`).get();
-            console.log(`${table}: ${rows.c}`);
-        }
     }
+
 };

@@ -50,6 +50,30 @@ module.exports = {
     },
 };
 
+const getStats = function(taxon) {
+
+    let cols = [];
+    let vals = [];
+
+    for (let col in taxon) {
+
+        vals.push( taxon[col] )
+
+        // we add double quotes to 'order' otherwise the 
+        // sql statement would choke since order is a  
+        // reserved word
+        if (col === 'order') col = '"order"';
+        cols.push(col + ' = ?');
+
+    }
+
+    let select = `SELECT Count(*) AS num FROM treatments WHERE ${cols.join(' AND ')}`;
+    console.log(select);
+    return db.prepare(select).get(vals)
+
+    
+};
+
 const getTreatments = async function(query) {
 
     qryObj = {};
@@ -68,22 +92,17 @@ const getTreatments = async function(query) {
         const two = qryObj.treatmentId.substr(0, 2);
         const thr = qryObj.treatmentId.substr(0, 3);
 
+        const xml = fs.readFileSync(
+            `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
+            'utf8'
+        )
+
         if (qryObj.format === 'xml') {
-
-            return fs.readFileSync(
-                `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
-                'utf8'
-            )
-
+            return xml;
         }
         else {
             selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
             let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
-            
-            const xml = fs.readFileSync(
-                `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
-                'utf8'
-            )
     
             const selectMaterialCitations = "SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE latitude != '' AND longitude != '' AND treatmentId = ?";
     
@@ -96,7 +115,68 @@ const getTreatments = async function(query) {
     
             data['images'] = await Utils.getImages(qryObj.treatmentId);
             data['xml'] = xml;
-    
+
+            
+            const taxonStats = {
+                kingdom: { 
+                    qryObj: {
+                        kingdom: data.kingdom
+                    },
+                    num: 0
+                },
+                phylum: {
+                    qryObj: {
+                        kingdom: data.kingdom,
+                        phylum: data.phylum
+                    },
+                    num: 0,
+                },
+                order: {
+                    qryObj: {
+                        kingdom: data.kingdom,
+                        phylum: data.phylum,
+                        order: data.order
+                    },
+                    num: 0
+                },
+                family: {
+                    qryObj: {
+                        kingdom: data.kingdom,
+                        phylum: data.phylum,
+                        order: data.order,
+                        family: data.family
+                    },
+                    num: 0
+                },
+                genus: {
+                    qryObj: {
+                        kingdom: data.kingdom,
+                        phylum: data.phylum,
+                        order: data.order,
+                        family: data.family,
+                        genus: data.genus
+                    },
+                    num: 0
+                },
+                species: {
+                    qryObj: {
+                        kingdom: data.kingdom,
+                        phylum: data.phylum,
+                        order: data.order,
+                        family: data.family,
+                        genus: data.genus,
+                        species: data.species
+                    },
+                    num: 0
+                }
+            };
+
+            for (let t in taxonStats) {
+                taxonStats[t].num = getStats(taxonStats[t].qryObj);
+            }
+
+            data.taxonStats = taxonStats;
+            
             return data
         }
         
@@ -107,16 +187,10 @@ const getTreatments = async function(query) {
     // There could be other optional params to narrow the result.
     else if (qryObj.q) {
 
-        selectTreatments = `SELECT v.treatmentId, t.treatmentTitle, 
-                                snippet(v.vtreatments, 1, '<b>', '</b>', '', 25) s 
-                            FROM vtreatments v JOIN treatments t ON 
-                                v.treatmentId = t.treatmentId 
+        selectTreatments = `SELECT v.treatmentId, t.treatmentTitle, snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
+                            FROM vtreatments v JOIN treatments t ON v.treatmentId = t.treatmentId 
                             WHERE vtreatments MATCH ?`;
 
-        // queryParams.splice(queryParams.indexOf('q'), 1);
-        // for (let i = 0, j = queryParams.length; i < j; i++) {
-        // }
-        //console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.q)
 
     }
@@ -129,8 +203,6 @@ const getTreatments = async function(query) {
         selectTreatments = 'SELECT * FROM materialcitations WHERE latitude = ? AND longitude = ?'
         console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.lat, qryObj.lon)
-        //const selectTreatment = db.prepare('SELECT * FROM treatments WHERE treatmentId = @treatmentId');
-        //lat=20.719528&lon=104.99638
         
     }
 
