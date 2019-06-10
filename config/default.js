@@ -32,7 +32,7 @@ module.exports = {
         'remote': 'https://zenodo.org/api'
     },
     'download-program': {
-        "timestampDir": path.join('.', 'download', 'timestamp.txt'),
+        "timestampDir": path.join(cwd, 'bin', 'truebug', 'download', 'timestamp.txt'),
         "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
         "treatmentsListDir": path.join(cwd, 'data'),
         "treatmentsListFilename": "listOfTreatments.xml",
