@@ -379,8 +379,9 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         // update the progress bar every x% of the total num of files
         // but x% of j should not be more than 10000
         let x = 10;
-        if ((j / x) > 10000) {
-            x = Math.floor(j / 10000);
+        const transactionLimit = 5000;
+        if ((j / x) > transactionLimit) {
+            x = Math.floor(j / transactionLimit);
         }
 
         const tickInterval = Math.floor( j / (j / x) );
