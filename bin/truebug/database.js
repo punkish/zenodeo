@@ -94,7 +94,7 @@ module.exports = {
         // d = {
         //     treatments: [],
         //     treatmentAuthors: [],
-        //     materialCitations: [],
+        //     materialsCitations: [],
         //     treatmentCitations: [],
         //     figureCitations: [],
         //     bibRefCitations: []
@@ -105,7 +105,7 @@ module.exports = {
             let d = {
                 treatments: [],
                 treatmentAuthors: [],
-                materialCitations: [],
+                materialsCitations: [],
                 treatmentCitations: [],
                 figureCitations: [],
                 bibRefCitations: []
@@ -114,7 +114,7 @@ module.exports = {
             for (let i = 0, j = data.length; i < j; i++) {
 
                 if (table === 'treatments') {
-                    d['treatments'].push(data[i].treatment)
+                    d.treatments.push(data[i].treatment)
                 }
                 else {
 

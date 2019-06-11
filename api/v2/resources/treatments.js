@@ -68,10 +68,102 @@ const getStats = function(taxon) {
     }
 
     let select = `SELECT Count(*) AS num FROM treatments WHERE ${cols.join(' AND ')}`;
-    console.log(select);
+    //console.log(select);
     return db.prepare(select).get(vals)
 
     
+};
+
+const getOneTreatment = async function(qryObj) {
+    const one = qryObj.treatmentId.substr(0, 1);
+    const two = qryObj.treatmentId.substr(0, 2);
+    const thr = qryObj.treatmentId.substr(0, 3);
+
+    const xml = fs.readFileSync(
+        `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
+        'utf8'
+    )
+
+    if (qryObj.format === 'xml') {
+        return xml;
+    }
+    else {
+        let selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
+        let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
+
+        const selectMaterialCitations = "SELECT treatmentId, typeStatus, latitude, longitude FROM materialsCitations WHERE latitude != '' AND longitude != '' AND treatmentId = ?";
+
+        const mcData = db.prepare(selectMaterialCitations).all(qryObj.treatmentId);
+
+        if (mcData.length) {
+            data.materialsCitations = mcData
+        }
+
+        data.images = await Utils.getImages(qryObj.treatmentId);
+        data.xml = xml;
+
+        const taxonStats = {
+            kingdom: { 
+                qryObj: {
+                    kingdom: data.kingdom
+                },
+                num: 0
+            },
+            phylum: {
+                qryObj: {
+                    kingdom: data.kingdom,
+                    phylum: data.phylum
+                },
+                num: 0,
+            },
+            order: {
+                qryObj: {
+                    kingdom: data.kingdom,
+                    phylum: data.phylum,
+                    order: data.order
+                },
+                num: 0
+            },
+            family: {
+                qryObj: {
+                    kingdom: data.kingdom,
+                    phylum: data.phylum,
+                    order: data.order,
+                    family: data.family
+                },
+                num: 0
+            },
+            genus: {
+                qryObj: {
+                    kingdom: data.kingdom,
+                    phylum: data.phylum,
+                    order: data.order,
+                    family: data.family,
+                    genus: data.genus
+                },
+                num: 0
+            },
+            species: {
+                qryObj: {
+                    kingdom: data.kingdom,
+                    phylum: data.phylum,
+                    order: data.order,
+                    family: data.family,
+                    genus: data.genus,
+                    species: data.species
+                },
+                num: 0
+            }
+        };
+
+        for (let t in taxonStats) {
+            taxonStats[t].num = getStats(taxonStats[t].qryObj);
+        }
+
+        data.taxonStats = taxonStats;
+        
+        return data
+    }
 };
 
 const getTreatments = async function(query) {
@@ -79,7 +171,7 @@ const getTreatments = async function(query) {
     qryObj = {};
     query.split('&').forEach(el => { a = el.split('='); qryObj[ a[0] ] = a[1]; })
 
-    let selectTreatments = '';
+    
 
     // There are three kinds of possible queries for treatments
     //
@@ -87,99 +179,7 @@ const getTreatments = async function(query) {
     // treatment. All other query params are ignored
 
     if (qryObj.treatmentId) {
-
-        const one = qryObj.treatmentId.substr(0, 1);
-        const two = qryObj.treatmentId.substr(0, 2);
-        const thr = qryObj.treatmentId.substr(0, 3);
-
-        const xml = fs.readFileSync(
-            `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
-            'utf8'
-        )
-
-        if (qryObj.format === 'xml') {
-            return xml;
-        }
-        else {
-            selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
-            let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
-    
-            const selectMaterialCitations = "SELECT treatmentId, typeStatus, latitude, longitude FROM materialCitations WHERE latitude != '' AND longitude != '' AND treatmentId = ?";
-    
-            const mcData = db.prepare(selectMaterialCitations).all(qryObj.treatmentId);
-    
-            if (mcData.length) {
-                data['materialCitations'] = mcData
-            }
-            
-    
-            data['images'] = await Utils.getImages(qryObj.treatmentId);
-            data['xml'] = xml;
-
-            
-            const taxonStats = {
-                kingdom: { 
-                    qryObj: {
-                        kingdom: data.kingdom
-                    },
-                    num: 0
-                },
-                phylum: {
-                    qryObj: {
-                        kingdom: data.kingdom,
-                        phylum: data.phylum
-                    },
-                    num: 0,
-                },
-                order: {
-                    qryObj: {
-                        kingdom: data.kingdom,
-                        phylum: data.phylum,
-                        order: data.order
-                    },
-                    num: 0
-                },
-                family: {
-                    qryObj: {
-                        kingdom: data.kingdom,
-                        phylum: data.phylum,
-                        order: data.order,
-                        family: data.family
-                    },
-                    num: 0
-                },
-                genus: {
-                    qryObj: {
-                        kingdom: data.kingdom,
-                        phylum: data.phylum,
-                        order: data.order,
-                        family: data.family,
-                        genus: data.genus
-                    },
-                    num: 0
-                },
-                species: {
-                    qryObj: {
-                        kingdom: data.kingdom,
-                        phylum: data.phylum,
-                        order: data.order,
-                        family: data.family,
-                        genus: data.genus,
-                        species: data.species
-                    },
-                    num: 0
-                }
-            };
-
-            for (let t in taxonStats) {
-                taxonStats[t].num = getStats(taxonStats[t].qryObj);
-            }
-
-            data.taxonStats = taxonStats;
-            
-            return data
-        }
-        
+        return await getOneTreatment(qryObj);
     }
 
     
@@ -191,8 +191,15 @@ const getTreatments = async function(query) {
                             FROM vtreatments v JOIN treatments t ON v.treatmentId = t.treatmentId 
                             WHERE vtreatments MATCH ?`;
 
-        return db.prepare(selectTreatments).all(qryObj.q)
+        let data = db.prepare(selectTreatments).all(qryObj.q);
+        // for (let i = 0, j = data.length; i < j; i++) {
+        //     const treatment = data[i];
+        //     const treatmentId = treatment.treatmentId;
 
+        //     data[i].images = await Utils.getImages(treatmentId);
+        // }
+
+        return data;
     }
 
     // 3. 'lat' and 'lon' are present in the query string, so 
@@ -200,7 +207,7 @@ const getTreatments = async function(query) {
     // against the 'materialcitations' table
     else if (qryObj.lat && qryObj.lon) {
 
-        selectTreatments = 'SELECT * FROM materialcitations WHERE latitude = ? AND longitude = ?'
+        selectTreatments = 'SELECT * FROM materialsCitations WHERE latitude = ? AND longitude = ?'
         console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.lat, qryObj.lon)
         
