@@ -177,6 +177,12 @@ module.exports = {
             
         }
 
+        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum ON treatments (kingdom, phylum)').run();
+        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order ON treatments (kingdom, phylum, "order")').run();
+        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order_family ON treatments (kingdom, phylum, "order", family)').run();
+        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order_family_genus ON treatments (kingdom, phylum, "order", family, genus)').run();
+        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order_family_genus_species ON treatments (kingdom, phylum, "order", family, genus, species)').run();
+
     },
 
     loadFTSTreatments: function() {
