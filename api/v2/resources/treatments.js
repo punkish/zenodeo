@@ -192,12 +192,6 @@ const getTreatments = async function(query) {
                             WHERE vtreatments MATCH ?`;
 
         let data = db.prepare(selectTreatments).all(qryObj.q);
-        // for (let i = 0, j = data.length; i < j; i++) {
-        //     const treatment = data[i];
-        //     const treatmentId = treatment.treatmentId;
-
-        //     data[i].images = await Utils.getImages(treatmentId);
-        // }
 
         return data;
     }
