@@ -26,6 +26,7 @@
     "inert": "^5.1.2",
     "joi": "^14.3.1",
     "minimist": "^1.2.0",
+    "mkdirp": "^0.5.1",
     "nodemailer": "^6.2.1",
     "persistent-cache": "^1.1.1",
     "progress": "^2.0.3",

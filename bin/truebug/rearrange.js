@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const mkdirp = require('mkdirp');
 
 const config = require('config');
 const srcdir = config.get('xmlDumpDir'); 
@@ -14,6 +15,7 @@ module.exports = function(file) {
     const src = `${srcdir}/${file}`;
     const dest = `${destdir}/${one}/${two}/${thr}`;
 
-    fs.mkdirSync(dest, {recursive: true});
+    //fs.mkdirSync(dest, {recursive: true});
+    mkdirp.sync(dest);
     fs.copyFileSync(src, `${dest}/${file}`);
 }
