@@ -171,11 +171,11 @@ module.exports = {
         "plazi": "treatmentAuthor",
         "zenodo": "creators",
         "type": "string",
-        "element": "$('mods\\\\:namePart')",
+        "element": "mods\\\\:namePart",
         "definition": "Authors of article (used if no treatment authority is found)",
         "queryable": true
     }],
-    materialCitations: [{
+    materialsCitations: [{
         "plazi": "collectionCode",
         "zenodo": "subjects",
         "type": "string",
@@ -360,21 +360,21 @@ module.exports = {
         "plazi": "captionText",
         "zenodo": "relatedIdentifiers[cites]",
         "type": "uri",
-        "element": "$('figureCitation').attr('captionText')",
+        "element": "$('figureCitation')",
         "definition": "The figures cited by this treatment"
     },
     {
         "plazi": "httpUri",
         "zenodo": "relatedIdentifiers[cites]",
         "type": "uri",
-        "element": "$('figureCitation').attr('httpUri')",
+        "element": "$('figureCitation')",
         "definition": "The figures cited by this treatment"
     }],
     bibRefCitations: [{
         "plazi": "refString",
         "zenodo": "relatedIdentifiers[cites]",
         "type": "uri",
-        "element": "$('bibRefCitation').attr('refString')",
+        "element": "text()",
         "definition": "The figures cited by this treatment"
     }]
     // vernacularNames: [

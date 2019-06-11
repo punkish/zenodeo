@@ -34,7 +34,7 @@ const database = require('./database');
  *      treatment: {},
  *      treatmentCitations: [ {}, {}, … ],
  *      treatmentAuthors: [ {}, {}, … ],
- *      materialCitations: [ {}, {}, … ],
+ *      materialsCitations: [ {}, {}, … ],
  *      bibRefCitations: [ {}, {}, … ],
  *      figureCitations: [ {}, {}, … ]
  * }
@@ -44,7 +44,7 @@ let extracted = {
     treatments: 0,
     treatmentCitations: 0,
     treatmentAuthors: 0,
-    materialCitations: 0,
+    materialsCitations: 0,
     figureCitations: 0,
     bibRefCitations: 0
 }
@@ -55,20 +55,20 @@ const stats = function(treatments, endProc) {
 
     for (let i = 0, j = treatments.length; i < j; i++) {
         const treatment = treatments[i];
-        if (treatment['treatmentCitations']) {
-            extracted.treatmentCitations = extracted.treatmentCitations + treatment['treatmentCitations'].length;
+        if (treatment.treatmentCitations) {
+            extracted.treatmentCitations = extracted.treatmentCitations + treatment.treatmentCitations.length;
         }
-        if (treatment['treatmentAuthors']) {
-            extracted.treatmentAuthors = extracted.treatmentAuthors + treatment['treatmentAuthors'].length;
+        if (treatment.treatmentAuthors) {
+            extracted.treatmentAuthors = extracted.treatmentAuthors + treatment.treatmentAuthors.length;
         }
-        if (treatment['materialCitations']) {
-            extracted.materialCitations = extracted.materialCitations + treatment['materialCitations'].length;
+        if (treatment.materialsCitations) {
+            extracted.materialsCitations = extracted.materialsCitations + treatment.materialsCitations.length;
         }
-        if (treatment['figureCitations']) {
-            extracted.figureCitations = extracted.figureCitations + treatment['figureCitations'].length;
+        if (treatment.figureCitations) {
+            extracted.figureCitations = extracted.figureCitations + treatment.figureCitations.length;
         }
-        if (treatment['bibRefCitations']) {
-            extracted.bibRefCitations = extracted.bibRefCitations + treatment['bibRefCitations'].length;
+        if (treatment.bibRefCitations) {
+            extracted.bibRefCitations = extracted.bibRefCitations + treatment.bibRefCitations.length;
         }
     }
 
@@ -82,12 +82,12 @@ const parseOne = function(treatmentId) {
     const treatment = cheerioparse(xml, treatmentId);
 
     return {
-        treatment: treatment['treatment'],
-        treatmentAuthors: treatment['treatmentAuthors'],
-        materialCitations: treatment['materialCitations'],
-        treatmentCitations: treatment['treatmentCitations'],
-        figureCitations: treatment['figureCitations'],
-        bibRefCitations: treatment['bibRefCitations']
+        treatment:          treatment.treatment,
+        treatmentAuthors:   treatment.treatmentAuthors,
+        materialsCitations: treatment.materialsCitations,
+        treatmentCitations: treatment.treatmentCitations,
+        figureCitations:    treatment.figureCitations,
+        bibRefCitations:    treatment.bibRefCitations
     }
     
 };
@@ -134,8 +134,9 @@ const parseTreatmentCitations = function($) {
             }
         }
         
-        return tc;
     }
+
+    return tc;
 
 };
 
@@ -155,7 +156,7 @@ const parseTreatmentAuthors = function($) {
                 if (role === 'Author') {
 
                     if ($('mods\\:namePart', treaut[i]).text()) {
-                        treatmentAuthor[el["plazi"]] = $('mods\\:namePart', treaut[i]).text();
+                        treatmentAuthor[el.plazi] = $('mods\\:namePart', treaut[i]).text();
                     }
 
                 }
@@ -164,8 +165,76 @@ const parseTreatmentAuthors = function($) {
             ta.push(treatmentAuthor)
         }
 
-        return ta;
     }
+
+    return ta;
+  
+};
+
+const parseBibRefCitations = function($) {
+
+    const elements = $('bibRefCitation');
+    let entries = [];
+
+    if (elements.length) {
+
+        for (let i = 0, j = elements.length; i < j; i++) {
+
+            let entry = {};
+
+            dataDict.bibRefCitations.forEach(el => {
+                entry[el.plazi] = $(elements[i]).attr(el.plazi);
+            })
+
+            entries.push(entry)
+        }
+    }
+
+    return entries;
+  
+};
+
+const parseFigureCitations = function($) {
+
+    const elements = $('figureCitation');
+    let entries = [];
+
+    if (elements.length) {
+
+        for (let i = 0, j = elements.length; i < j; i++) {
+
+            let entry = {};
+            dataDict.figureCitations.forEach(el => {
+                entry[el.plazi] = $(elements[i]).attr(el.plazi);
+            })
+
+            entries.push(entry)
+        }
+    }
+
+    return entries;
+  
+};
+
+const parseMaterialsCitations = function($) {
+
+    const elements = $('materialsCitation');
+    let entries = [];
+
+    if (elements.length) {
+
+        for (let i = 0, j = elements.length; i < j; i++) {
+
+            let entry = {};
+            dataDict.materialsCitations.forEach(el => {
+                entry[el.plazi] = $(elements[i]).attr(el.plazi);
+            })
+
+            entries.push(entry)
+        }
+    }
+
+    return entries;
   
 };
 
@@ -176,24 +245,22 @@ const parseSectionsWithAttribs = function(sectionName, $) {
     if ($.length) {
 
         for (let i = 0, j = $.length; i < j; i++) {
-
+            
             let section = {};
             let atLeastOneValue = false;
 
             dataDict[sectionName].forEach(el => {
-                
 
                 // add the attribute to the row only if the 
                 // attribute is present
-                if ($[i].attribs[el["plazi"]]) {
-
+                if ($[i].attribs[el.plazi]) {
                     atLeastOneValue = true;
-                    section[el["plazi"]] = $[i].attribs[el["plazi"]];
+                    section[el.plazi] = $[i].attribs[el.plazi];
                 }
                 else {
-                    section[el["plazi"]] = '';
+                    section[el.plazi] = '';
                 }
-
+                
             })
 
             // Add a row if at least one field has a value
@@ -211,16 +278,10 @@ const parseTreament = function($) {
     let treatment = {};
     
     dataDict.treatments.forEach(el => {
-        let val = eval(el["element"]);
-        if (typeof val !== 'undefined') {
-            treatment[el["plazi"]] = val.trim();
-        }
-        else {
-            treatment[el["plazi"]] = ''
-        }
+        let val = eval(el.element);
+        treatment[el.plazi] = val ? val.trim() : '';
     })
 
-    const t = [treatment];
     return treatment
 };
 
@@ -232,11 +293,12 @@ const cheerioparse = function(xml, treatmentId) {
     });
 
     let treatment = {};
-    treatment['treatment'] = parseTreament($)
+    treatment.treatment = parseTreament($)
 
-    // The following two functions are used to filter out any empty objects  
-    // returned from parsing, and to add the 'treatmentId' to each remaining 
-    // object so it can be used as a foreign key to connect the object to the 
+    // The following two functions are used to filter out any 
+    // empty objects returned from parsing, and to add the 
+    // 'treatmentId' to each remaining object so it can be 
+    // used as a foreign key to connect the object to the 
     // parent treatment
     const emptyObjs = (el) => Object.keys(el).length > 0;
     const addTreatmentId = (el) => {
@@ -244,32 +306,51 @@ const cheerioparse = function(xml, treatmentId) {
         return el;
     }
 
-    let ta;
-    if (ta = parseTreatmentAuthors($)) {
-        treatment['treatmentAuthors'] = ta.filter(emptyObjs);
-        treatment['treatmentAuthors'].forEach(addTreatmentId);
+    let ta = parseTreatmentAuthors($);
+    if (ta.length) {
+        treatment.treatmentAuthors = ta.filter(emptyObjs);
+        treatment.treatmentAuthors.forEach(addTreatmentId);
     }
 
-    let tc;
-    if (tc = parseTreatmentCitations($)) {
-        treatment['treatmentCitations'] = tc.filter(emptyObjs);
-        treatment['treatmentCitations'].forEach(addTreatmentId);
+    let tc = parseTreatmentCitations($);
+    if (tc.length) {
+        treatment.treatmentCitations = tc.filter(emptyObjs);
+        treatment.treatmentCitations.forEach(addTreatmentId);
     }
 
+    let br = parseBibRefCitations($);
+    if (br.length) {
+        treatment.bibRefCitations = br.filter(emptyObjs);
+        treatment.bibRefCitations.forEach(addTreatmentId);
+    }
 
-    // Parse the XML for the sections with attributes only. As mentinoed above, 
-    // these sections can be processed with a common logic.
-    [
-        ['materialCitations', $('subSubSection[type=materials_examined] materialsCitation')],
-        ['figureCitations', $('figureCitation')],
-        ['bibRefCitations', $('bibRefCitation')]
-    ].forEach(el => {
-        const data = parseSectionsWithAttribs(el[0], el[1]);
+    let fc = parseFigureCitations($);
+    if (fc.length) {
+        treatment.figureCitations = fc.filter(emptyObjs);
+        treatment.figureCitations.forEach(addTreatmentId);
+    }
 
-        if (data.length) {
-            treatment[el[0]] = data.map(addTreatmentId);
-        }
-    })
+    let mc = parseMaterialsCitations($);
+    if (mc.length) {
+        treatment.materialsCitations = mc.filter(emptyObjs);
+        treatment.materialsCitations.forEach(addTreatmentId);
+    }
+    
+
+    // Parse the XML for the sections with attributes only. 
+    // These sections can be processed with a common logic.
+    // [
+    //     //['materialCitations', $('subSubSection[type=materials_examined] materialsCitation')],
+    //     ['materialCitations', $('materialsCitation')],
+    //     //['figureCitations', $('figureCitation')],
+    //     //['bibRefCitations', $('bibRefCitation')]
+    // ].forEach(el => {
+    //     const data = parseSectionsWithAttribs(el[0], el[1]);
+
+    //     if (data.length) {
+    //         treatment[el[0]] = data.map(addTreatmentId);
+    //     }
+    // })
 
     return treatment;
         
@@ -303,7 +384,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         }
 
         const tickInterval = Math.floor( j / (j / x) );
-        const bar = new progress('  processing [:bar] :rate files/sec :percent :etas', {
+        const bar = new progress('processing [:bar] :rate files/sec :current/:total done (:percent) time left: :etas', {
             complete: '=',
             incomplete: ' ',
             width: 30,
@@ -337,7 +418,9 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         
             if (!(i % batch)) {
 
-                database.loadData(treatments);
+                if (databaseOpt) {
+                    database.loadData(treatments);
+                }
                 stats(treatments, endProc);
                 treatments = [];
                     
@@ -345,9 +428,11 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
             
         }
 
-        database.loadData(treatments);
-        database.indexTables();
-        database.loadFTSTreatments();
+        if (databaseOpt) {
+            database.loadData(treatments);
+            database.indexTables();
+            database.loadFTSTreatments();
+        }
         
         logger({
             host: 'localhost',
