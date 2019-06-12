@@ -1,12 +1,16 @@
 'use strict';
 
 const download = require('download');
+
 const progress = require('progress');
 
 const config = require('config');
 const downloadDir = config.get('download-program.newTreatmentsDir');
 
 const downloadTreatmentsURL = config.get('download-program.downloadTreatmentsURL');
+
+const { performance } = require('perf_hooks');
+const logger = require(config.get('logger'));
 
 // Logic behind progress bar:
 // I'll have to use a file watches (chokidar) to watch the folder
@@ -22,11 +26,6 @@ module.exports = {
         
         if (treatmentIDs.length) {
 
-            // I tried to create a counter with the number of
-            // downloads, but the async part of javascript stopped me
-            // for now. I'll come back to this later.
-
-            const j = treatmentIDs.length;
             /*
             // update the progress bar every x% of the total num of files
             // but x% of j should not be more than 10000
@@ -45,16 +44,67 @@ module.exports = {
             });
             */
 
+            const start = performance.now().toFixed(2);
+            let hostType = '';
+
+            // Check if it's in production
+            if (process.env.NODE_ENV === 'production') {
+                hostType = 'production';
+            } else {
+                hostType = 'localhost';
+            };
+
             for (let i = 0, j = treatmentIDs.length; i < j; i++) {
 
                 let url = downloadTreatmentsURL + treatmentIDs[i] + '.xml';
+                
+                //url = 'https://proxy.duckduckgo.com/iu/?u=https%3A%2F%2Ffiles.brightside.me%2Ffiles%2%2F46555%2F206355-1250'
+                /*
+                url = downloadTreatmentsURL + 'FA2A8793CA55F177E2CC8A1AFBAA8975banana.xml'
+                url = 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince=1559070451315'
+                */
 
-                download(url, downloadDir);
-            }        
-        }
+                download(url, downloadDir)
+                    .then((response) => {
+                        if (response) {
+                            
+                            logger({
+                                host: hostType,                    
+                                start: start,
+                                end: performance.now().toFixed(2),
+                                status: 'success',
+                                resource: 'download.treatmentsXML',
+                                // query: n,
+                                message: `The XML file for treatment ${treatmentIDs[i]} was successfully downloaded.`
+                            });
+                        }
+                    })
+                    .catch((error) => {
+                        
+                        logger({
+                            host: hostType,                    
+                            start: start,
+                            end: performance.now().toFixed(2),
+                            status: 'failed',
+                            resource: 'download.treatmentsXML',
+                            // query: n,
+                            message: `Couldn't download XML for treatment ${treatmentIDs[i]} - ${error}.`
+                        });
+                    });
+                }        
+            }
 
         else {
-            console.log("There are no new treatments to be downloaded.");
+            
+            logger({
+                host: hostType,                    
+                start: start,
+                end: performance.now().toFixed(2),
+                status: 'success',
+                resource: 'download.treatmentsXML',
+                // query: n,
+                message: `No new treatments were found.`
+            });
         }
     }
 }
