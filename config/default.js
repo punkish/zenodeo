@@ -56,7 +56,15 @@ module.exports = {
     'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
     'xmlRearrangedDest': path.join(cwd, 'data', 'treatments'),
     'logger': path.join(cwd, 'lib', 'logger.js'),
-    'logfields': ['host', 'start', 'end', 'status', 'resource', 'query', 'message'],
+    'logfields': [
+        {'col': 'host', 'type': 'TEXT'},
+        {'col': 'start', 'type': "INTEGER DEFAULT (strftime('%s', 'now'))"},
+        {'col': 'end', 'type': "INTEGER DEFAULT (strftime('%s', 'now'))"},
+        {'col': 'status', 'type': 'TEXT'},
+        {'col': 'resource', 'type': 'TEXT'},
+        {'col': 'query', 'type': 'TEXT'},
+        {'col': 'message', 'type': 'TEXT'}
+    ],
     'httpStatusCodes': path.join(cwd, 'lib', 'httpStatusCodes.js'),
     'data': {
         'logs': path.join(cwd, 'data', 'logs.sqlite'),

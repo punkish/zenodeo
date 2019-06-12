@@ -17,7 +17,7 @@ const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
 const logger = require(config.get('logger'));
-const httpStatusCodes = require(config.get('httpStatusCodes'));
+
 /*
  * blipp is a simple hapi plugin to display  
  * the routes table at startup
@@ -97,24 +97,20 @@ const start = async () => {
         require('./resources/examples'),
         require('./resources/about')
     ]);
-
-    
     
     await server.start();
 
     server.events.on('log', (event, tags) => {
 
         if (tags.error) {
-            const msg = `Server error: ${event.error ? event.error.message : 'unknown'}`;
-            console.log(msg);
             logger({
-                host: request.info.host,
-                start: request.info.received,
-                end: request.info.completed,
-                status: request.response.statusCode,
-                resource: request.route.path.split('/').pop(),
-                query: JSON.stringify(request.query),
-                message: msg
+                host: server.info.uri,
+                start: '',
+                end: '',
+                status: 500,
+                resource: '',
+                query: '',
+                message: `Server error: ${event.error ? event.error.message : 'unknown'}`
             });
         }
         
@@ -129,12 +125,21 @@ const start = async () => {
             status: request.response.statusCode,
             resource: request.route.path.split('/').pop(),
             query: JSON.stringify(request.query),
-            message: httpStatusCodes[request.response.statusCode]
+            message: ''
         });
 
     });
 
-    console.info(`Server running at: ${server.info.uri}`);
+    logger({
+        host: server.info.uri,
+        start: '',
+        end: '',
+        status: 200,
+        resource: 'zenodeo',
+        query: '',
+        message: `Server running at: ${server.info.uri}`
+    });
+
 };
 
 start();
