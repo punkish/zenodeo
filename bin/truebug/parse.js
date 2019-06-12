@@ -4,7 +4,6 @@ const fs = require('fs');
 const path = require('path');
 const progress = require('progress');
 const cheerio = require('cheerio');
-const { performance } = require('perf_hooks');
 
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
@@ -371,7 +370,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
     }
     else {
 
-        const start = performance.now().toFixed(2);
+        const start = new Date().getTime();
         const xmlsArr = fs.readdirSync(xmlDumpDir);
         let i = 0;
         let j = typeof(n) === 'number' ? n : xmlsArr.length;
@@ -438,7 +437,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         logger({
             host: 'localhost',
             start: start,
-            end: performance.now().toFixed(2),
+            end: new Date().getTime(),
             status: 'OK',
             resource: 'parse',
             query: n,
