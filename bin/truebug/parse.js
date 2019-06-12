@@ -238,40 +238,40 @@ const parseMaterialsCitations = function($) {
   
 };
 
-const parseSectionsWithAttribs = function(sectionName, $) {
+// const parseSectionsWithAttribs = function(sectionName, $) {
 
-    let sectionArray = [];
+//     let sectionArray = [];
 
-    if ($.length) {
+//     if ($.length) {
 
-        for (let i = 0, j = $.length; i < j; i++) {
+//         for (let i = 0, j = $.length; i < j; i++) {
             
-            let section = {};
-            let atLeastOneValue = false;
+//             let section = {};
+//             let atLeastOneValue = false;
 
-            dataDict[sectionName].forEach(el => {
+//             dataDict[sectionName].forEach(el => {
 
-                // add the attribute to the row only if the 
-                // attribute is present
-                if ($[i].attribs[el.plazi]) {
-                    atLeastOneValue = true;
-                    section[el.plazi] = $[i].attribs[el.plazi];
-                }
-                else {
-                    section[el.plazi] = '';
-                }
+//                 // add the attribute to the row only if the 
+//                 // attribute is present
+//                 if ($[i].attribs[el.plazi]) {
+//                     atLeastOneValue = true;
+//                     section[el.plazi] = $[i].attribs[el.plazi];
+//                 }
+//                 else {
+//                     section[el.plazi] = '';
+//                 }
                 
-            })
+//             })
 
-            // Add a row if at least one field has a value
-            if (atLeastOneValue) {
-                sectionArray.push(section)
-            }
-        }
-    }
+//             // Add a row if at least one field has a value
+//             if (atLeastOneValue) {
+//                 sectionArray.push(section)
+//             }
+//         }
+//     }
 
-    return sectionArray;
-};
+//     return sectionArray;
+// };
 
 const parseTreament = function($) {
         

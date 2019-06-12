@@ -67,7 +67,7 @@ const getStats = function(taxon) {
 
     }
 
-    let select = `SELECT Count(*) AS num FROM treatments WHERE ${cols.join(' AND ')}`;
+    const select = `SELECT Count(*) AS num FROM treatments WHERE ${cols.join(' AND ')}`;
     //console.log(select);
     return db.prepare(select).get(vals)
 
@@ -172,7 +172,6 @@ const getTreatments = async function(query) {
     query.split('&').forEach(el => { a = el.split('='); qryObj[ a[0] ] = a[1]; })
 
     
-
     // There are three kinds of possible queries for treatments
     //
     // 1. A 'treatmentId' is present. The query is for a specific
@@ -187,13 +186,11 @@ const getTreatments = async function(query) {
     // There could be other optional params to narrow the result.
     else if (qryObj.q) {
 
-        selectTreatments = `SELECT v.treatmentId, t.treatmentTitle, snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
-                            FROM vtreatments v JOIN treatments t ON v.treatmentId = t.treatmentId 
-                            WHERE vtreatments MATCH ?`;
-
-        let data = db.prepare(selectTreatments).all(qryObj.q);
-
-        return data;
+        const selectTreatments = `SELECT t.treatmentTitle, v.treatmentId, snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
+        FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId 
+        WHERE vtreatments MATCH ?`;
+        console.log(selectTreatments)
+        return db.prepare(selectTreatments).all(qryObj.q);
     }
 
     // 3. 'lat' and 'lon' are present in the query string, so 
@@ -201,7 +198,7 @@ const getTreatments = async function(query) {
     // against the 'materialcitations' table
     else if (qryObj.lat && qryObj.lon) {
 
-        selectTreatments = 'SELECT * FROM materialsCitations WHERE latitude = ? AND longitude = ?'
+        const selectTreatments = 'SELECT * FROM materialsCitations WHERE latitude = ? AND longitude = ?'
         console.log(selectTreatments)
         return db.prepare(selectTreatments).all(qryObj.lat, qryObj.lon)
         
@@ -227,7 +224,7 @@ const getTreatments = async function(query) {
 
         }
 
-        selectTreatments = `SELECT treatmentId, treatmentTitle, journalTitle || ', ' || journalYear || ', ' || pages || ', ' || journalVolume || ', ' || journalIssue AS s FROM treatments WHERE ${cols.join(' AND ')} LIMIT 30`;
+        const selectTreatments = `SELECT treatmentId, treatmentTitle, journalTitle || ', ' || journalYear || ', ' || pages || ', ' || journalVolume || ', ' || journalIssue AS s FROM treatments WHERE ${cols.join(' AND ')} LIMIT 30`;
         return db.prepare(selectTreatments).all(vals)
         
     }
