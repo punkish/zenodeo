@@ -23,7 +23,15 @@ module.exports = {
 
     downloadNewTreatments: function(treatmentIDs) {
         
-        if (treatmentIDs.length) {
+        const start = new Date().getTime();
+        let hostType = 'localhost';            
+
+            // Check if it's in production
+            if (process.env.NODE_ENV === 'production') {
+                hostType = 'production';
+            };
+
+        if (treatmentIDs.length > 0) {
 
             /*
             // update the progress bar every x% of the total num of files
@@ -41,17 +49,7 @@ module.exports = {
                 width: 30,
                 total: treatmentIDs.length
             });
-            */
-
-            const start = new Date().getTime();
-            let hostType = '';
-
-            // Check if it's in production
-            if (process.env.NODE_ENV === 'production') {
-                hostType = 'production';
-            } else {
-                hostType = 'localhost';
-            };
+            */            
 
             for (let i = 0, j = treatmentIDs.length; i < j; i++) {
 
@@ -63,47 +61,20 @@ module.exports = {
                 url = 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince=1559070451315'
                 */
 
-                download(url, downloadDir)
-                    .then((response) => {
-                        if (response) {
-                            
-                            logger({
-                                host: hostType,                    
-                                start: start,
-                                end: new Date().getTime(),
-                                status: '200',
-                                resource: 'download-program',
-                                // query: n,
-                                message: `The XML file for treatment ${treatmentIDs[i]} was successfully downloaded.`
-                            });
-                        }
-                    })
-                    .catch((error) => {
-                        
-                        logger({
-                            host: hostType,                    
-                            start: start,
-                            end: new Date().getTime(),
-                            status: '400',
-                            resource: 'download-program',
-                            // query: n,
-                            message: `Couldn't download XML for treatment ${treatmentIDs[i]} - ${error}.`
-                        });
+                download(url, downloadDir).catch((error) => {
+                    
+                    logger({
+                        host: hostType,                    
+                        start: start,
+                        end: new Date().getTime(),
+                        status: '400',
+                        resource: 'download-treatmentsXML',
+                        // query: n,
+                        message: `FAILED XML download for ID [${treatmentIDs[i]}]. Error: ${error.name}.`
                     });
-                }        
-            }
 
-        else {
-            
-            logger({
-                host: hostType,                    
-                start: start,
-                end: new Date().getTime(),
-                status: '200',
-                resource: 'download-program',
-                // query: n,
-                message: `No new treatments were found.`
-            });
-        }
+                });                                                
+            }
+        } 
     }
 }
