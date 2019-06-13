@@ -9,7 +9,6 @@ const downloadDir = config.get('download-program.newTreatmentsDir');
 
 const downloadTreatmentsURL = config.get('download-program.downloadTreatmentsURL');
 
-const { performance } = require('perf_hooks');
 const logger = require(config.get('logger'));
 
 // Logic behind progress bar:
@@ -44,7 +43,7 @@ module.exports = {
             });
             */
 
-            const start = performance.now().toFixed(2);
+            const start = new Date().getTime();
             let hostType = '';
 
             // Check if it's in production
@@ -71,9 +70,9 @@ module.exports = {
                             logger({
                                 host: hostType,                    
                                 start: start,
-                                end: performance.now().toFixed(2),
-                                status: 'success',
-                                resource: 'download.treatmentsXML',
+                                end: new Date().getTime(),
+                                status: '200',
+                                resource: 'download-program',
                                 // query: n,
                                 message: `The XML file for treatment ${treatmentIDs[i]} was successfully downloaded.`
                             });
@@ -84,9 +83,9 @@ module.exports = {
                         logger({
                             host: hostType,                    
                             start: start,
-                            end: performance.now().toFixed(2),
-                            status: 'failed',
-                            resource: 'download.treatmentsXML',
+                            end: new Date().getTime(),
+                            status: '400',
+                            resource: 'download-program',
                             // query: n,
                             message: `Couldn't download XML for treatment ${treatmentIDs[i]} - ${error}.`
                         });
@@ -99,9 +98,9 @@ module.exports = {
             logger({
                 host: hostType,                    
                 start: start,
-                end: performance.now().toFixed(2),
-                status: 'success',
-                resource: 'download.treatmentsXML',
+                end: new Date().getTime(),
+                status: '200',
+                resource: 'download-program',
                 // query: n,
                 message: `No new treatments were found.`
             });

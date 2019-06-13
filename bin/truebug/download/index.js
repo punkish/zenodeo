@@ -5,7 +5,6 @@ const download = require('download');
 const path = require('path');
 const config = require('config');
 
-const { performance } = require('perf_hooks');
 const logger = require(config.get('logger'));
 
 const td = require('./downloadNewTreatments');
@@ -33,7 +32,7 @@ const downloadAndUpdate = {
 
         let url = 'http://tb.plazi.org/GgServ'
 
-        const start = performance.now().toFixed(2);
+        const start = new Date().getTime();
         let hostType = '';
 
         // Check if it's in production
@@ -43,7 +42,7 @@ const downloadAndUpdate = {
             hostType = 'localhost';
         };
 
-        download(treatmentListURL + this.readTS(), treatmentListDir, {
+        download(url + this.readTS(), treatmentListDir, {
             filename: treatmentListFile
         }).then((response) => {
 
@@ -61,9 +60,9 @@ const downloadAndUpdate = {
                 logger({
                     host: hostType,
                     start: start,
-                    end: performance.now().toFixed(2),
-                    status: 'success',
-                    resource: 'download.treatmentsList',
+                    end: new Date().getTime(),
+                    status: '200',
+                    resource: 'download-program',
                     // query: n,
                     message: `The file ${treatmentListFile} was downloaded correctly.`
                 });
@@ -73,9 +72,9 @@ const downloadAndUpdate = {
             logger({
                 host: hostType,                    
                 start: start,
-                end: performance.now().toFixed(2),
-                status: 'failed',
-                resource: 'download.treatmentsList',
+                end: new Date().getTime(),
+                status: '400',
+                resource: 'download-program',
                 // query: n,
                 message: `Couldn't download ${treatmentListFile} - ${error}.`
             });
