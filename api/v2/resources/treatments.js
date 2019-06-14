@@ -186,7 +186,15 @@ const getTreatments = async function(query) {
     // There could be other optional params to narrow the result.
     else if (qryObj.q) {
 
-        const offset = 30 * qryObj.id;
+        qryObj.id = parseInt(qryObj.id);
+        const offset = qryObj.id * 30;
+        const selectCountOfTreatments = `
+        SELECT      Count(id) c 
+        FROM        treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId 
+        WHERE       vtreatments MATCH ?`;
+
+        const recordsFound = db.prepare(selectCountOfTreatments).get(qryObj.q).c;
+
         const selectTreatments = `
         SELECT      t.id, t.treatmentId, t.treatmentTitle, 
                     snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
@@ -196,15 +204,24 @@ const getTreatments = async function(query) {
         OFFSET      ?`;
         
         const treatments = db.prepare(selectTreatments).all(qryObj.q, offset);
+
+        const from = (qryObj.id * 30) + 1;
+        let to = from + 30 - 1;
+        if (treatments.length < 30) {
+            to = qryObj.id + treatments.length;
+        }
         
-        let nextid = parseInt(qryObj.id) + 1;
+        let nextid = qryObj.id + 1;
         if (treatments.length < 30) {
             nextid = '';
         }
 
         return {
-            previd: parseInt(qryObj.id) > 0 ? parseInt(qryObj.id) - 1 : 0,
+            previd: qryObj.id > 0 ? qryObj.id - 1 : 0,
             nextid: nextid,
+            recordsFound: recordsFound,
+            from: from,
+            to: to,
             treatments: treatments
         };
     }
