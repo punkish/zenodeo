@@ -186,11 +186,27 @@ const getTreatments = async function(query) {
     // There could be other optional params to narrow the result.
     else if (qryObj.q) {
 
-        const selectTreatments = `SELECT t.treatmentTitle, v.treatmentId, snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
-        FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId 
-        WHERE vtreatments MATCH ?`;
-        console.log(selectTreatments)
-        return db.prepare(selectTreatments).all(qryObj.q);
+        const offset = 30 * qryObj.id;
+        const selectTreatments = `
+        SELECT      t.id, t.treatmentId, t.treatmentTitle, 
+                    snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
+        FROM        treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId 
+        WHERE       vtreatments MATCH ? 
+        LIMIT       30
+        OFFSET      ?`;
+        
+        const treatments = db.prepare(selectTreatments).all(qryObj.q, offset);
+        
+        let nextid = parseInt(qryObj.id) + 1;
+        if (treatments.length < 30) {
+            nextid = '';
+        }
+
+        return {
+            previd: parseInt(qryObj.id) > 0 ? parseInt(qryObj.id) - 1 : 0,
+            nextid: nextid,
+            treatments: treatments
+        };
     }
 
     // 3. 'lat' and 'lon' are present in the query string, so 
