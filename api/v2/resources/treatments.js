@@ -208,7 +208,7 @@ const getTreatments = async function(query) {
         const from = (qryObj.id * 30) + 1;
         let to = from + 30 - 1;
         if (treatments.length < 30) {
-            to = from + treatments.length;
+            to = from + treatments.length - 1;
         }
         
         let nextid = qryObj.id + 1;
