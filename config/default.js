@@ -31,6 +31,13 @@ module.exports = {
         'local': 'http://localhost:3000',
         'remote': 'https://zenodo.org/api'
     },
+    'download-program': {
+        "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
+        "treatmentsListDir": path.join(cwd, 'data'),
+        "treatmentsListFilename": "listOfTreatments.xml",
+        "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
+        "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
+    },
     'swaggered-scheme': ['http'],
     'port': 3030,
     
@@ -54,6 +61,9 @@ module.exports = {
 
     'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
     'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+    //'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    //'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
     'xmlRearrangedDest': path.join(cwd, 'data', 'treatments'),
     'logger': path.join(cwd, 'lib', 'logger.js'),
     'logfields': [
