@@ -217,7 +217,7 @@ const getTreatments = async function(query) {
         }
 
         return {
-            previd: qryObj.id > 0 ? qryObj.id - 1 : 0,
+            previd: qryObj.id > 1 ? qryObj.id - 1 : '',
             nextid: nextid,
             recordsFound: recordsFound,
             from: from,
