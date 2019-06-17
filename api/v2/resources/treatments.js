@@ -166,64 +166,52 @@ const getOneTreatment = async function(qryObj) {
     }
 };
 
-const getTreatments = async function(query) {
+const getTreatments = async function(queryStr) {
 
     qryObj = {};
-    query.split('&').forEach(el => { a = el.split('='); qryObj[ a[0] ] = a[1]; })
+    queryStr.split('&').forEach(el => { a = el.split('='); qryObj[ a[0] ] = a[1]; });
 
+    const calcLimits = function(id = 0) {
+        return [id, id * 30];
+    };
     
     // There are three kinds of possible queries for treatments
     //
     // 1. A 'treatmentId' is present. The query is for a specific
     // treatment. All other query params are ignored
 
+    let where;
+    let query;
+    let id;
+    let offset;
+    let selectCount;
+    let select;
+
     if (qryObj.treatmentId) {
         return await getOneTreatment(qryObj);
     }
 
-    
     // 2. The param 'q' is present. The query is a fullText query.
     // There could be other optional params to narrow the result.
     else if (qryObj.q) {
 
-        qryObj.id = parseInt(qryObj.id);
-        const offset = qryObj.id * 30;
-        const selectCountOfTreatments = `
+        where = 'vtreatments MATCH ?';
+        query = [qryObj.q];
+
+        [id, offset] = calcLimits(qryObj.id ? parseInt(qryObj.id) : 0);
+
+        selectCount = `
         SELECT      Count(id) c 
         FROM        treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId 
-        WHERE       vtreatments MATCH ?`;
+        WHERE       ${where}`;
 
-        const recordsFound = db.prepare(selectCountOfTreatments).get(qryObj.q).c;
-
-        const selectTreatments = `
+        select = `
         SELECT      t.id, t.treatmentId, t.treatmentTitle, 
                     snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) s 
         FROM        treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId 
-        WHERE       vtreatments MATCH ? 
+        WHERE       ${where} 
         LIMIT       30
         OFFSET      ?`;
-        
-        const treatments = db.prepare(selectTreatments).all(qryObj.q, offset);
-
-        const from = (qryObj.id * 30) + 1;
-        let to = from + 30 - 1;
-        if (treatments.length < 30) {
-            to = from + treatments.length - 1;
-        }
-        
-        let nextid = qryObj.id + 1;
-        if (treatments.length < 30) {
-            nextid = '';
-        }
-
-        return {
-            previd: qryObj.id > 1 ? qryObj.id - 1 : '',
-            nextid: nextid,
-            recordsFound: recordsFound,
-            from: from,
-            to: to,
-            treatments: treatments
-        };
     }
 
     // 3. 'lat' and 'lon' are present in the query string, so 
@@ -231,10 +219,16 @@ const getTreatments = async function(query) {
     // against the 'materialcitations' table
     else if (qryObj.lat && qryObj.lon) {
 
-        const selectTreatments = 'SELECT * FROM materialsCitations WHERE latitude = ? AND longitude = ?'
-        console.log(selectTreatments)
-        return db.prepare(selectTreatments).all(qryObj.lat, qryObj.lon)
-        
+        where = 'latitude = ? AND longitude = ?';
+        query = [qryObj.lat, qryObj.lon];
+        [id, offset] = calcLimits(qryObj.id);
+
+        selectCount = `
+        SELECT      Count(id) c 
+        FROM        materialsCitations 
+        WHERE       ${where}`;
+
+        select = `SELECT * FROM materialsCitations WHERE ${where} LIMIT 30 OFFSET ?`;       
     }
 
     // 4. Neither the 'treatmentId' nor 'q' are present. The query 
@@ -247,21 +241,55 @@ const getTreatments = async function(query) {
 
         for (let col in qryObj) {
 
-            vals.push( qryObj[col] )
+            if (col !== 'id') {
+                vals.push( qryObj[col] )
 
-            // we add double quotes to 'order' otherwise the 
-            // sql statement would choke since order is a  
-            // reserved word
-            if (col === 'order') col = '"order"';
-            cols.push(col + ' = ?');
+                // we add double quotes to 'order' otherwise the 
+                // sql statement would choke since order is a  
+                // reserved word
+                if (col === 'order') col = '"order"';
+                cols.push(col + ' = ?');
+            }
 
         }
 
-        const selectTreatments = `SELECT treatmentId, treatmentTitle, journalTitle || ', ' || journalYear || ', ' || pages || ', ' || journalVolume || ', ' || journalIssue AS s FROM treatments WHERE ${cols.join(' AND ')} LIMIT 30`;
-        return db.prepare(selectTreatments).all(vals)
-        
+        where = cols.join(' AND ');
+        query = vals;
+        [id, offset] = calcLimits(qryObj.id);
+
+        selectCount = `
+        SELECT      Count(id) c 
+        FROM        treatments 
+        WHERE       ${where}`;
+
+        select = `SELECT treatmentId, treatmentTitle, journalTitle || ', ' || journalYear || ', ' || pages || ', ' || journalVolume || ', ' || journalIssue AS s FROM treatments WHERE ${where} LIMIT 30 OFFSET ?`;       
     }
 
+    const recordsFound = db.prepare(selectCount).get(query).c;
+
+    query.push(offset);
+    const records = db.prepare(select).all(query);
+    const num = records.length;
+
+    const from = (id * 30) + 1;
+    let to = from + 30 - 1;
+    if (num < 30) {
+        to = from + num - 1;
+    }
+    
+    let nextid = parseInt(id) + 1;
+    if (num < 30) {
+        nextid = '';
+    }
+
+    return {
+        previd: id > 1 ? id - 1 : '',
+        nextid: nextid,
+        recordsFound: recordsFound,
+        from: from,
+        to: to,
+        treatments: records
+    };
 }
 
 const handler = function(request, h) {

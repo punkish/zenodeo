@@ -237,41 +237,6 @@ const parseMaterialsCitations = function($) {
   
 };
 
-// const parseSectionsWithAttribs = function(sectionName, $) {
-
-//     let sectionArray = [];
-
-//     if ($.length) {
-
-//         for (let i = 0, j = $.length; i < j; i++) {
-            
-//             let section = {};
-//             let atLeastOneValue = false;
-
-//             dataDict[sectionName].forEach(el => {
-
-//                 // add the attribute to the row only if the 
-//                 // attribute is present
-//                 if ($[i].attribs[el.plazi]) {
-//                     atLeastOneValue = true;
-//                     section[el.plazi] = $[i].attribs[el.plazi];
-//                 }
-//                 else {
-//                     section[el.plazi] = '';
-//                 }
-                
-//             })
-
-//             // Add a row if at least one field has a value
-//             if (atLeastOneValue) {
-//                 sectionArray.push(section)
-//             }
-//         }
-//     }
-
-//     return sectionArray;
-// };
-
 const parseTreament = function($) {
         
     let treatment = {};
@@ -334,22 +299,6 @@ const cheerioparse = function(xml, treatmentId) {
         treatment.materialsCitations = mc.filter(emptyObjs);
         treatment.materialsCitations.forEach(addTreatmentId);
     }
-    
-
-    // Parse the XML for the sections with attributes only. 
-    // These sections can be processed with a common logic.
-    // [
-    //     //['materialCitations', $('subSubSection[type=materials_examined] materialsCitation')],
-    //     ['materialCitations', $('materialsCitation')],
-    //     //['figureCitations', $('figureCitation')],
-    //     //['bibRefCitations', $('bibRefCitation')]
-    // ].forEach(el => {
-    //     const data = parseSectionsWithAttribs(el[0], el[1]);
-
-    //     if (data.length) {
-    //         treatment[el[0]] = data.map(addTreatmentId);
-    //     }
-    // })
 
     return treatment;
         
