@@ -74,20 +74,24 @@ const getStats = function(taxon) {
     
 };
 
-const getOneTreatment = async function(qryObj) {
-    const one = qryObj.treatmentId.substr(0, 1);
-    const two = qryObj.treatmentId.substr(0, 2);
-    const thr = qryObj.treatmentId.substr(0, 3);
+const getXml = function(treatmentId) {
+    const one = treatmentId.substr(0, 1);
+    const two = treatmentId.substr(0, 2);
+    const thr = treatmentId.substr(0, 3);
 
-    const xml = fs.readFileSync(
-        `data/treatments/${one}/${two}/${thr}/${qryObj.treatmentId}.xml`,
+    return fs.readFileSync(
+        `data/treatments/${one}/${two}/${thr}/${treatmentId}.xml`,
         'utf8'
     )
+};
 
-    if (qryObj.format === 'xml') {
-        return xml;
-    }
-    else {
+const getOneTreatment = async function(qryObj) {
+    
+    const xml = getXml(qryObj.treatmentId);
+    // if (qryObj.format === 'xml') {
+    //     return xml;
+    // }
+    // else {
         let selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
         let data = db.prepare(selectTreatments).get(qryObj.treatmentId);
 
@@ -163,7 +167,7 @@ const getOneTreatment = async function(qryObj) {
         data.taxonStats = taxonStats;
         
         return data
-    }
+    //}
 };
 
 const getTreatments = async function(queryStr) {
@@ -294,24 +298,32 @@ const getTreatments = async function(queryStr) {
 
 const handler = function(request, h) {
 
-    // remove 'refreshCache' from the query params and make the 
-    // queryString into a standard form (all params sorted) so
-    // it can be used as a cachekey
-    let arr = [];
+    if (request.query.format && request.query.format === 'xml') {
+        const xml = getXml(request.query.treatmentId);;
+        return h.response(xml)
+            .type('text/xml')
+            .header('Content-Type', 'application/xml');
+    }
+    else {
 
-    for (let k in request.query) {
-        if (k !== 'refreshCache') {
-            arr.push(k + '=' + request.query[k])
+        // remove 'refreshCache' from the query params and make the 
+        // queryString into a standard form (all params sorted) so
+        // it can be used as a cachekey
+        let arr = [];
+
+        for (let k in request.query) {
+            if (k !== 'refreshCache') {
+                arr.push(k + '=' + request.query[k])
+            }
         }
+
+        const query = arr.sort().join('&');
+
+        if (request.query.refreshCache === 'true') {
+            console.log('forcing refreshCache')
+            this.treatmentsCache.drop(query);
+        }
+
+        return this.treatmentsCache.get(query);
     }
-
-    const query = arr.sort().join('&');
-
-    if (request.query.refreshCache === 'true') {
-        console.log('forcing refreshCache')
-        this.treatmentsCache.drop(query);
-    }
-
-    return this.treatmentsCache.get(query);
-    
 };
