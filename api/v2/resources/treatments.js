@@ -283,7 +283,7 @@ const getTreatments = async function(queryStr) {
     }
 
     return {
-        previd: id > 1 ? id - 1 : '',
+        previd: id >= 1 ? id - 1 : '',
         nextid: nextid,
         recordsFound: recordsFound,
         from: from,
