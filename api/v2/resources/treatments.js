@@ -179,6 +179,10 @@ const getTreatments = async function(queryStr) {
         return [id, id * 30];
     };
     
+    if (qryObj.count) {
+        return db.prepare('SELECT Count(*) AS count FROM treatments').get();
+    }
+
     // There are three kinds of possible queries for treatments
     //
     // 1. A 'treatmentId' is present. The query is for a specific

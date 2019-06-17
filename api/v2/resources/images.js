@@ -98,6 +98,9 @@ const handler = async function(request, h) {
     if (request.query.id) {
         query = 'id=' + request.query.id;
     }
+    else if (request.query.count) {
+        query = 'count=true';
+    }
     else {
         query = queryMaker(request);
     }
@@ -112,21 +115,28 @@ const handler = async function(request, h) {
 
 const getRecords = async (query) => {
 
-    let recordId = '';
-    if (query.indexOf('id=') > -1) {
-        recordId = query.substr(3)
-    }
-
     let Zenodo = 'https://zenodo.org/api/records/';
 
     // ignore all other query params if id is present
-    if (recordId) {
-        Zenodo = Zenodo + recordId;
+    if (query.indexOf('id=') > -1) {
+        Zenodo = Zenodo + query.substr(3);
 
         try {
             console.log('querying ' + Zenodo);
             const {res, payload} =  await Wreck.get(Zenodo);
             return await JSON.parse(payload);
+        }
+        catch(err) {
+            console.error(err);
+        }
+    }
+    else if (query.indexOf('count=true') > -1) {
+        Zenodo = Zenodo + '?communities=biosyslit&type=image&access_right=open';
+
+        try {
+            console.log('querying ' + Zenodo);
+            const {res, payload} =  await Wreck.get(Zenodo);
+            return {count: await JSON.parse(payload).hits.total}
         }
         catch(err) {
             console.error(err);
