@@ -4,72 +4,142 @@ const Database = require('better-sqlite3');
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
 const db = new Database(config.get('data.treatments'));
+const debug = true;
 
-module.exports = {
+const deBugger = function(options) {
+    
+    const type = options.type;
+    const stmt = options.stmt;
+    const table = options.table;
+    const values = options.values;
+
+    if (options.debug) {
+        if (type === 'insert') {
+            if (values.length) {
+                let istmt = database.insertStmts[table];
+                values.forEach(v => {istmt = istmt.replace(/\?/, `'${v}'`)});
+                console.log(istmt);
+            }
+        }
+        else {
+            console.log(options.stmt);
+        }
+    }
+    else {
+        if (type === 'createInsert') {
+            database.insertStmts[table] = db.prepare(stmt);
+        }
+        else if (type === 'insert') {
+            //console.log(`inserting ${values.length} cols in ${table}`)
+            database.insertStmts[table].run(values);
+        }
+        else if (type === 'create') {
+            db.prepare(stmt).run();
+        }
+        else if (type === 'index') {
+            db.prepare(stmt).run();
+        }
+    }
+};
+
+const database = {
 
     createTables: function() {
-
-        const dataTypes = {
-            string: 'TEXT',
-            real: 'REAL',
-            date: 'DATETIME',
-            year: 'DATETIME',
-            latitude: 'REAL',
-            longitude: 'REAL',
-            uri: 'TEXT',
-            'string.guid()': 'TEXT'
-        }
         
         for (let table in dataDict) {
 
-            let fieldb = dataDict[table].map(f => { 
-                if (f.plazi === 'order') {
-                    return '"order"';
-                }
-                else {
-                    return f.plazi
-                }
-            });
+            let cols = [];
+            let colsWithTypes = [];
+            let colsForBinding = [];
 
-            let fieldbWithTypes = dataDict[table].map(f => { 
-                if (f.plazi === 'order') {
-                    return '"order" TEXT';
-                }
-                else {
-                    return f.plazi + ' ' + dataTypes[f.type] 
-                }
-            });
-
-            let fieldbForBinding = dataDict[table].map(f => { 
-                return `@${f.plazi}` 
+            dataDict[table].forEach(f => {
+                cols.push( f.plazi );
+                colsWithTypes.push( f.plazi + ' ' + f.type );
+                colsForBinding.push( '?' );
             });
 
             // add a primary key to all the tables
-            fieldbWithTypes.unshift('id INTEGER PRIMARY KEY');
+            colsWithTypes.unshift('id INTEGER PRIMARY KEY');
 
-            // add the treatmentId field to all tables other 
-            // than 'treatments' (which already has 'treatmentId') 
-            // to serve as a foreign key
+            // for making the UNIQUE indexes
+            let colUniq = [];
+
+            // add colum for 'deleted' flag at the end of the table def
+            // const col = 'deleted';
+            // cols.push(col);
+            // colsWithTypes.push(`${col} TEXT DEFAULT 'false'`);
+            // colsForBinding.push( '?' );
+
+            // for making the INSERT statements
+            let colNotUniq = [];
+
+            // find the col with the UNIQUE constraint in it and remove 
+            // the constraint. Then add the UNIQUE constraint on that 
+            // column combined with treatmentId
+            for (let i = 0, j = colsWithTypes.length; i < j; i++) {
+                const c = colsWithTypes[i];
+                const colName = c.split(/ /)[0];
+
+                if (c.indexOf('UNIQUE') > -1) {
+                    colUniq.push(colName);
+
+                    // remove the UNIQUE keyword from all UNIQUE
+                    // cols except treatments.treatmentId because 
+                    // we will add a separate clause for these 
+                    // columns at the end of the table
+                    if (table !== 'treatments') {
+                        colsWithTypes[i] = c.replace(' UNIQUE', '');
+                    }
+                }
+                else {
+                    if (colName !== 'id') {
+                        colNotUniq.push(colName)
+                    }
+                }
+            }
+            
             if (table !== 'treatments') {
-                fieldb.unshift('treatmentId');
-                fieldbWithTypes.splice(1, 0, 'treatmentId TEXT');
-                fieldbForBinding.unshift('@treatmentId');
+                colsWithTypes.push(`UNIQUE (${colUniq.join(', ')})`);
             }
 
-            const createStmt = `CREATE TABLE IF NOT EXISTS ${table} ( ${fieldbWithTypes.join(', ')} )`;
-            db.prepare(createStmt).run();
+            // the following are to increase legibility of the statements
+            let s0 = '';
+            let s1 = '';
+            let s2 = ', ';
 
-            const insertStmt = `INSERT INTO ${table} ( ${fieldb.join(', ')} ) VALUES ( ${fieldbForBinding.join(', ')} )`;
-            this.insertStmts[table] = db.prepare(insertStmt);
+            if (debug) {
+                s0 = '\n';
+                s1 = `${s0}\t`;
+                s2 = `,${s1}`;
+            }
+            
 
+            const createStmt = `CREATE TABLE IF NOT EXISTS ${table} (${s1}${colsWithTypes.join(s2)}${s0})`;
+
+            deBugger({debug: false, type: 'create', stmt: createStmt, table: table, values: []});
+
+            const colNotUniqStr = colNotUniq.map(c => { return c + '=excluded.' + c; });
+
+            const insertStmt = `INSERT INTO ${table} (${s1}${cols.join(s2)} ${s0})${s0}VALUES (${s1}${colsForBinding.join(s2)} ${s0})${s0}ON CONFLICT (${colUniq.join(', ')})${s0}DO UPDATE SET${s1}${colNotUniqStr.join(s2)}`;
+            
+            deBugger({debug: false, type: 'createInsert', stmt: insertStmt, table: table, values: []});
         }
 
-        //timer({ startTime: t0});
+        // create virtual FTS table
+
+        const createStmt = 'CREATE VIRTUAL TABLE IF NOT EXISTS vtreatments USING FTS5(treatmentId, fullText)';
+        deBugger({debug: false, type: 'create', stmt: createStmt, table: 'vtreatments', values: []});
+
+        const insertStmt = 'INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments';
+        deBugger({debug: false, type: 'createInsert', stmt: insertStmt, table: 'vtreatments', values: []});
     },
 
+    // store the insert statements for later use
     insertStmts: {},
     
     loadData: function(data) {
+
+        
 
         // The data structure submitted to `loadData()` looks as follows
         // 
@@ -101,7 +171,7 @@ module.exports = {
         // }
 
         for (let table in dataDict) {
- 
+
             let d = {
                 treatments: [],
                 treatmentAuthors: [],
@@ -142,11 +212,11 @@ module.exports = {
             }
 
             const insertMany = db.transaction((rows) => {
-                for (const row of rows) {
-                    this.insertStmts[table].run(row);
+                for (const row of rows) {      
+                    const r = Object.values(row);
+                    deBugger({debug: false, type: 'insert', stmt: '', table: table, values: r});
                 }
             });
-
             
             for (let t in d) {
                 if (d[t].length) {
@@ -159,37 +229,56 @@ module.exports = {
 
     indexTables: function() {
 
+        // additional indexes on taxon classifications to calc taxon stats
+        const taxonIndexes = [
+            ['kingdom', 'phylum'],
+            ['kingdom', 'phylum', '"order"'],
+            ['kingdom', 'phylum', '"order"', 'family'],
+            ['kingdom', 'phylum', '"order"', 'family', 'genus'],
+            ['kingdom', 'phylum', '"order"', 'family', 'genus', 'species']
+        ];
+
+        // const tables = Object.keys(dataDict);
+
+        // const bar = new progress('processing [:bar] :rate tables/sec :current/:total done (:percent) time left: :etas', {
+        //     complete: '=',
+        //     incomplete: ' ',
+        //     width: 30,
+        //     total: tables.length + taxonIndexes.length
+        // });
+
         // index treatents table on each queryable field
         for (let t in dataDict) {
 
             const table = dataDict[t];
-            for (let i = 0, j = table.length; i < j; i++) {
+            let i = 0, j = table.length;
+            for (; i < j; i++) {
+                const col = table[i];
+                let colname = col.plazi;
+                let colName = colname.replace(/"/g, '');
 
-                if (table[i].queryable) {
+                if (col.queryable) {
+                    //bar.tick(1);
 
-                    // remove 'order' because it is a pain in the ass and 
-                    // remove 'fullText' because that is searched differently
-                    if (table[i].plazi !== 'order' && table[i].plazi !== 'fullText') {
-                        db.prepare(`CREATE INDEX IF NOT EXISTS ix_${t}_${table[i].plazi} ON ${t} (${table[i].plazi})`).run()
-                    }
+                    const indexStmt = `CREATE INDEX IF NOT EXISTS ix_${t}_${colName} ON ${t} (${colname})`;
+                    deBugger({debug: false, type: 'index', stmt: indexStmt, table: t, values: []});
                 }
             }
             
         }
 
-        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum ON treatments (kingdom, phylum)').run();
-        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order ON treatments (kingdom, phylum, "order")').run();
-        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order_family ON treatments (kingdom, phylum, "order", family)').run();
-        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order_family_genus ON treatments (kingdom, phylum, "order", family, genus)').run();
-        db.prepare('CREATE INDEX ix_treatments_kingdom_phylum_order_family_genus_species ON treatments (kingdom, phylum, "order", family, genus, species)').run();
-
+        taxonIndexes.forEach(cols => {
+            const i = cols.indexOf('"order"');
+            let name = cols.join('_').replace(/"/g, '');
+            const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_${name} ON treatments (${cols.join(', ')})`;
+            deBugger({debug: false, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
+        });
     },
 
     loadFTSTreatments: function() {
-                
-        db.prepare('CREATE VIRTUAL TABLE vtreatments USING FTS5(treatmentId, fullText)').run();
-        db.prepare(`INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments`).run();
-
+        deBugger({debug: false, type: 'insert', stmt: '', table: 'vtreatments', values: []})
     }
 
 };
+
+module.exports = database;

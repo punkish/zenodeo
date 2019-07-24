@@ -11,7 +11,7 @@ let descriptions = {};
 for (let table in dataDict) {
     const cols = dataDict[table];
     for (let i = 0, j = cols.length; i < j; i++) {
-        descriptions[cols[i].plazi] = cols[i].definition
+        descriptions[cols[i].plazi] = cols[i].definition;
     }
 }
 
@@ -240,7 +240,7 @@ module.exports = {
                 .optional(),
 
             order: Joi.string()
-                .description(descriptions.order)
+                .description(descriptions['"order"'])
                 .optional(),
 
             family: Joi.string()

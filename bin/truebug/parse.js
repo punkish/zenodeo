@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const progress = require('progress');
 const cheerio = require('cheerio');
+const chance = require('chance').Chance();
 
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
@@ -39,7 +40,8 @@ const database = require('./database');
  * }
  */
 
-let extracted = {
+// used to store statistics after every transaction
+const extracted = {
     treatments: 0,
     treatmentCitations: 0,
     treatmentAuthors: 0,
@@ -50,9 +52,12 @@ let extracted = {
 
 const stats = function(treatments, endProc) {
 
-    extracted.treatments = extracted.treatments + treatments.length;
+    let i = 0;
+    let j = treatments.length;
 
-    for (let i = 0, j = treatments.length; i < j; i++) {
+    extracted.treatments = extracted.treatments + j;
+
+    for (; i < j; i++) {
         const treatment = treatments[i];
         if (treatment.treatmentCitations) {
             extracted.treatmentCitations = extracted.treatmentCitations + treatment.treatmentCitations.length;
@@ -71,9 +76,7 @@ const stats = function(treatments, endProc) {
         }
     }
 
-    if (endProc) {
-        return JSON.stringify(extracted);
-    }
+    return JSON.stringify(extracted, null, '\t');
 };
 
 const parseOne = function(treatmentId) {
@@ -91,45 +94,69 @@ const parseOne = function(treatmentId) {
     
 };
 
-const parseTreatmentCitations = function($) {
+const parseTreatmentCitations = function($, treatmentId) {
 
     let tc = [];
-
-    const trecitgroups = $('subSubSection[type=reference_group] treatmentCitationGroup');
+    const trecitgroups = $('treatmentCitationGroup', 'subSubSection[type=reference_group]');
     
     if (trecitgroups.length) {
         
-        for (let i = 0, j = trecitgroups.length; i < j; i++) {
+        let i = 0;
+        let j = trecitgroups.length;
+
+        for (; i < j; i++) {
             const trecitgroup = $(trecitgroups[i]);
-            let treatmentCitationText;
+            const taxonomicName = $('taxonomicName', trecitgroup);            
+            let tname = Array.isArray(taxonomicName) ? taxonomicName[0] : taxonomicName;
 
-            const taxonomicName = $('taxonomicName', trecitgroup);
-            if (Array.isArray(taxonomicName)) {
+            let tcPrefixArray = [];
+            tcPrefixArray.push(tname.text().trim());
+            tcPrefixArray.push(tname.attr('authorityName') + ',');
+            tcPrefixArray.push(tname.attr('authorityYear'));
 
-                if (taxonomicName[0].children) {
-                    treatmentCitationText = taxonomicName[0].children[0].data;
-                    if (taxonomicName.attr('authority')) {
-                        treatmentCitationText += ' ' + taxonomicName.attr('authority')
-                    }
-                }
-            }
+            let tcPrefix = tcPrefixArray.join(' ');
             
             const treatmentCitations = $('treatmentCitation', trecitgroup);
-            
+            const treatmentCitationId = chance.guid();
+
+            let treatmentCitation;
             if (treatmentCitations.length) {
-                for (let k = 0, l = treatmentCitations.length; k < l; k++) {
-                    const bib = $('bibRefCitation', treatmentCitations[k]).text();
-                    if (bib) {
-                        treatmentCitationText += ' sec. ' + bib
+
+                let k = 0;
+                let l = treatmentCitations.length
+
+                for (; k < l; k++) {
+                    treatmentCitation = tcPrefix;
+
+                    const bib = $('bibRefCitation', treatmentCitations[k]);
+                    if (k > 0) {
+                        treatmentCitation += ' sec. ' + bib.text();
                     }
 
-                    let refString = $('bibRefCitation', treatmentCitations[k]).attr('refString');
-
                     tc.push({
-                        treatmentCitation: treatmentCitationText,
-                        refString: refString
-                    })
+                        treatmentCitationId: treatmentCitationId,
+                        treatmentId: treatmentId,
+                        treatmentCitation: treatmentCitation,
+                        refString: bib.attr('refString'),
+                        deleted: 'false'
+                    });
                 }
+            }
+            else {
+                treatmentCitation = tcPrefix;
+
+                const bib = $('bibRefCitation', treatmentCitations);
+                if (bib) {
+                    treatmentCitation += ' sec. ' + bib.text()
+                }
+
+                tc.push({
+                    treatmentCitationId: treatmentCitationId,
+                    treatmentId: treatmentId,
+                    treatmentCitation: treatmentCitation,
+                    refString: bib.attr('refString'),
+                    deleted: 'false'
+                });
             }
         }
         
@@ -139,7 +166,7 @@ const parseTreatmentCitations = function($) {
 
 };
 
-const parseTreatmentAuthors = function($) {
+const parseTreatmentAuthors = function($, treatmentId) {
 
     const treaut = $('mods\\:mods mods\\:name[type=personal]');
     let ta = [];
@@ -148,20 +175,17 @@ const parseTreatmentAuthors = function($) {
 
         for (let i = 0, j = treaut.length; i < j; i++) {
 
-            let treatmentAuthor = {};
+            const role = $('mods\\:role mods\\:roleTerm', treaut[i]).text();
+            if (role === 'Author') {
 
-            dataDict.treatmentAuthors.forEach(el => {
-                const role = $('mods\\:role mods\\:roleTerm', treaut[i]).text();
-                if (role === 'Author') {
-
-                    if ($('mods\\:namePart', treaut[i]).text()) {
-                        treatmentAuthor[el.plazi] = $('mods\\:namePart', treaut[i]).text();
-                    }
-
-                }
-            })
-
-            ta.push(treatmentAuthor)
+                ta.push({
+                    treatmentAuthorId: chance.guid(),
+                    treatmentId: treatmentId,
+                    treatmentAuthor: $('mods\\:namePart', treaut[i]).text() || '',
+                    deleted: 'false'
+                })
+            }
+            
         }
 
     }
@@ -170,20 +194,27 @@ const parseTreatmentAuthors = function($) {
   
 };
 
-const parseBibRefCitations = function($) {
+const foo = function($, treatmentId, part) {
 
-    const elements = $('bibRefCitation');
+    const elements = $(part);
+    const id = part + 'Id';
+    const num = elements.length;
+    const parts = part + 's';
     let entries = [];
 
-    if (elements.length) {
+    if (num) {
 
-        for (let i = 0, j = elements.length; i < j; i++) {
+        for (let i = 0, j = num; i < j; i++) {
 
             let entry = {};
 
-            dataDict.bibRefCitations.forEach(el => {
-                entry[el.plazi] = $(elements[i]).attr(el.plazi);
-            })
+            dataDict[parts].forEach(el => {
+                entry[el.plazi] = $(elements[i]).attr(el.plazi) || '';
+            });
+
+            entry[id] = chance.guid();
+            entry.treatmentId = treatmentId;
+            entry.deleted = 'false';
 
             entries.push(entry)
         }
@@ -193,57 +224,25 @@ const parseBibRefCitations = function($) {
   
 };
 
-const parseFigureCitations = function($) {
-
-    const elements = $('figureCitation');
-    let entries = [];
-
-    if (elements.length) {
-
-        for (let i = 0, j = elements.length; i < j; i++) {
-
-            let entry = {};
-            dataDict.figureCitations.forEach(el => {
-                entry[el.plazi] = $(elements[i]).attr(el.plazi);
-            })
-
-            entries.push(entry)
-        }
-    }
-
-    return entries;
-  
-};
-
-const parseMaterialsCitations = function($) {
-
-    const elements = $('materialsCitation');
-    let entries = [];
-
-    if (elements.length) {
-
-        for (let i = 0, j = elements.length; i < j; i++) {
-
-            let entry = {};
-            dataDict.materialsCitations.forEach(el => {
-                entry[el.plazi] = $(elements[i]).attr(el.plazi);
-            })
-
-            entries.push(entry)
-        }
-    }
-
-    return entries;
-  
-};
-
-const parseTreament = function($) {
+const parseTreament = function($, treatmentId) {
         
     let treatment = {};
     
     dataDict.treatments.forEach(el => {
-        let val = eval(el.element);
-        treatment[el.plazi] = val ? val.trim() : '';
+        let val = eval(el.element) || '';
+        if (el.plazi === 'treatmentId') {
+            val = treatmentId;
+        }
+        else if (el.plazi === 'deleted') {
+            val = 'false';
+        }
+        
+        if (typeof val === 'string') {
+            treatment[el.plazi] = val ? val.trim() : '';
+        }
+        else {
+            treatment[el.plazi] = val;
+        }
     })
 
     return treatment
@@ -257,7 +256,7 @@ const cheerioparse = function(xml, treatmentId) {
     });
 
     let treatment = {};
-    treatment.treatment = parseTreament($)
+    treatment.treatment = parseTreament($, treatmentId)
 
     // The following two functions are used to filter out any 
     // empty objects returned from parsing, and to add the 
@@ -265,39 +264,42 @@ const cheerioparse = function(xml, treatmentId) {
     // used as a foreign key to connect the object to the 
     // parent treatment
     const emptyObjs = (el) => Object.keys(el).length > 0;
-    const addTreatmentId = (el) => {
-        el['treatmentId'] = treatmentId;
-        return el;
-    }
+    // const addTreatmentId = (el) => {
+    //     el.treatmentId = treatmentId;
+    //     return el;
+    // }
 
-    let ta = parseTreatmentAuthors($);
+    let ta = parseTreatmentAuthors($, treatmentId);
     if (ta.length) {
         treatment.treatmentAuthors = ta.filter(emptyObjs);
-        treatment.treatmentAuthors.forEach(addTreatmentId);
+        //treatment.treatmentAuthors.forEach(addTreatmentId);
     }
 
-    let tc = parseTreatmentCitations($);
+    let tc = parseTreatmentCitations($, treatmentId);
     if (tc.length) {
         treatment.treatmentCitations = tc.filter(emptyObjs);
-        treatment.treatmentCitations.forEach(addTreatmentId);
+        //treatment.treatmentCitations.forEach(addTreatmentId);
     }
 
-    let br = parseBibRefCitations($);
+    //let br = parseBibRefCitations($);
+    let br = foo($, treatmentId, 'bibRefCitation');
     if (br.length) {
         treatment.bibRefCitations = br.filter(emptyObjs);
-        treatment.bibRefCitations.forEach(addTreatmentId);
+        //treatment.bibRefCitations.forEach(addTreatmentId);
     }
 
-    let fc = parseFigureCitations($);
+    //let fc = parseFigureCitations($);
+    let fc = foo($, treatmentId, 'figureCitation');
     if (fc.length) {
         treatment.figureCitations = fc.filter(emptyObjs);
-        treatment.figureCitations.forEach(addTreatmentId);
+        //treatment.figureCitations.forEach(addTreatmentId);
     }
 
-    let mc = parseMaterialsCitations($);
+    //let mc = parseMaterialsCitations($);
+    let mc = foo($, treatmentId, 'materialsCitation');
     if (mc.length) {
         treatment.materialsCitations = mc.filter(emptyObjs);
-        treatment.materialsCitations.forEach(addTreatmentId);
+        //treatment.materialsCitations.forEach(addTreatmentId);
     }
 
     return treatment;
@@ -305,10 +307,6 @@ const cheerioparse = function(xml, treatmentId) {
 };
 
 module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
-
-    if (databaseOpt) {
-        database.createTables();
-    }
 
     //const xmlre = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$/i;
     if (n.length === 32) {
@@ -344,7 +342,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         let treatments = [];
     
         let endProc = false;
-        let count = 0;
+
         for (; i < j; i++) {
 
             if (i == (j - 1)) {
@@ -367,32 +365,35 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         
             if (!(i % batch)) {
 
+                bar.interrupt(stats(treatments, endProc) + '\n');
+
                 if (databaseOpt) {
                     database.loadData(treatments);
                 }
-                stats(treatments, endProc);
+                
+                // empty the treatments for the next batch
                 treatments = [];
-                    
             }
             
         }
 
         if (databaseOpt) {
             database.loadData(treatments);
+
             database.indexTables();
             database.loadFTSTreatments();
         }
-        
+
+        console.log('\n\n')
         logger({
             host: 'localhost',
             start: start,
             end: new Date().getTime(),
-            status: 'OK',
+            status: 200,
             resource: 'parse',
-            query: n,
+            query: `parsed ${n}`,
             message: stats(treatments, endProc)
-        });
-        
+        })
     }
 
 };

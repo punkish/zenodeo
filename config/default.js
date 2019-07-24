@@ -40,7 +40,6 @@ module.exports = {
     },
     'swaggered-scheme': ['http'],
     'port': 3030,
-    
     'v1': {
         'cache': {
             'path': path.join(cwd, 'cache'),
