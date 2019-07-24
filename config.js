@@ -26,23 +26,11 @@ module.exports = (function(mode) {
         },
         development: {
             schemes: ['http'],
-<<<<<<< HEAD
             cache: '/Users/punkish/Projects/zenodeo/cache'
         },
         production: {
             schemes: ['https'],
             cache: '/home/punkish/Nodes/zenodeo/cache'
-=======
-            data: '/Users/punkish/Projects/zenodeo/data',
-            cache: '/Users/punkish/Projects/zenodeo/cache',
-            zenodeo: 'http://localhost:3030'
-        },
-        production: {
-            schemes: ['https'],
-            data: '/home/punkish/Nodes/zenodeo/data',
-            cache: '/home/punkish/Nodes/zenodeo/cache',
-            zenodeo: 'https://zenodeo.punkish.org'
->>>>>>> blr
         }
     };
 
