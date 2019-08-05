@@ -235,7 +235,34 @@ const isNewSpecies = function(status) {
 
 };
 
-const getStats = function(taxon) {
+const selectStatsAll = [
+    'SELECT Count(*) AS treatments FROM treatments',
+    'SELECT Sum(specimenCount) AS specimens FROM materialsCitations',
+    'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations',
+    'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations',
+    'SELECT Count(DISTINCT treatmentId) AS "treatments with specimens" FROM materialsCitations WHERE specimenCount != ""',
+    'SELECT Count(DISTINCT treatmentId) AS "treatments with male specimens" FROM materialsCitations WHERE specimenCountMale != ""',
+    'SELECT Count(DISTINCT treatmentId) AS "treatments with female specimens" FROM materialsCitations WHERE specimenCountFemale != ""',
+    'SELECT Count(*) AS images FROM figureCitations'
+];
+
+const getStats = function(queries, queryStr) {
+
+    const statistics = {};
+    
+    queries.forEach(q => {
+        const pq = db.prepare(q);
+        let n = queryStr ? pq.get(queryStr) : pq.get();
+
+        for (let k in n) {
+            statistics[k] = n[k]
+        }
+    })
+
+    return statistics;
+};
+
+const getTaxonStats = function(taxon) {
 
     let cols = [];
     let vals = [];
@@ -301,6 +328,11 @@ const getCitations = function(treatmentId) {
     return db.prepare(selectCitations).all(treatmentId);
 };
 
+const getFigures = function(treatmentId) {
+    const selectFigures = 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE treatmentId = ?';
+    return db.prepare(selectFigures).all(treatmentId);
+};
+
 const getOneTreatment = async function(qryObj) {
 
     const treatmentId = qryObj.treatmentId;
@@ -335,10 +367,13 @@ const getOneTreatment = async function(qryObj) {
 
     [data.authors, data.authorsList] = getAuthors(treatmentId);
     data.citations = getCitations(treatmentId);
-
     data.materialsCitations = getMaterialsCitations(treatmentId);
+    data.figures = getFigures(treatmentId);
 
-    data.images = await Utils.getImages(qryObj.treatmentId);
+    const selectImages = 'SELECT Count(*) AS images FROM figureCitations WHERE treatmentId = ?';
+    const images = db.prepare(selectImages).get(qryObj.treatmentId);
+    //data.images = await Utils.getImages(qryObj.treatmentId);
+    data.images = images.images;
     data.xml = xml;
 
     const taxonStats = {
@@ -396,7 +431,7 @@ const getOneTreatment = async function(qryObj) {
     };
 
     for (let t in taxonStats) {
-        taxonStats[t].num = getStats(taxonStats[t].qryObj);
+        taxonStats[t].num = getTaxonStats(taxonStats[t].qryObj);
     }
 
     data.taxonStats = taxonStats;
@@ -406,16 +441,19 @@ const getOneTreatment = async function(qryObj) {
 const getTreatments = async function(queryStr) {
 
     qryObj = {};
-    queryStr.split('&').forEach(el => { a = el.split('='); qryObj[ a[0] ] = a[1]; });
+    queryStr.split('&').forEach(el => { 
+        a = el.split('='); 
+        qryObj[ a[0] ] = a[1]; 
+    });
 
     const calcLimits = function(id = 0) {
         return [id, id * 30];
     };
-    
-    if (qryObj.count) {
+
+    if (qryObj.stats) {
 
         // A simple count query used to populate the search field
-        return db.prepare('SELECT Count(*) AS count FROM treatments').get();
+        return getStats(selectStatsAll);
     }
     else if (qryObj.treatmentId) {
 
@@ -426,57 +464,55 @@ const getTreatments = async function(queryStr) {
     else {
 
         // More complicated queries with search parameters
+        const count = 'Count(id) AS c';
+        const limit = '30 OFFSET ?';
+        const cols1 = 'id, t.treatmentId, t.treatmentTitle';
+        const cols2 = 'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS s';
 
-        let count = 'Count(id) c'; 
-        // let whatCols = ['t.id', 't.treatmentId', 't.treatmentTitle'];
-        // const citationCols = [
-        //     't.authorityName', 
-        //     't.authorityYear', 
-        //     't.articleTitle', 
-        //     't.journalTitle', 
-        //     't.journalYear', 
-        //     't.pages', 
-        //     't.journalVolume', 
-        //     't.journalIssue'
-        // ];
-        let what = 't.id, t.treatmentId, t.treatmentTitle, ';
-        const citation = "t.authorityName || '. ' || t.authorityYear || '. <i>' || t.articleTitle || '.</i> ' || t.journalTitle || ', ' || t.journalYear || ', pp. ' || t.pages || ', vol. ' || t.journalVolume || ', issue ' || t.journalIssue AS s";
-        let fromTables;
-        let where;
-        
-        let limit = '30 OFFSET ?';
+        let fromTables, where, selectCount, selectQuery, query;
 
-        let query;
-        const [id, offset] = calcLimits(qryObj.id ? parseInt(qryObj.id) : 0);
-        let selectCount;
-        let select;
-
-        // 1. The param 'q' is present. The query is a fullText query.
-        // There could be other optional params to narrow the result.
+        // if q
         if (qryObj.q) {
-
-            //whatCols.push("snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) AS s");
-            what       += "snippet(v.vtreatments, 1, '<b>', '</b>', '', 50) AS s";
-            fromTables  = 'treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId';
-            where       = 'vtreatments MATCH ?';
-            query       = [qryObj.q];
-
+            fromTables = 'treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId';
+            where = 'vtreatments MATCH ?';
+            selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
+            selectQuery = `SELECT ${cols1}, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS s FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
+            query = [qryObj.q];
+            matCitFrom = 'materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId';
+            figCitFrom = 'figureCitations f JOIN vtreatments v ON f.treatmentId = v.treatmentId';
+            selectStats = [
+                `SELECT Count(*) AS treatments FROM ${fromTables} WHERE ${where}`,
+                `SELECT Sum(specimenCount) AS specimens FROM ${matCitFrom} WHERE ${where}`,
+                `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${matCitFrom} WHERE ${where}`,
+                `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${matCitFrom} WHERE ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${matCitFrom} WHERE specimenCount != "" AND ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${matCitFrom} WHERE specimenCountMale != "" AND ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${matCitFrom} WHERE specimenCountFemale != "" AND ${where}`,
+                `SELECT Count(*) AS images FROM ${figCitFrom} WHERE ${where}`
+            ];
         }
 
-        // 2. 'lat' and 'lon' are present in the query string, so 
-        // this is a location query. A location query is performed 
-        // against the 'materialcitations' table
+        // if loc
         else if (qryObj.lat && qryObj.lon) {
-
-            //whatCols = [...whatCols, ...citationCols];
-            what       += citation;
-            fromTables  = 'treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId';
-            where       = 'latitude = ? AND longitude = ?';
-            query       = [qryObj.lat, qryObj.lon];    
+            fromTables = 'treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId';
+            figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
+            where = 'latitude = ? AND longitude = ?';
+            selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
+            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
+            query = [qryObj.lat, qryObj.lon];
+            selectStats = [
+                `SELECT Count(*) AS treatments FROM ${fromTables} WHERE ${where}`,
+                `SELECT Sum(specimenCount) AS specimens FROM ${fromTables} WHERE ${where}`,
+                `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${fromTables} WHERE ${where}`,
+                `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${fromTables} WHERE ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${fromTables} WHERE specimenCount != "" AND ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${fromTables} WHERE specimenCountMale != "" AND ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${fromTables} WHERE specimenCountFemale != "" AND ${where}`,
+                `SELECT Count(*) AS images FROM ${figCitFrom} WHERE ${where}`
+            ];
         }
 
-        // 3. Neither the 'treatmentId' nor 'q' are present. The query 
-        // A standard SQL query is performed against the treatments table
+        // everything else
         else {
 
             let cols = [];
@@ -495,20 +531,33 @@ const getTreatments = async function(queryStr) {
 
             }
 
-            //whatCols = [...whatCols, ...citationCols];
-            what       += citation;
-            fromTables  = 'treatments t';
-            where       = cols.join(' AND ');
-            query       = vals;
+            fromTables = 'treatments';
+            where = cols.join(' AND ');
+            selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
+            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
+            query = vals;
+
+            matCitFrom = 'materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId';
+            figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
+            selectStats = [
+                `SELECT Count(*) AS treatments FROM ${fromTables} WHERE ${where}`,
+                `SELECT Sum(specimenCount) AS specimens FROM ${matCitFrom} WHERE ${where}`,
+                `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${matCitFrom} WHERE ${where}`,
+                `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${matCitFrom} WHERE ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${matCitFrom} WHERE specimenCount != "" AND ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${matCitFrom} WHERE specimenCountMale != "" AND ${where}`,
+                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${matCitFrom} WHERE specimenCountFemale != "" AND ${where}`,
+                `SELECT Count(*) AS images FROM ${figCitFrom} WHERE ${where}`
+            ];
         }
 
-        selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-        select      = `SELECT ${what} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
-
         const recordsFound = db.prepare(selectCount).get(query).c;
+        const statistics = getStats(selectStats, query);
 
+        const [id, offset] = calcLimits(qryObj.id ? parseInt(qryObj.id) : 0);
         query.push(offset);
-        const records = db.prepare(select).all(query);
+
+        const records = db.prepare(selectQuery).all(query);
         const num = records.length;
 
         const from = (id * 30) + 1;
@@ -528,7 +577,8 @@ const getTreatments = async function(queryStr) {
             recordsFound: recordsFound,
             from: from,
             to: to,
-            treatments: records
+            treatments: records,
+            statistics: statistics
         };
     }
 }

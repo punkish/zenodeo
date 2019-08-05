@@ -99,7 +99,7 @@ const handler = async function(request, h) {
         query = 'id=' + request.query.id;
     }
     else if (request.query.count) {
-        query = 'count=true';
+        query = 'stats=true';
     }
     else {
         query = queryMaker(request);
@@ -130,13 +130,13 @@ const getRecords = async (query) => {
             console.error(err);
         }
     }
-    else if (query.indexOf('count=true') > -1) {
+    else if (query.indexOf('stats=true') > -1) {
         Zenodo = Zenodo + '?communities=biosyslit&type=image&access_right=open';
 
         try {
             console.log('querying ' + Zenodo);
             const {res, payload} =  await Wreck.get(Zenodo);
-            return {count: await JSON.parse(payload).hits.total}
+            return {images: await JSON.parse(payload).hits.total}
         }
         catch(err) {
             console.error(err);

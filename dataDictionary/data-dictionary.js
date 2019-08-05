@@ -267,7 +267,7 @@ module.exports = {
             "type": "TEXT",
             "element": "$('materialsCitation').attr('specimenCount-female')",
             "definition": "The number of female specimens listed",
-            "queryable": false
+            "queryable": true
         },
         {
             "plazi": "specimenCountMale",
@@ -275,7 +275,7 @@ module.exports = {
             "type": "TEXT",
             "element": "$('materialsCitation').attr('specimenCount-male')",
             "definition": "The number of male specimens listed",
-            "queryable": false
+            "queryable": true
         },
         {
             "plazi": "specimenCount",
@@ -283,7 +283,7 @@ module.exports = {
             "type": "TEXT",
             "element": "$('materialsCitation').attr('specimenCount')",
             "definition": "The number of specimens listed",
-            "queryable": false
+            "queryable": true
         },
         {
             "plazi": "specimenCode",
@@ -291,7 +291,7 @@ module.exports = {
             "type": "TEXT",
             "element": "$('materialsCitation').attr('specimenCode')",
             "definition": "The code for specimen",
-            "queryable": false
+            "queryable": true
         },
         {
             "plazi": "typeStatus",
