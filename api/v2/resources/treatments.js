@@ -469,12 +469,13 @@ const getTreatments = async function(queryStr) {
         const cols1 = 'id, t.treatmentId, t.treatmentTitle';
         const cols2 = 'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS s';
 
-        let fromTables, where, selectCount, selectQuery, query;
+        let fromTables, where, whereCondition, selectCount, selectQuery, query;
 
         // if q
         if (qryObj.q) {
             fromTables = 'treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId';
             where = 'vtreatments MATCH ?';
+            whereCondition = `<span class='qryCol'>with the term</span> <span class='qryVal'>${qryObj.q}</span> <span class='qryCol'>in the text</span>`;
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
             selectQuery = `SELECT ${cols1}, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS s FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
             query = [qryObj.q];
@@ -497,6 +498,7 @@ const getTreatments = async function(queryStr) {
             fromTables = 'treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId';
             figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
             where = 'latitude = ? AND longitude = ?';
+            whereCondition = `<span class='qryCol'>latitude</span> is <span class='qryVal'>${qryObj.lat}</span> and <span class='qryCol'>longitude</span> is <span class='qryVal'>${qryObj.lon}</span>`;
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
             selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
             query = [qryObj.lat, qryObj.lon];
@@ -518,10 +520,12 @@ const getTreatments = async function(queryStr) {
             let cols = [];
             let vals = [];
 
+            const whereConditionArr = [];
             for (let col in qryObj) {
 
                 if (col !== 'id') {
-                    vals.push( qryObj[col] )
+                    vals.push( qryObj[col] );
+                    whereConditionArr.push(`<span class='qryCol'>${col}</span> is <span class='qryVal'>${qryObj[col]}</span>`);
 
                     // we add double quotes to 'order' otherwise the sql 
                     // statement would choke since order is a reserved word
@@ -531,8 +535,9 @@ const getTreatments = async function(queryStr) {
 
             }
 
-            fromTables = 'treatments';
+            fromTables = 'treatments t';
             where = cols.join(' AND ');
+            whereCondition = whereConditionArr.join(' and ');
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
             selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
             query = vals;
@@ -558,6 +563,7 @@ const getTreatments = async function(queryStr) {
         query.push(offset);
 
         const records = db.prepare(selectQuery).all(query);
+        console.log(selectQuery)
         const num = records.length;
 
         const from = (id * 30) + 1;
@@ -578,7 +584,8 @@ const getTreatments = async function(queryStr) {
             from: from,
             to: to,
             treatments: records,
-            statistics: statistics
+            statistics: statistics,
+            whereCondition: whereCondition
         };
     }
 }
