@@ -82,6 +82,7 @@ module.exports = {
         'keywords': path.join(cwd, 'data', 'keywords'),
         'taxa': path.join(cwd, 'data', 'taxa.min'),
         'families': path.join(cwd, 'data', 'families.min'),
+        'facets': path.join(cwd, 'data', 'facets.sqlite')
     },
 
     

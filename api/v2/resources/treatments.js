@@ -251,12 +251,21 @@ const getStats = function(queries, queryStr) {
     const statistics = {};
     
     queries.forEach(q => {
-        const pq = db.prepare(q);
-        let n = queryStr ? pq.get(queryStr) : pq.get();
 
-        for (let k in n) {
-            statistics[k] = n[k]
+        const pq = db.prepare(q);
+
+        try {
+            let n = queryStr ? pq.get(queryStr) : pq.get();
+
+            for (let k in n) {
+                statistics[k] = n[k]
+            }
+        } 
+        catch (err) {
+            console.log(q)
+            console.log(err);
         }
+        
     })
 
     return statistics;
@@ -469,13 +478,13 @@ const getTreatments = async function(queryStr) {
         const cols1 = 'id, t.treatmentId, t.treatmentTitle';
         const cols2 = 'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS s';
 
-        let fromTables, where, whereCondition, selectCount, selectQuery, query;
+        let fromTables, where, whereCondition = {}, selectCount, selectQuery, query;
 
         // if q
         if (qryObj.q) {
             fromTables = 'treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId';
             where = 'vtreatments MATCH ?';
-            whereCondition = `<span class='qryCol'>with the term</span> <span class='qryVal'>${qryObj.q}</span> <span class='qryCol'>in the text</span>`;
+            whereCondition.text = qryObj.q;
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
             selectQuery = `SELECT ${cols1}, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS s FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
             query = [qryObj.q];
@@ -498,7 +507,8 @@ const getTreatments = async function(queryStr) {
             fromTables = 'treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId';
             figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
             where = 'latitude = ? AND longitude = ?';
-            whereCondition = `<span class='qryCol'>latitude</span> is <span class='qryVal'>${qryObj.lat}</span> and <span class='qryCol'>longitude</span> is <span class='qryVal'>${qryObj.lon}</span>`;
+            whereCondition.latitude = qryObj.lat;
+            whereCondition.longitude = qryObj.lon;
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
             selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
             query = [qryObj.lat, qryObj.lon];
@@ -520,12 +530,11 @@ const getTreatments = async function(queryStr) {
             let cols = [];
             let vals = [];
 
-            const whereConditionArr = [];
             for (let col in qryObj) {
 
                 if (col !== 'id') {
                     vals.push( qryObj[col] );
-                    whereConditionArr.push(`<span class='qryCol'>${col}</span> is <span class='qryVal'>${qryObj[col]}</span>`);
+                    whereCondition[col] = qryObj[col];
 
                     // we add double quotes to 'order' otherwise the sql 
                     // statement would choke since order is a reserved word
@@ -534,10 +543,10 @@ const getTreatments = async function(queryStr) {
                 }
 
             }
+            //console.log(whereCondition);
 
             fromTables = 'treatments t';
             where = cols.join(' AND ');
-            whereCondition = whereConditionArr.join(' and ');
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
             selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
             query = vals;
@@ -556,15 +565,31 @@ const getTreatments = async function(queryStr) {
             ];
         }
 
-        const recordsFound = db.prepare(selectCount).get(query).c;
-        const statistics = getStats(selectStats, query);
+        let recordsFound;
+        try {
+            recordsFound = db.prepare(selectCount).get(query).c;
+        } 
+        catch (err) {
+            console.log(selectCount)
+            console.log(err);
+        }
 
+        const statistics = getStats(selectStats, query);
+        console.log(statistics);
+     
         const [id, offset] = calcLimits(qryObj.id ? parseInt(qryObj.id) : 0);
         query.push(offset);
 
-        const records = db.prepare(selectQuery).all(query);
-        console.log(selectQuery)
-        const num = records.length;
+        let records;
+        let num;
+        try {
+            records = db.prepare(selectQuery).all(query);
+            num = records.length;
+        } 
+        catch (err) {
+            console.log(selectQuery)
+            console.log(err);
+        }
 
         const from = (id * 30) + 1;
         let to = from + 30 - 1;
