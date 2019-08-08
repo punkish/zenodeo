@@ -1,3 +1,5 @@
+'use strict';
+
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
 const Database = require('better-sqlite3');
@@ -235,19 +237,24 @@ const isNewSpecies = function(status) {
 
 };
 
-const selectStatsAll = [
-    'SELECT Count(*) AS treatments FROM treatments',
-    'SELECT Sum(specimenCount) AS specimens FROM materialsCitations',
-    'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations',
-    'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations',
-    'SELECT Count(DISTINCT treatmentId) AS "treatments with specimens" FROM materialsCitations WHERE specimenCount != ""',
-    'SELECT Count(DISTINCT treatmentId) AS "treatments with male specimens" FROM materialsCitations WHERE specimenCountMale != ""',
-    'SELECT Count(DISTINCT treatmentId) AS "treatments with female specimens" FROM materialsCitations WHERE specimenCountFemale != ""',
-    'SELECT Count(*) AS images FROM figureCitations'
-];
+const createSelectStatsQueries = function(obj) {
+    const {tables, where} = obj;
+
+    return [
+        `SELECT Count(*) AS treatments FROM ${tables[0]} WHERE ${where}`,
+        `SELECT Sum(specimenCount) AS specimens FROM ${tables[1]} WHERE ${where}`,
+        `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${tables[2]} WHERE ${where}`,
+        `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${tables[3]} WHERE ${where}`,
+        `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${tables[4]} WHERE specimenCount != "" AND ${where}`,
+        `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${tables[5]} WHERE specimenCountMale != "" AND ${where}`,
+        `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${tables[6]} WHERE specimenCountFemale != "" AND ${where}`,
+        `SELECT Count(*) AS images FROM ${tables[7]} WHERE ${where}`
+    ]    
+};
 
 const getStats = function(queries, queryStr) {
 
+    // console.log(queryStr)
     const statistics = {};
     
     queries.forEach(q => {
@@ -353,27 +360,6 @@ const getOneTreatment = async function(qryObj) {
     let data = db.prepare(selectTreatments).get(treatmentId);
     //console.log(data)
 
-    // construct treatmentTitleLabel
-    // "Title of the treatment. If it is a new species, a taxonomicNameLabel will be present, and is concatenated to the taxonomicName, which is concatenated to the authority attribute"
-    // data.treatmentTitleLabel = data.authorityName;
-    // if (data.status === 'sp. nov.') {
-    //     data.taxonomicNameLabel
-    // }
-
-    // genus = $('subSubSection[type=nomenclature] taxonomicName').attr('genus');
-    // species = $('subSubSection[type=nomenclature] taxonomicName').attr('species');
-    // authority = $('subSubSection[type=nomenclature] taxonomicName').attr('authorityName');
-    // status = $('subSubSection[type=nomenclature] taxonomicName').attr('status');
-
-    // data.treatmentTitle = `${data.genus} ${data.species}`;
-
-    // // if the species is a new species, status will be 'sp. nov.'
-    // if (data.status.toLowerCase() === 'sp. nov.') {
-    //     data.treatmentTitle += ' ' + data.status;
-    // }
-
-    // data.treatmentTitle += ` ${data.authorityName} ${data.authorityYear}`;
-
     [data.authors, data.authorsList] = getAuthors(treatmentId);
     data.citations = getCitations(treatmentId);
     data.materialsCitations = getMaterialsCitations(treatmentId);
@@ -449,20 +435,21 @@ const getOneTreatment = async function(qryObj) {
 
 const getTreatments = async function(queryStr) {
 
-    qryObj = {};
+    const qryObj = {};
     queryStr.split('&').forEach(el => { 
-        a = el.split('='); 
+        const a = el.split('='); 
         qryObj[ a[0] ] = a[1]; 
     });
 
-    const calcLimits = function(id = 0) {
-        return [id, id * 30];
-    };
+    // const calcLimits = function(id = 0) {
+    //     return [id, id * 30];
+    // };
 
     if (qryObj.stats) {
 
         // A simple count query used to populate the search field
-        return getStats(selectStatsAll);
+        const selectStats = createSelectStatsQueries({tables: ['treatments', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'figureCitations'], where: '0=0'});
+        return getStats(selectStats, null);
     }
     else if (qryObj.treatmentId) {
 
@@ -474,11 +461,11 @@ const getTreatments = async function(queryStr) {
 
         // More complicated queries with search parameters
         const count = 'Count(id) AS c';
-        const limit = '30 OFFSET ?';
+        const limit = 30;
         const cols1 = 'id, t.treatmentId, t.treatmentTitle';
         const cols2 = 'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS s';
 
-        let fromTables, where, whereCondition = {}, selectCount, selectQuery, query;
+        let fromTables, where, whereCondition = {}, selectCount, selectQuery, query, queryWithOffset, matCitFrom, figCitFrom, selectStats;
 
         // if q
         if (qryObj.q) {
@@ -486,42 +473,25 @@ const getTreatments = async function(queryStr) {
             where = 'vtreatments MATCH ?';
             whereCondition.text = qryObj.q;
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-            selectQuery = `SELECT ${cols1}, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS s FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
+            selectQuery = `SELECT ${cols1}, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS s FROM ${fromTables} WHERE ${where} LIMIT ${limit} OFFSET ?`;
             query = [qryObj.q];
             matCitFrom = 'materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId';
             figCitFrom = 'figureCitations f JOIN vtreatments v ON f.treatmentId = v.treatmentId';
-            selectStats = [
-                `SELECT Count(*) AS treatments FROM ${fromTables} WHERE ${where}`,
-                `SELECT Sum(specimenCount) AS specimens FROM ${matCitFrom} WHERE ${where}`,
-                `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${matCitFrom} WHERE ${where}`,
-                `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${matCitFrom} WHERE ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${matCitFrom} WHERE specimenCount != "" AND ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${matCitFrom} WHERE specimenCountMale != "" AND ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${matCitFrom} WHERE specimenCountFemale != "" AND ${where}`,
-                `SELECT Count(*) AS images FROM ${figCitFrom} WHERE ${where}`
-            ];
+            selectStats = createSelectStatsQueries({tables: [ fromTables, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, figCitFrom ], where: where});
         }
 
         // if loc
         else if (qryObj.lat && qryObj.lon) {
             fromTables = 'treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId';
-            figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
             where = 'latitude = ? AND longitude = ?';
             whereCondition.latitude = qryObj.lat;
             whereCondition.longitude = qryObj.lon;
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
+            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit} OFFSET ?`;
             query = [qryObj.lat, qryObj.lon];
-            selectStats = [
-                `SELECT Count(*) AS treatments FROM ${fromTables} WHERE ${where}`,
-                `SELECT Sum(specimenCount) AS specimens FROM ${fromTables} WHERE ${where}`,
-                `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${fromTables} WHERE ${where}`,
-                `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${fromTables} WHERE ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${fromTables} WHERE specimenCount != "" AND ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${fromTables} WHERE specimenCountMale != "" AND ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${fromTables} WHERE specimenCountFemale != "" AND ${where}`,
-                `SELECT Count(*) AS images FROM ${figCitFrom} WHERE ${where}`
-            ];
+            // matCitFrom;
+            figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
+            selectStats = createSelectStatsQueries({tables: [ fromTables, fromTables, fromTables, fromTables, fromTables, fromTables, fromTables, figCitFrom ], where: where});
         }
 
         // everything else
@@ -543,26 +513,16 @@ const getTreatments = async function(queryStr) {
                 }
 
             }
-            //console.log(whereCondition);
 
             fromTables = 'treatments t';
             where = cols.join(' AND ');
+            // whereCondition evaluated above
             selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit}`;
+            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit} OFFSET ?`;
             query = vals;
-
             matCitFrom = 'materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId';
             figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
-            selectStats = [
-                `SELECT Count(*) AS treatments FROM ${fromTables} WHERE ${where}`,
-                `SELECT Sum(specimenCount) AS specimens FROM ${matCitFrom} WHERE ${where}`,
-                `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${matCitFrom} WHERE ${where}`,
-                `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${matCitFrom} WHERE ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${matCitFrom} WHERE specimenCount != "" AND ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${matCitFrom} WHERE specimenCountMale != "" AND ${where}`,
-                `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${matCitFrom} WHERE specimenCountFemale != "" AND ${where}`,
-                `SELECT Count(*) AS images FROM ${figCitFrom} WHERE ${where}`
-            ];
+            selectStats = createSelectStatsQueries({tables: [ fromTables, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, figCitFrom ], where: where});
         }
 
         let recordsFound;
@@ -573,43 +533,36 @@ const getTreatments = async function(queryStr) {
             console.log(selectCount)
             console.log(err);
         }
-
-        const statistics = getStats(selectStats, query);
-        console.log(statistics);
      
-        const [id, offset] = calcLimits(qryObj.id ? parseInt(qryObj.id) : 0);
-        query.push(offset);
+        //const statistics = getStats(selectStats, query);
+
+        const id = qryObj.id ? parseInt(qryObj.id) : 0;
+        const offset = id * 30;
+        
+        queryWithOffset = [...query, offset];
 
         let records;
         let num;
         try {
-            records = db.prepare(selectQuery).all(query);
+            records = db.prepare(selectQuery).all(queryWithOffset);
             num = records.length;
         } 
         catch (err) {
-            console.log(selectQuery)
+            console.log(selectQuery, queryWithOffset)
             console.log(err);
         }
 
         const from = (id * 30) + 1;
-        let to = from + 30 - 1;
-        if (num < 30) {
-            to = from + num - 1;
-        }
-        
-        let nextid = parseInt(id) + 1;
-        if (num < 30) {
-            nextid = '';
-        }
+        const to = num < limit ? from + num - 1 : from + limit - 1;
 
         return {
             previd: id >= 1 ? id - 1 : '',
-            nextid: nextid,
+            nextid: num < limit ? '' : parseInt(id) + 1,
             recordsFound: recordsFound,
             from: from,
             to: to,
             treatments: records,
-            statistics: statistics,
+            statistics: getStats(selectStats, query),
             whereCondition: whereCondition
         };
     }
