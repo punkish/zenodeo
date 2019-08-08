@@ -38,6 +38,7 @@ module.exports = {
     // },
 
     find: function(pattern, source) {
+        console.log(`looking for ${pattern} in ${source}`)
         return db.prepare(`SELECT ${facets[source]} FROM ${source} WHERE ${facets[source]} LIKE ?`)
             .raw()
             .all(`%${pattern}%`)
