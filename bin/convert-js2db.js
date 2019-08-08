@@ -2,7 +2,7 @@
 
 const Database = require('better-sqlite3');
 const config = require('config');
-const db = new Database(config.get('data.treatments'));
+const db = new Database(config.get('data.facets'));
 
 const start = new Date().getTime();
 
