@@ -2,11 +2,11 @@
 
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
+const debug = require('debug')('v2:treatments');
 const Database = require('better-sqlite3');
 const config = require('config');
 const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
-const Utils = require('../utils');
 
 module.exports = {
 
@@ -27,27 +27,25 @@ module.exports = {
             // **within this plugin** after this line
             server.bind({ treatmentsCache });
 
-            server.route([
-                { 
-                    path: '/treatments', 
-                    method: 'GET', 
-                    config: {
-                        description: "Retrieve treatments",
-                        tags: ['treatments', 'api'],
-                        plugins: {
-                            'hapi-swagger': {
-                                order: 3,
-                                responseMessages: ResponseMessages
-                            }
-                        },
-                        //validate: Schema.treatments,
-                        notes: [
-                            'A taxonomic treatment.',
-                        ]
+            server.route([{ 
+                path: '/treatments', 
+                method: 'GET', 
+                config: {
+                    description: "Retrieve treatments",
+                    tags: ['treatments', 'api'],
+                    plugins: {
+                        'hapi-swagger': {
+                            order: 3,
+                            responseMessages: ResponseMessages
+                        }
                     },
-                    handler 
-                }
-            ]);
+                    //validate: Schema.treatments,
+                    notes: [
+                        'This is the main route for retrieving taxonomic treatments from the database.',
+                    ]
+                },
+                handler 
+            }]);
         },
     },
 };
@@ -248,13 +246,12 @@ const createSelectStatsQueries = function(obj) {
         `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${tables[4]} WHERE specimenCount != "" AND ${where}`,
         `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${tables[5]} WHERE specimenCountMale != "" AND ${where}`,
         `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${tables[6]} WHERE specimenCountFemale != "" AND ${where}`,
-        `SELECT Count(*) AS images FROM ${tables[7]} WHERE ${where}`
+        `SELECT Count(*) AS "figure citations" FROM ${tables[7]} WHERE ${where}`
     ]    
 };
 
 const getStats = function(queries, queryStr) {
 
-    // console.log(queryStr)
     const statistics = {};
     
     queries.forEach(q => {
@@ -273,7 +270,7 @@ const getStats = function(queries, queryStr) {
             console.log(err);
         }
         
-    })
+    });
 
     return statistics;
 };
@@ -441,10 +438,6 @@ const getTreatments = async function(queryStr) {
         qryObj[ a[0] ] = a[1]; 
     });
 
-    // const calcLimits = function(id = 0) {
-    //     return [id, id * 30];
-    // };
-
     if (qryObj.stats) {
 
         // A simple count query used to populate the search field
@@ -534,8 +527,6 @@ const getTreatments = async function(queryStr) {
             console.log(err);
         }
      
-        //const statistics = getStats(selectStats, query);
-
         const id = qryObj.id ? parseInt(qryObj.id) : 0;
         const offset = id * 30;
         
@@ -592,7 +583,7 @@ const handler = function(request, h) {
         const query = arr.sort().join('&');
 
         if (request.query.refreshCache === 'true') {
-            console.log('forcing refreshCache')
+            debug('forcing refreshCache')
             this.treatmentsCache.drop(query);
         }
 

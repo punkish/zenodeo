@@ -125,7 +125,7 @@ const start = async () => {
             status: request.response.statusCode,
             resource: request.route.path.split('/').pop(),
             query: JSON.stringify(request.query),
-            message: ''
+            message: request.url.href
         });
 
     });

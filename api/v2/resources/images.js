@@ -1,83 +1,77 @@
-//const Wreck = require('wreck');
-const Utils = require('../utils');
+'use strict';
+
 const Wreck = require('wreck');
-const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
+const debug = require('debug')('v2:images');
+const Config = require('config');
+const Zenodo = Config.get('uri.remote') + '/records/';
 
 module.exports = {
+
     plugin: {
         name: 'images2',
         register: async function(server, options) {
 
-            const recordsCache = server.cache({
+            const imagesCache = server.cache({
                 cache: options.cacheName,
                 expiresIn: options.expiresIn,
                 generateTimeout: options.generateTimeout,
                 segment: 'images2', 
-                generateFunc: async (query) => { return await getRecords(query) },
+                generateFunc: async (query) => { return await getImages(query) },
                 getDecoratedValue: options.getDecoratedValue
             });
 
-            // binds recordsCache to every route registered  
+            // binds imagesCache to every route registered  
             // **within this plugin** after this line
-            server.bind({ recordsCache });
+            server.bind({ imagesCache });
 
-            server.route([
-                { 
-                    path: '/images', 
-                    method: 'GET', 
-                    config: {
-                        description: "Fetch images from Zenodo",
-                        tags: ['images', 'api'],
-                        plugins: {
-                            'hapi-swagger': {
-                                order: 4,
-                                responseMessages: ResponseMessages
-                            }
-                        },
-                        //validate: Schema.images,
-                        notes: [
-                            'This is the main route for fetching images matching the provided query parameters.',
-                        ]
+            server.route([{ 
+                path: '/images', 
+                method: 'GET', 
+                config: {
+                    description: "Fetch images from Zenodo",
+                    tags: ['images', 'api'],
+                    plugins: {
+                        'hapi-swagger': {
+                            order: 4,
+                            responseMessages: ResponseMessages
+                        }
                     },
-                    handler 
-                }
-            ]);
+                    //validate: Schema.images,
+                    notes: [
+                        'This is the main route for fetching images matching the provided query parameters.',
+                    ]
+                },
+                handler 
+            }]);
         },
     },
 };
 
-// const queryMakerOld = function(request) {
-//     const queryParams = Object.keys(Schema.images.query);
-//     let query = [];
+const getStats = async function(query) {
 
-//     // remove 'id' and 'refreshCache' from the queryParams
-//     ['id', 'refreshCache'].forEach(el => { queryParams.splice(queryParams.indexOf(el), 1) });
-//     const validCommunities = ['biosyslit', 'belgiumherbarium'];
+    const statistics = {};
 
-//     for (let i = 0, j = queryParams.length; i < j; i++) {
+    const uri = Zenodo + query;
 
-//         // check communities, and convert it to valid communities if 'all' 
-//         // communities are requested in the queryString
-//         if (queryParams[i] === 'communities') {
+    try {
+        debug('querying ' + uri);
+        const {res, payload} =  await Wreck.get(uri);
+        const data = await JSON.parse(payload);
+        const byAccessRight = data.aggregations.access_right.buckets;
+        const byKeywords = data.aggregations.keywords.buckets;
+        byAccessRight.forEach(k => {
+            statistics[k.key] = k.doc_count;
+        });
 
-//             if (request.query[queryParams[i]] === 'all') {
-//                 validCommunities.forEach( el => query.push('communities=' + el) )
-//             }
-
-//         }
-//         else {
-
-//             if (request.query[queryParams[i]]) {
-//                 query.push(queryParams[i] + '=' + request.query[queryParams[i]])
-//             }
-
-//         }
-//     }
-
-//     query.sort();
-//     return query.join('&')
-// };
+        
+        return statistics;
+    }
+    catch(err) {
+        console.error(err);
+        return {error: err}
+    }
+};
 
 const queryMaker = function(request) {
 
@@ -91,9 +85,123 @@ const queryMaker = function(request) {
     return hrefArray.sort().join('&');
 }
 
+const getImages = async (queryStr) => {
+
+    const qryObj = {};
+    queryStr.split('&').forEach(el => { 
+        const a = el.split('='); 
+        qryObj[ a[0] ] = a[1]; 
+    });
+
+    //let Zenodo = 'https://zenodo.org/api/records/';
+    let uri = Zenodo;
+
+    if (qryObj.stats) {
+
+        // '?communities=biosyslit&type=image&access_right=open'
+        const statistics = await getStats('?communities=biosyslit');
+        return statistics;
+        
+    }
+    else if (qryObj.id) {
+        uri += qryObj.id;
+
+        try {
+            debug('querying ' + uri);
+            const {res, payload} =  await Wreck.get(uri);
+            return await JSON.parse(payload);
+        }
+        catch(err) {
+            console.error(err);
+            return {error: err}
+        }
+    }
+    else {
+        uri = Zenodo + '?' + queryStr + '&type=image&access_right=open';
+
+        const limit = 30;
+
+        try {
+            debug('querying ' + uri);
+            const {res, payload} =  await Wreck.get(uri);
+            const result = await JSON.parse(payload);
+            const total = result.hits.total;
+            const images = result.hits.hits;
+            const num = images.length;
+
+
+            const byAccessRight = result.aggregations.access_right.buckets;
+            const byKeywords = result.aggregations.keywords.buckets;
+            const statistics = {};
+            byKeywords.forEach(k => {
+                statistics[k.key] = k.doc_count;
+            });
+
+            const page = qryObj.page ? parseInt(qryObj.page) : 0;
+            //const offset = page * 30;
+
+            const from = (page * 30) + 1;
+            const to = num < limit ? from + num - 1 : from + limit - 1;
+
+            let imagesOfRecords = {};
+            if (total) {
+
+                debug(`found ${total} open records… now getting their images`);
+                debug(`number of images: ${images.length}`);
+    
+                await Promise.all(images.map(async (record) => {
+                    
+                    const bucket = await getBuckets(record.links.self);
+                    
+                    let contents;
+                    if (bucket) {
+                        contents = await getImageFiles(bucket);
+                        imagesOfRecords[record.links.self] = {
+                            title: record.metadata.title,
+                            creators: record.metadata.creators,
+                            images: contents.map(el => { return el.links.self }),
+                            thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
+                        };
+                    }
+                    
+                }));
+
+                return {
+                    previd: page >= 1 ? page - 1 : '',
+                    nextid: num < limit ? '' : parseInt(page) + 1,
+                    recordsFound: total,
+                    from: from,
+                    to: to,
+                    images: imagesOfRecords,
+                    statistics: statistics,
+                    whereCondition: qryObj
+                };
+            }
+            else {
+                debug('nothing found');
+                return {recordsFound: 0, images: imagesOfRecords};
+            }
+        }
+        catch(err) {
+            console.error(err);
+            return {error: err}
+        }
+    }
+    
+};
+
+const getImageFiles = async function(uri) {
+    const { res, payload } = await Wreck.get(uri);
+    return JSON.parse(payload.toString()).contents;
+};
+
+const getBuckets = async function(uri) {
+    const { res, payload } = await Wreck.get(uri);
+    return JSON.parse(payload.toString()).links.bucket;
+};
+
 const handler = async function(request, h) {
 
-    //console.log(request.query);
     let query;
 
     // ignore all other query params if id is present
@@ -108,92 +216,10 @@ const handler = async function(request, h) {
     }
 
     if (request.query.refreshCache === 'true') {
-        await this.recordsCache.drop(query);
+        debug('forcing refreshCache')
+        await this.imagesCache.drop(query);
     }
 
-    // uses the bound recordsCache instance from index.js
-    return await this.recordsCache.get(query); 
-};
-
-const getRecords = async (query) => {
-
-    let Zenodo = 'https://zenodo.org/api/records/';
-
-    // ignore all other query params if id is present
-    if (query.indexOf('id=') > -1) {
-        Zenodo = Zenodo + query.substr(3);
-
-        try {
-            console.log('querying ' + Zenodo);
-            const {res, payload} =  await Wreck.get(Zenodo);
-            return await JSON.parse(payload);
-        }
-        catch(err) {
-            console.error(err);
-        }
-    }
-    else if (query.indexOf('stats=true') > -1) {
-        Zenodo = Zenodo + '?communities=biosyslit&type=image&access_right=open';
-
-        try {
-            console.log('querying ' + Zenodo);
-            const {res, payload} =  await Wreck.get(Zenodo);
-            return {images: await JSON.parse(payload).hits.total}
-        }
-        catch(err) {
-            console.error(err);
-        }
-    }
-    else {
-        Zenodo = Zenodo + '?' + query;
-
-        try {
-            console.log('querying ' + Zenodo);
-            const {res, payload} =  await Wreck.get(Zenodo);
-            const result = await JSON.parse(payload);
-            const total = result.hits.total;
-            const images = result.hits.hits;
-
-            if (total) {
-
-                console.log(`found ${total} open records… now getting their images`);
-                console.log(`number of images: ${images.length}`);
-
-                let imagesOfRecords = {};
-                await Promise.all(images.map(async (record) => {
-                    
-                    const bucket = await getBuckets(record.links.self);
-                    const contents = await getImageFiles(bucket);
-
-                    imagesOfRecords[record.links.self] = {
-                        title: record.metadata.title,
-                        creators: record.metadata.creators,
-                        images: contents.map(el => { return el.links.self }),
-                        thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
-                    };
-                    
-                }));
-
-                return {'total': total, 'imagesOfRecords': imagesOfRecords};
-            }
-            else {
-                console.log('nothing found');
-                return Utils.errorMsg;
-            }
-        }
-        catch(err) {
-            console.error(err);
-        }
-    }
-    
-};
-
-const getImageFiles = async function(uri) {
-    const { res, payload } = await Wreck.get(uri);
-    return JSON.parse(payload.toString()).contents;
-};
-
-const getBuckets = async function(uri) {
-    const { res, payload } = await Wreck.get(uri);
-    return JSON.parse(payload.toString()).links.bucket;
+    // uses the bound imagesCache instance from index.js
+    return await this.imagesCache.get(query); 
 };
