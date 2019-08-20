@@ -64,7 +64,9 @@ const _select = {
         q: {
             count: 'SELECT Count(treatmentId) AS numOfRecords FROM vtreatments WHERE vtreatments MATCH @q',
             
-            data: 'SELECT id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q LIMIT @limit OFFSET @offset',
+            //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q AND t.id > @id ORDER BY t.id ASC  LIMIT @limit',
+
+            data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q LIMIT @limit OFFSET @offset',
             
             stats: {
                 'treatments by numbers': [
@@ -89,6 +91,8 @@ const _select = {
 
         location: {
             count: 'SELECT Count(t.treatmentId) AS numOfRecords FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+
+            //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude AND t.id > @id ORDER BY t.id ASC LIMIT @limit',
 
             data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude LIMIT @limit OFFSET @offset',
 
@@ -115,6 +119,8 @@ const _select = {
 
         other: {
             count: 'SELECT Count(*) AS numOfRecords FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0}',
+
+            //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0} AND t.id > @id ORDER BY t.id ASC LIMIT @limit',
 
             data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0} LIMIT @limit OFFSET @offset',
 
@@ -346,9 +352,9 @@ const getManyRecords = function(queryObject) {
     }
 
     // records are found, so we continue with the actual data selection
-    //const id = queryObject.id ? parseInt(queryObject.id) : 0;
-    const page = queryObject.page ? parseInt(queryObject.page) : 0;
-    const offset = page * 30;
+    const id = queryObject.id ? parseInt(queryObject.id) : 0;
+    const page = queryObject.page ? parseInt(queryObject.page) : 1;
+    const offset = (page - 1) * 30;
     const limit = 30;
 
     data.statistics = Utils.calcStats({
@@ -382,14 +388,20 @@ const getManyRecords = function(queryObject) {
         });
     })
 
-    // set some records-specific from and to for pagination
-    data.from = (page * 30) + 1;
+    // set some records-specific from and to for the formatted
+    // search criteria string
+    data.from = ((page - 1) * 30) + 1;
     data.to = data.records.length < limit ? 
         data.from + data.records.length - 1 : 
         data.from + limit - 1;
 
-    // data.prevpage = page >= 1 ? page - 1 : '';
-    // data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
+    data.previd = id;
+
+    const lastrec = data.records[data.records.length - 1];
+    data.nextid = lastrec.id;
+
+    data.prevpage = page >= 1 ? page - 1 : '';
+    data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
 
     return data;
 };
