@@ -382,6 +382,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
 
             database.indexTables();
             database.loadFTSTreatments();
+            database.loadFTSFigureCitations();
         }
 
         console.log('\n\n')

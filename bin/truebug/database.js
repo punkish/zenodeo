@@ -132,6 +132,18 @@ const database = {
 
         const insertStmt = 'INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments';
         deBugger({debug: false, type: 'createInsert', stmt: insertStmt, table: 'vtreatments', values: []});
+
+        const createVtableFigCit = 'CREATE VIRTUAL TABLE IF NOT EXISTS vfigurecitations USING FTS5(figureCitationId, captionText)';
+        deBugger({debug: false, type: 'create', stmt: createVtableFigCit, table: 'vfigurecitations', values: []});
+
+        const insertVtableFigCit = 'INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations';
+        deBugger({debug: false, type: 'insertVtableFigCit', stmt: insertVtableFigCit, table: 'vfigurecitations', values: []});
+
+        const createVtableBibRefCit = 'CREATE VIRTUAL TABLE IF NOT EXISTS vbibrefcitations USING FTS5(bibRefCitationId, refString)';
+        deBugger({debug: false, type: 'create', stmt: createVtableFigCit, table: 'vbibrefcitations', values: []});
+
+        const insertVtableBibRefCit = 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations';
+        deBugger({debug: false, type: 'insertVtableFigCit', stmt: insertVtableFigCit, table: 'vfigurecitations', values: []});
     },
 
     // store the insert statements for later use
@@ -277,6 +289,10 @@ const database = {
 
     loadFTSTreatments: function() {
         deBugger({debug: false, type: 'insert', stmt: '', table: 'vtreatments', values: []})
+    },
+
+    loadFTSTFigureCitations: function() {
+        deBugger({debug: false, type: 'insert', stmt: '', table: 'vfigurecitations', values: []})
     }
 
 };

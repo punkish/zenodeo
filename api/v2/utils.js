@@ -1,6 +1,7 @@
 const Wreck = require('wreck');
 const Schema = require('./schema.js');
 const ResponseMessages = require('../responseMessages');
+const debug = require('debug')('v2:utils');
 
 const config = require('config');
 // const authors = config.get('data.authors');
@@ -9,7 +10,8 @@ const config = require('config');
 // const families = config.get('data.families');
 
 const Database = require('better-sqlite3');
-const db = new Database(config.get('data.facets'));
+const dbFacets = new Database(config.get('data.facets'));
+const dbTreatments = new Database(config.get('data.treatments'));
 
 // const data = {
 //     authors: require(authors),
@@ -38,7 +40,7 @@ module.exports = {
     // },
 
     find: function(pattern, source) {
-        return db.prepare(`SELECT ${facets[source]} FROM ${source} WHERE ${facets[source]} LIKE ?`)
+        return dbFacets.prepare(`SELECT ${facets[source]} FROM ${source} WHERE ${facets[source]} LIKE ?`)
             .raw()
             .all(`%${pattern}%`)
             .map(r => r[0]);
@@ -135,6 +137,150 @@ module.exports = {
 
     
         return await _getRecords(`access_right=open&page=1&q=${treatmentId}&size=30&type=image`);
-    }
+    },
     
+    halify: function({records, uri, resource, id}) {
+        records.forEach(row => {
+            row._links = this.makeSelfLink({
+                uri: uri,
+                resource: resource.toLowerCase(),
+                queryString: `${id}=${row[id]}`
+            })
+        });
+
+        return records;
+    },
+
+    makeCache: function({server, options, query, segment}) {
+        return server.cache({
+            cache: options.cacheName,
+            expiresIn: options.expiresIn,
+            generateTimeout: options.generateTimeout,
+            segment: segment, 
+            generateFunc: async (cacheKey) => { 
+                return await query(cacheKey) 
+            },
+            getDecoratedValue: options.getDecoratedValue
+        });
+    },
+
+    makeCacheKey: function(request) {
+
+        // remove 'refreshCache' from the query params and make the 
+        // queryString into a standard form (all params sorted) so
+        // it can be used as a cachekey
+        let arr = [];
+    
+        for (let k in request.query) {
+            if (k !== 'refreshCache') {
+                arr.push(k + '=' + request.query[k]);
+            }
+        }
+    
+        return arr.sort().join('&');
+    },
+
+    makeQueryObject: function(cacheKey) {
+        const queryObject = {};
+        debug(`cacheKey: ${cacheKey}`);
+        if (cacheKey) {
+            cacheKey.split('&').forEach(pair => {
+                queryObject[pair.split('=')[0]] = pair.split('=')[1]
+            })
+        }
+        
+    
+        return queryObject;
+    },
+
+    calcStats: function({stats, queryObject}) {
+    
+        /*
+        statistics = [
+            {
+                'chart-name': 'Chart one',
+                'x-axis': {
+                    name: 'materials citations',
+                    values: []
+                },
+                'y-axis': {
+                    name: 'collecting codes',
+                    values: []
+                }
+            }
+        ]
+        */
+   
+        const statistics = [];
+        // let chartKey = 'keys';
+        // let chartVal = 'vals';
+    
+        for (let chart in stats) {
+            const c = {};
+            c['chart-name'] = chart;
+            c['x-axis'] = {};
+            c['y-axis'] = {};
+
+            const queries = stats[chart];
+            
+            //statistics[chart] = {};
+    
+            queries.forEach(q => {
+                //console.log(q)
+                const rows = (queryObject && Object.keys(queryObject).length) ? 
+                    dbTreatments.prepare(q).all(queryObject) : 
+                    dbTreatments.prepare(q).all();
+
+                if (rows.length > 1) {
+                    rows.forEach((row, index) => {
+                        if (index === 0) {
+                            c['x-axis'].name = Object.keys(row)[0];
+                            c['y-axis'].name = Object.keys(row)[1];
+                        }
+    
+                        if (c['x-axis'].values) {
+                            c['x-axis'].values.push(Object.values(row)[0]);
+                        }
+                        else {
+                            c['x-axis'].values = [ Object.values(row)[0] ];
+                        }
+    
+                        if (c['y-axis'].values) {
+                            c['y-axis'].values.push(Object.values(row)[1]);
+                        }
+                        else {
+                            c['y-axis'].values = [ Object.values(row)[1] ];
+                        }
+                    })
+                }
+                else {
+                    for (let [key, val] of Object.entries(rows[0])) {
+                        if (c['x-axis'].values) {
+                            c['x-axis'].values.push(key);
+                        }
+                        else {
+                            c['x-axis'].values = [ key ];
+                        }
+                        
+                        if (c['y-axis'].values) {
+                            c['y-axis'].values.push(val);
+                        }
+                        else {
+                            c['y-axis'].values = [ val ];
+                        }
+                    }
+                }
+            });
+
+            statistics.push(c)
+        }
+    
+        return statistics;
+    
+    },
+
+    makeSelfLink: function({uri, resource, queryString}) {
+        return { self: { href: `${uri}/${resource}?${queryString}` } }
+    }
 }
+

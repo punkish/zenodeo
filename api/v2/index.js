@@ -23,7 +23,11 @@ exports.plugin = {
             { plugin: require('./resources/taxa') },
             { plugin: require('./resources/wpsummary'), options: cacheOptions },
             { plugin: require('./resources/images'), options: cacheOptions },
-            { plugin: require('./resources/treatments'), options: cacheOptions }
+            { plugin: require('./resources/treatments'), options: cacheOptions },
+            { plugin: require('./resources/figureCitations'), options: cacheOptions },
+            { plugin: require('./resources/treatmentAuthors'), options: cacheOptions },
+            { plugin: require('./resources/bibRefCitations'), options: cacheOptions },
+            { plugin: require('./resources/materialsCitations'), options: cacheOptions }
         ]);
     }
 };

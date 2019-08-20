@@ -6,29 +6,159 @@ const debug = require('debug')('v2:treatments');
 const Database = require('better-sqlite3');
 const config = require('config');
 const db = new Database(config.get('data.treatments'));
+const Utils = require('../utils');
+
+const uri = config.get('uri.zenodeo') + '/v2';
+
 const fs = require('fs');
+const treatmentStatus = require('../lib/treatmentsStatus');
+
+String.prototype.format = function() {
+    var args = arguments;
+    return this.replace(/{(\d+)}/g, function(match, number) { 
+        return typeof args[number] != 'undefined' ? args[number] : match;
+    });
+};
+
+const _plugin = 'treatments2';
+const _resource = 'treatments';  // impt: lowercase, because used in URI
+const _resourceId = 'treatmentId';
+const _select = {
+    none: {
+        count: 'SELECT Count(*) AS numOfRecords FROM treatments',
+
+        stats: {
+            'treatments by numbers': [
+                'SELECT Count(*) AS treatments FROM treatments',
+                
+                'SELECT Sum(specimenCount) AS specimens FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE specimenCount != ""',
+                
+                'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE specimenCountMale != ""',
+                
+                'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE specimenCountFemale != ""',
+                
+                'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId  WHERE specimenCount != ""',
+                
+                'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE specimenCountMale != ""',
+                
+                'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE specimenCountFemale != ""',
+                
+                'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId'
+            ]
+        }
+    },
+    one: {
+        data: 'SELECT treatmentId, treatmentTitle, pages, doi, zenodoDep, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, rank, fullText FROM treatments WHERE treatmentId = @treatmentId',
+        
+        related: {
+            treatmentAuthors: 'SELECT treatmentAuthorId, treatmentAuthor AS author FROM treatmentAuthors WHERE treatmentId = @treatmentId',
+            
+            bibRefCitations: 'SELECT bibRefCitationId, refString AS citation FROM bibRefCitations WHERE treatmentId = @treatmentId',
+            
+            materialsCitations: "SELECT materialsCitationId, treatmentId, typeStatus, latitude, longitude FROM materialsCitations WHERE latitude != '' AND longitude != '' AND treatmentId = @treatmentId",
+            
+            figureCitations: 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE treatmentId = @treatmentId'
+        }
+    },
+    many: {
+        q: {
+            count: 'SELECT Count(treatmentId) AS numOfRecords FROM vtreatments WHERE vtreatments MATCH @q',
+            
+            data: 'SELECT id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q LIMIT @limit OFFSET @offset',
+            
+            stats: {
+                'treatments by numbers': [
+                    'SELECT Count(*) AS treatments FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
+                    
+                    'SELECT Sum(specimenCount) AS specimens FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
+                    
+                    'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
+                    
+                    'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE specimenCount != "" AND vtreatments MATCH @q',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE specimenCountMale != "" AND vtreatments MATCH @q',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE specimenCountFemale != "" AND vtreatments MATCH @q',
+                    
+                    'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN vtreatments v ON f.treatmentId = v.treatmentId WHERE vtreatments MATCH @q'
+                ]
+            }
+        },
+
+        location: {
+            count: 'SELECT Count(t.treatmentId) AS numOfRecords FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+
+            data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude LIMIT @limit OFFSET @offset',
+
+            stats: {
+                'treatments by numbers': [
+                    'SELECT Count(*) AS treatments FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Sum(specimenCount) AS specimens FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Sum(specimenCountMale) AS "male specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Sum(specimenCountFemale) AS "female specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE specimenCount != "" AND latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE specimenCountMale != "" AND latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE specimenCountFemale != "" AND latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
+                    
+                    'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude'
+                ]
+            }
+        },
+
+        other: {
+            count: 'SELECT Count(*) AS numOfRecords FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0}',
+
+            data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0} LIMIT @limit OFFSET @offset',
+
+            stats: {
+                'treatments by numbers': [
+                    'SELECT Count(*) AS treatments FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0}',
+                    
+                    'SELECT Sum(specimenCount) AS specimens FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
+                    
+                    'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
+                    
+                    'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
+                    
+                    'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
+                    
+                    'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId WHERE {0}'
+                ]
+            }
+        }
+    }
+};
 
 module.exports = {
-
     plugin: {
-        name: 'treatments2',
+        name: _plugin,
         register: function(server, options) {
 
-            const treatmentsCache = server.cache({
-                cache: options.cacheName,
-                expiresIn: options.expiresIn,
-                generateTimeout: options.generateTimeout,
-                segment: 'treatments2', 
-                generateFunc: async (query) => { return await getTreatments(query) },
-                getDecoratedValue: options.getDecoratedValue
+            const cache = Utils.makeCache({
+                server: server, 
+                options: options, 
+                query: getRecords,  
+                segment: _plugin
             });
 
-            // binds treatmentsCache to every route registered  
+            // binds the cache to every route registered  
             // **within this plugin** after this line
-            server.bind({ treatmentsCache });
+            server.bind({ cache });
 
             server.route([{ 
-                path: '/treatments', 
+                path: `/${_resource}`, 
                 method: 'GET', 
                 config: {
                     description: "Retrieve treatments",
@@ -50,324 +180,271 @@ module.exports = {
     },
 };
 
-const statuses = [
-    '(s. str.)',
-    'COMB. NOV',
-    'COMB. NOV.',
-    'Comb. nov',
-    'Comb. nov.',
-    'GEN. NOV.',
-    'Gen. Nov.',
-    'N. GEN.',
-    'N.COMB.',
-    'NEW COMBINATION',
-    'NEW GENUS',
-    'NEW SP.',
-    'NEW SPECIES',
-    'NEW SSP.',
-    'NEW STATUS',
-    'New Combination',
-    'New Genus',
-    'New Species',
-    'New Status',
-    'New Subspecies',
-    'New combination',
-    'New genus',
-    'New species',
-    'New status',
-    'STAT. NOV.',
-    'STAT. REV.',
-    'Synonym',
-    'Transf. from Amaurobius',
-    'com. nov.',
-    'comB. nov.',
-    'comb n.',
-    'comb nov.',
-    'comb.',
-    'comb. n',
-    'comb. n.',
-    'comb. nov',
-    'comb. nov.',
-    'comb.n.',
-    'comb.nov.',
-    'fam. nov.',
-    'gen nov. et sp. nov.',
-    'gen. et comb. nov.',
-    'gen. et sp. nov.',
-    'gen. n',
-    'gen. n.',
-    'gen. nov',
-    'gen. nov.',
-    'gen. nov. et sp. nov.',
-    'gen. nov., sp. nov.',
-    'gen.n.',
-    'gen.nov.',
-    'genus nov.',
-    'hybr. nov.',
-    'incertae sedis',
-    'n . comb.',
-    'n . sp .',
-    'n . sp.',
-    'n sp.',
-    'n. Comb.',
-    'n. comb',
-    'n. comb.',
-    'n. g.',
-    'n. g., n. sp.',
-    'n. gen.',
-    'n. gen., n. sp.',
-    'n. sp .',
-    'n. sp.',
-    'n. ssp.',
-    'n. st.',
-    'n. stat.',
-    'n. stat., n. comb.',
-    'n. subg.',
-    'n. subgen.',
-    'n. subgenus',
-    'n. subsp.',
-    'n. v.',
-    'n. var.',
-    'n.comb',
-    'n.comb.',
-    'n.gen.',
-    'n.sp.',
-    'n.ssp.',
-    'n.stat.',
-    'new',
-    'new comb',
-    'new comb.',
-    'new combination',
-    'new gen.',
-    'new genus',
-    'new replacement name',
-    'new sPecies',
-    'new sp.',
-    'new speCies',
-    'new spec.',
-    'new specIes',
-    'new species',
-    'new status',
-    'new subgenus',
-    'new subspecies',
-    'new synonym',
-    'nom. n.',
-    'nom. nov.',
-    'nom.nov.',
-    'nomina dubia',
-    'nov. comb.',
-    'nov. gen.',
-    'nov. sp.',
-    'nov. spec.',
-    'nov. ssp.',
-    'nov. st.',
-    'nov. subgen.',
-    'nov. var.',
-    'nov.sp.',
-    's. str.',
-    's.l.',
-    's.s.',
-    'sP. nov.',
-    'sensu lato',
-    'sensu stricto',
-    'sp . n .',
-    'sp . nov',
-    'sp . nov .',
-    'sp . nov.',
-    'sp .n.',
-    'sp .nov.',
-    'sp.',
-    'sp. and subsp. nov.',
-    'sp. n',
-    'sp. n.',
-    'sp. noV.',
-    'sp. nov',
-    'sp. nov.',
-    'sp.n',
-    'sp.n.',
-    'sp.nov',
-    'sp.nov.',
-    'spec.',
-    'spec. n.',
-    'spec. nov',
-    'spec. nov.',
-    'spec. nova',
-    'spec.nov.',
-    'species nov.',
-    'ssp. n.',
-    'ssp. nov',
-    'ssp. nov.',
-    'ssp.n.',
-    'stat rev.',
-    'stat. nov',
-    'stat. nov.',
-    'stat. rev.',
-    'stat.nov.',
-    'stat.rev.',
-    'subfam. nov.',
-    'subgen. n.',
-    'subgen. nov.',
-    'subsp. n.',
-    'subsp. nov',
-    'subsp. nov.',
-    'subspec. nov.',
-    'subspecies nov.',
-    'syn. n.',
-    'syn. nov.',
-    'syn.n.',
-    'synonym',
-    'tranf. to Araniella',
-    'tranf. to Bianor',
-    'tranf. to Borboropactus',
-    'tranf. to Diaea',
-    'tranf. to Drassodes',
-    'tranf. to Henriksenia',
-    'tranf. to Lysteles',
-    'tranf. to Massuria',
-    'transf. from Agroeca',
-    'transf. from Alaeho',
-    'transf. from Phrurolithus',
-    'transf. from Scotinella',
-    'transf. to Corinnoma'
-];
-
-const isNewSpecies = function(status) {
-
-};
-
-const createSelectStatsQueries = function(obj) {
-    const {tables, where} = obj;
-
-    return [
-        `SELECT Count(*) AS treatments FROM ${tables[0]} WHERE ${where}`,
-        `SELECT Sum(specimenCount) AS specimens FROM ${tables[1]} WHERE ${where}`,
-        `SELECT Sum(specimenCountMale) AS "male specimens" FROM ${tables[2]} WHERE ${where}`,
-        `SELECT Sum(specimenCountFemale) AS "female specimens" FROM ${tables[3]} WHERE ${where}`,
-        `SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM ${tables[4]} WHERE specimenCount != "" AND ${where}`,
-        `SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM ${tables[5]} WHERE specimenCountMale != "" AND ${where}`,
-        `SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM ${tables[6]} WHERE specimenCountFemale != "" AND ${where}`,
-        `SELECT Count(*) AS "figure citations" FROM ${tables[7]} WHERE ${where}`
-    ]    
-};
-
-const getStats = function(queries, queryStr) {
-
-    const statistics = {};
+const handler = function(request, h) {
+    preprocess(request, h);
     
-    queries.forEach(q => {
+    const cacheKey = Utils.makeCacheKey(request);
 
-        const pq = db.prepare(q);
+    if (request.query.refreshCache === 'true') {
+        debug('forcing refreshCache')
+        this.cache.drop(cacheKey);
+    }
 
+    return this.cache.get(cacheKey);
+};
+
+const getRecords = function(cacheKey) {
+    const queryObject = Utils.makeQueryObject(cacheKey);
+    
+    if (Object.keys(queryObject).length === 0) {
+        const data = {};
         try {
-            let n = queryStr ? pq.get(queryStr) : pq.get();
-
-            for (let k in n) {
-                statistics[k] = n[k]
-            }
-        } 
-        catch (err) {
-            console.log(q)
-            console.log(err);
+            data['num-of-records'] = db.prepare(_select.none.count)
+                .get()
+                .numOfRecords;
         }
-        
+        catch (error) {
+            console.log(error);
+        }
+
+        data.statistics = Utils.calcStats({stats: _select.none.stats});
+
+        return data;
+    }
+
+     // A resourceId is present. The query is for a specific
+    // record. All other query params are ignored
+    else if (queryObject[_resourceId]) {
+        return getOneRecord(queryObject);
+    }
+
+    else if (queryObject.map) {
+        return getAllRecords();
+    }
+    
+    // More complicated queries with search parameters
+    else {
+        return getManyRecords(queryObject);
+    }
+};
+
+const getOneRecord = function(queryObject) {    
+    let data;
+    try {
+        data = db.prepare(_select.one.data).get(queryObject);
+    } 
+    catch (error) {
+        console.log(error);
+    }
+
+    data['search-criteria'] = queryObject;
+    data._links = Utils.makeSelfLink({
+        uri: uri, 
+        resource: _resource, 
+        queryString: Object.entries(queryObject)
+            .map(e => e[0] + '=' + e[1])
+            .sort()
+            .join('&')
     });
 
-    return statistics;
+    // more data from beyond the database
+    const resourceId = queryObject[_resourceId];
+    data.xml = getXml(resourceId);
+    data.taxonStats = getTaxonStats(data);
+
+    data['related-records'] = getRelatedRecords(queryObject);
+    return data
 };
 
-const getTaxonStats = function(taxon) {
+const getManyRecords = function(queryObject) {
+    const data = {};
+    let selectCount;
+    let selectData;
+    let selectStats;
 
-    let cols = [];
-    let vals = [];
-
-    for (let col in taxon) {
-
-        vals.push( taxon[col] )
-
-        // we add double quotes to 'order' otherwise the 
-        // sql statement would choke since order is a  
-        // reserved word
-        if (col === 'order') col = '"order"';
-        cols.push(col + ' = ?');
-
+    // if 'q' then a full text search
+    if (queryObject.q) {
+        selectCount = _select.many.q.count;
+        selectData = _select.many.q.data;
+        selectStats = _select.many.q.stats;
     }
 
-    const select = `SELECT Count(*) AS num FROM treatments WHERE ${cols.join(' AND ')}`;
-    //console.log(select);
-    return db.prepare(select).get(vals)
+    // everything else
+    else {
 
-    
-};
+        // to be used for lat/lon queries
+        const range = 0.9;
 
-const getXml = function(treatmentId) {
-    const one = treatmentId.substr(0, 1);
-    const two = treatmentId.substr(0, 2);
-    const thr = treatmentId.substr(0, 3);
+        // first, figure out the cols and params 
+        const cols = [];
 
-    return fs.readFileSync(
-        `data/treatments/${one}/${two}/${thr}/${treatmentId}.xml`,
-        'utf8'
-    )
-};
+        for (let col in queryObject) {
 
-const getMaterialsCitations = function(treatmentId) {
-    const selectMaterialCitations = "SELECT treatmentId, typeStatus, latitude, longitude FROM materialsCitations WHERE latitude != '' AND longitude != '' AND treatmentId = ?";
+            if (col !== 'id') {
 
-    return db.prepare(selectMaterialCitations).all(treatmentId);
-};
+                // we add double quotes to 'order' otherwise the sql 
+                // statement would choke since order is a reserved word
+                if (col === 'order') {
+                    cols.push('"order" = @order');
+                }
+                else if (col === 'lat') {
+                    cols.push('latitude > @min_latitude');
+                    cols.push('latitude < @max_latitude');
+                    queryObject.min_latitude = queryObject.lat - range;
+                    queryObject.max_latitude = +queryObject.lat + range;
+                }
+                else if (col === 'lon') {
+                    cols.push('longitude > @min_longitude');
+                    cols.push('longitude < @max_longitude');
+                    queryObject.min_longitude = queryObject.lon - range;
+                    queryObject.max_longitude = +queryObject.lon + range;
+                }
+                else {
+                    cols.push(`${col} = @${col}`);
+                }
+                
+            }
 
-const getAuthors = function(treatmentId) {
-    const selectAuthors = 'SELECT treatmentAuthor AS author FROM treatmentAuthors WHERE treatmentId = ?';
-    const authors = db.prepare(selectAuthors).all(treatmentId);
-    let authorsArr = authors.map(a => { return a.author });
-    const numOfAuthors = authorsArr.length;
-    let authorsList = '';
-    if (numOfAuthors === 1) {
-        authorsList = authorsArr[0];
+        }
+
+        const where = cols.join(' AND ');
+        selectCount = _select.many.other.count.format(where);
+        selectData = _select.many.other.data.format(where);
+        selectStats = {};
+        for (let chart in _select.many.other.stats) {
+            selectStats[chart] = _select.many.other.stats[chart].map(s => s.format(where))
+        }
+        
     }
-    else if (numOfAuthors === 2) {
-        authorsList = authorsArr.join(' and ');
+
+    // first find total number of matches
+    try {
+        data['num-of-records'] = db.prepare(selectCount)
+            .get(queryObject)
+            .numOfRecords;
     }
-    else if (numOfAuthors > 2) {
-        authorsList = authorsArr.slice(0, 2).join(', ');
-        authorsList += ' and ' + authorsArr[numOfAuthors - 1]
+    catch (error) {
+        console.log(error);
     }
 
-    return [authors, authorsList];
+    data['search-criteria'] = queryObject;
+    data._links = Utils.makeSelfLink({
+        uri: uri, 
+        resource: _resource, 
+        queryString: Object.entries(queryObject)
+            .filter(e => 
+                e[0] !== 'min_latitude' && e[0] !== 'max_latitude' && e[0] !== 'min_longitude' && e[0] !== 'max_longitude'
+            )
+            .map(e => e[0] + '=' + e[1])
+            .sort()
+            .join('&')
+    });
+
+    // We are done if no records found
+    if (!data['num-of-records']) {
+        return data;
+    }
+
+    // records are found, so we continue with the actual data selection
+    //const id = queryObject.id ? parseInt(queryObject.id) : 0;
+    const page = queryObject.page ? parseInt(queryObject.page) : 0;
+    const offset = page * 30;
+    const limit = 30;
+
+    data.statistics = Utils.calcStats({
+        stats: selectStats, 
+        queryObject: queryObject
+    });
+
+    // get the records
+    try {
+        const queryObjectTmp = {};
+        for (let k in queryObject) {
+            queryObjectTmp[k] = queryObject[k];
+        }
+        queryObjectTmp.limit = limit;
+        queryObjectTmp.offset = offset;
+
+        data.records = db.prepare(selectData).all(queryObjectTmp);
+    }
+    catch (error) {
+        console.log(error);
+    }
+
+    data.records.forEach(rec => {
+        rec._links = Utils.makeSelfLink({
+            uri: uri, 
+            resource: _resource, 
+            queryString: Object.entries({treatmentId: rec.treatmentId})
+                .map(e => e[0] + '=' + e[1])
+                .sort()
+                .join('&')
+        });
+    })
+
+    // set some records-specific from and to for pagination
+    data.from = (page * 30) + 1;
+    data.to = data.records.length < limit ? 
+        data.from + data.records.length - 1 : 
+        data.from + limit - 1;
+
+    // data.prevpage = page >= 1 ? page - 1 : '';
+    // data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
+
+    return data;
 };
 
-const getCitations = function(treatmentId) {
-    const selectCitations = 'SELECT refString AS citation FROM bibRefCitations WHERE treatmentId = ?';
-    return db.prepare(selectCitations).all(treatmentId);
+const getAllRecords = function() {
+    const data = {};
+    const select = 'SELECT t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context, m.latitude, m.longitude FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId LIMIT 100';
+
+    try {
+        data.records = db.prepare(select).all();
+    }
+    catch (error) {
+        console.log(error);
+    }
+
+    return data;
 };
 
-const getFigures = function(treatmentId) {
-    const selectFigures = 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE treatmentId = ?';
-    return db.prepare(selectFigures).all(treatmentId);
+// end boiler plate ******************************/
+
+const preprocess = function(request, h) {
+    if (request.query.format && request.query.format === 'xml') {
+        const xml = getXml(request.query.treatmentId);
+        return h.response(xml)
+            .type('text/xml')
+            .header('Content-Type', 'application/xml');
+    }
 };
 
-const getOneTreatment = async function(qryObj) {
+const getRelatedRecords = function(queryObject) {
+    const rr = {};
 
-    const treatmentId = qryObj.treatmentId;
+    const relatedRecords = _select.one.related;
+    for (let relatedResource in relatedRecords) {
 
-    const xml = getXml(treatmentId);
+        try {
+            const select = relatedRecords[relatedResource];
+            const data = db.prepare(select).all(queryObject);
 
-    // let selectTreatments = 'SELECT treatmentId, treatmentTitle AS articleTitle, pages, doi, zenodoDep, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, rank, fullText FROM treatments WHERE treatmentId = ?';
-    let selectTreatments = 'SELECT * FROM treatments WHERE treatmentId = ?';
-    let data = db.prepare(selectTreatments).get(treatmentId);
-    //console.log(data)
+            rr[relatedResource] = Utils.halify({
+                records: data, 
+                uri: uri, 
+                resource: relatedResource,
+                id: `${relatedResource.substr(0, relatedResource.length - 1)}Id`
+            })
+        }
+        catch(error) {
+            console.log(error);
+        }
+    }
 
-    [data.authors, data.authorsList] = getAuthors(treatmentId);
-    data.citations = getCitations(treatmentId);
-    data.materialsCitations = getMaterialsCitations(treatmentId);
-    data.figures = getFigures(treatmentId);
+    return rr;
+};
 
-    const selectImages = 'SELECT Count(*) AS images FROM figureCitations WHERE treatmentId = ?';
-    const images = db.prepare(selectImages).get(qryObj.treatmentId);
-    //data.images = await Utils.getImages(qryObj.treatmentId);
-    data.images = images.images;
-    data.xml = xml;
-
+const getTaxonStats = function(data) {
     const taxonStats = {
         kingdom: { 
             qryObj: {
@@ -423,170 +500,65 @@ const getOneTreatment = async function(qryObj) {
     };
 
     for (let t in taxonStats) {
-        taxonStats[t].num = getTaxonStats(taxonStats[t].qryObj);
+        taxonStats[t].num = calcTaxonStats(taxonStats[t].qryObj);
     }
 
-    data.taxonStats = taxonStats;
-    return data;
+    return taxonStats;
 };
 
-const getTreatments = async function(queryStr) {
+const calcTaxonStats = function(taxon) {
 
-    const qryObj = {};
-    queryStr.split('&').forEach(el => { 
-        const a = el.split('='); 
-        qryObj[ a[0] ] = a[1]; 
-    });
+    let cols = [];
+    let vals = [];
 
-    if (qryObj.stats) {
+    for (let col in taxon) {
 
-        // A simple count query used to populate the search field
-        const selectStats = createSelectStatsQueries({tables: ['treatments', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'materialsCitations t', 'figureCitations'], where: '0=0'});
-        return getStats(selectStats, null);
+        vals.push( taxon[col] )
+
+        // we add double quotes to 'order' otherwise the sql statement would 
+        // choke since order is a reserved word
+        if (col === 'order') col = '"order"';
+        cols.push(col + ' = ?');
+
     }
-    else if (qryObj.treatmentId) {
 
-        // 1. A 'treatmentId' is present. The query is for a specific
-        // treatment. All other query params are ignored
-        return await getOneTreatment(qryObj);
+    const select = `SELECT Count(*) AS num FROM treatments WHERE ${cols.join(' AND ')}`;
+    
+    try {
+        return db.prepare(select).get(vals);
+    } 
+    catch (error) {
+        console.log(error);
     }
-    else {
+    
+};
 
-        // More complicated queries with search parameters
-        const count = 'Count(id) AS c';
-        const limit = 30;
-        const cols1 = 'id, t.treatmentId, t.treatmentTitle';
-        const cols2 = 'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS s';
+const getXml = function(treatmentId) {
+    const one = treatmentId.substr(0, 1);
+    const two = treatmentId.substr(0, 2);
+    const thr = treatmentId.substr(0, 3);
 
-        let fromTables, where, whereCondition = {}, selectCount, selectQuery, query, queryWithOffset, matCitFrom, figCitFrom, selectStats;
+    return fs.readFileSync(
+        `data/treatments/${one}/${two}/${thr}/${treatmentId}.xml`,
+        'utf8'
+    )
+};
 
-        // if q
-        if (qryObj.q) {
-            fromTables = 'treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId';
-            where = 'vtreatments MATCH ?';
-            whereCondition.text = qryObj.q;
-            selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-            selectQuery = `SELECT ${cols1}, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS s FROM ${fromTables} WHERE ${where} LIMIT ${limit} OFFSET ?`;
-            query = [qryObj.q];
-            matCitFrom = 'materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId';
-            figCitFrom = 'figureCitations f JOIN vtreatments v ON f.treatmentId = v.treatmentId';
-            selectStats = createSelectStatsQueries({tables: [ fromTables, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, figCitFrom ], where: where});
-        }
+const formatAuthors = function(authors) {
+    let authorsArr = authors.map(a => { return a.author });
+    const numOfAuthors = authorsArr.length;
 
-        // if loc
-        else if (qryObj.lat && qryObj.lon) {
-            fromTables = 'treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId';
-            where = 'latitude = ? AND longitude = ?';
-            whereCondition.latitude = qryObj.lat;
-            whereCondition.longitude = qryObj.lon;
-            selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit} OFFSET ?`;
-            query = [qryObj.lat, qryObj.lon];
-            // matCitFrom;
-            figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
-            selectStats = createSelectStatsQueries({tables: [ fromTables, fromTables, fromTables, fromTables, fromTables, fromTables, fromTables, figCitFrom ], where: where});
-        }
-
-        // everything else
-        else {
-
-            let cols = [];
-            let vals = [];
-
-            for (let col in qryObj) {
-
-                if (col !== 'id') {
-                    vals.push( qryObj[col] );
-                    whereCondition[col] = qryObj[col];
-
-                    // we add double quotes to 'order' otherwise the sql 
-                    // statement would choke since order is a reserved word
-                    if (col === 'order') col = '"order"';
-                    cols.push(col + ' = ?');
-                }
-
-            }
-
-            fromTables = 'treatments t';
-            where = cols.join(' AND ');
-            // whereCondition evaluated above
-            selectCount = `SELECT ${count} FROM ${fromTables} WHERE ${where}`;
-            selectQuery = `SELECT ${cols1}, ${cols2} FROM ${fromTables} WHERE ${where} LIMIT ${limit} OFFSET ?`;
-            query = vals;
-            matCitFrom = 'materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId';
-            figCitFrom = 'figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId';
-            selectStats = createSelectStatsQueries({tables: [ fromTables, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, matCitFrom, figCitFrom ], where: where});
-        }
-
-        let recordsFound;
-        try {
-            recordsFound = db.prepare(selectCount).get(query).c;
-        } 
-        catch (err) {
-            console.log(selectCount)
-            console.log(err);
-        }
-     
-        const id = qryObj.id ? parseInt(qryObj.id) : 0;
-        const offset = id * 30;
-        
-        queryWithOffset = [...query, offset];
-
-        let records;
-        let num;
-        try {
-            records = db.prepare(selectQuery).all(queryWithOffset);
-            num = records.length;
-        } 
-        catch (err) {
-            console.log(selectQuery, queryWithOffset)
-            console.log(err);
-        }
-
-        const from = (id * 30) + 1;
-        const to = num < limit ? from + num - 1 : from + limit - 1;
-
-        return {
-            previd: id >= 1 ? id - 1 : '',
-            nextid: num < limit ? '' : parseInt(id) + 1,
-            recordsFound: recordsFound,
-            from: from,
-            to: to,
-            treatments: records,
-            statistics: getStats(selectStats, query),
-            whereCondition: whereCondition
-        };
+    let authorsList = '';
+    if (numOfAuthors === 1) {
+        authorsList = authorsArr[0];
     }
-}
-
-const handler = function(request, h) {
-
-    if (request.query.format && request.query.format === 'xml') {
-        const xml = getXml(request.query.treatmentId);;
-        return h.response(xml)
-            .type('text/xml')
-            .header('Content-Type', 'application/xml');
+    else if (numOfAuthors === 2) {
+        authorsList = authorsArr.join(' and ');
     }
-    else {
-
-        // remove 'refreshCache' from the query params and make the 
-        // queryString into a standard form (all params sorted) so
-        // it can be used as a cachekey
-        let arr = [];
-
-        for (let k in request.query) {
-            if (k !== 'refreshCache') {
-                arr.push(k + '=' + request.query[k])
-            }
-        }
-
-        const query = arr.sort().join('&');
-
-        if (request.query.refreshCache === 'true') {
-            debug('forcing refreshCache')
-            this.treatmentsCache.drop(query);
-        }
-
-        return this.treatmentsCache.get(query);
+    else if (numOfAuthors > 2) {
+        authorsList = authorsArr.slice(0, 2).join(', ');
+        authorsList += ' and ' + authorsArr[numOfAuthors - 1]
     }
+
+    return authorsList;
 };

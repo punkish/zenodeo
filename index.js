@@ -9,10 +9,11 @@ Start this program from the command line with `pm2`
 
 const Hapi = require('hapi');
 const Disk = require('catbox-disk');
-
+const debug = require('debug')('v2: index');
 const config = require('config');
 const cacheName = config.get('cache.v2.name');
-const cachePath = config.get('cache.path');
+const cachePath = config.get('cache.v2.path');
+debug(cachePath)
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');

@@ -21,15 +21,19 @@ module.exports = {
     'cache': {
         'path': path.join(cwd, 'cache'),
         'v1': {
+            'path': path.join(cwd, 'cache'),
             'name': 'persistent',
         },
         'v2': {
+            'path': path.join(cwd, 'cache', 'catbox'),
             'name': 'catbox',
         }
     },
     'uri': {
         'local': 'http://localhost:3000',
-        'remote': 'https://zenodo.org/api'
+        'remote': 'https://zenodo.org/api',
+        'zenodeo': 'http://localhost:3030',
+        'zenodo': 'https://zenodo.org/api'
     },
     'download-program': {
         "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
