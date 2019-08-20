@@ -1,6 +1,15 @@
-header {margin-bottom: 3em;}
+
+header {
+	margin-bottom: 3em;
+	text-align: left;
+	padding: 4rem;
+}
 nav a, nav b {margin-right: 0.75em;}
 
+section {
+	text-align: left;
+	padding: 4rem;
+}
 /* the following are used only in /docs.html */
 #resources_container {width: 100% !important;}
 #v1_endpoint_list {margin-left: 0 !important; font-size: 100% !important;}
@@ -9,7 +18,7 @@ nav a, nav b {margin-right: 0.75em;}
 input.submit {background-color: #f5f5f5;  line-height: 0;}
 
 /* install.html and examples.html */
-pre code {background-color: black; border: 1px black;}
+pre code {border: 1px black;}
 
 /* examples.html */
 /* https://www.sitepoint.com/using-modern-css-to-build-a-responsive-image-grid/ */
