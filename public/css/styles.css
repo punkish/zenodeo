@@ -10,6 +10,15 @@ section {
 	text-align: left;
 	padding: 4rem;
 }
+
+details summary {
+	font-size: 3rem;
+	font-weight: bold;
+	border-bottom: 1px solid grey;
+	padding: 1rem;
+	margin-bottom: 2rem;
+}
+
 /* the following are used only in /docs.html */
 #resources_container {width: 100% !important;}
 #v1_endpoint_list {margin-left: 0 !important; font-size: 100% !important;}

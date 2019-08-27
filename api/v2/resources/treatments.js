@@ -27,6 +27,8 @@ const _select = {
     none: {
         count: 'SELECT Count(*) AS numOfRecords FROM treatments',
 
+        //map: 'SELECT t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context, latitude, longitude FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude != "" AND longitude != ""',
+
         stats: {
             'treatments by numbers': [
                 'SELECT Count(*) AS treatments FROM treatments',
@@ -214,6 +216,13 @@ const getRecords = function(cacheKey) {
         }
 
         data.statistics = Utils.calcStats({stats: _select.none.stats});
+        
+        // try {
+        //     data.map = db.prepare(_select.none.map).all();
+        // }
+        // catch (error) {
+        //     console.log(error);
+        // }
 
         return data;
     }

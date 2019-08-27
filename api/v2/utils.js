@@ -218,6 +218,7 @@ module.exports = {
         for (let chart in stats) {
             const c = {};
             c['chart-name'] = chart;
+            c['chart-id'] = chart.replace(/ /g, '').toLowerCase();
             c['x-axis'] = {};
             c['y-axis'] = {};
 
@@ -225,8 +226,13 @@ module.exports = {
             
             //statistics[chart] = {};
     
-            queries.forEach(q => {
+            queries.forEach((q, i) => {
                 //console.log(q)
+
+                if (i === 0) {
+                    c.default = true;
+                }
+
                 const rows = (queryObject && Object.keys(queryObject).length) ? 
                     dbTreatments.prepare(q).all(queryObject) : 
                     dbTreatments.prepare(q).all();
