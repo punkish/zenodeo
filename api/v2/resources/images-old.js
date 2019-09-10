@@ -3,8 +3,8 @@
 const Wreck = require('wreck');
 const ResponseMessages = require('../../responseMessages');
 const debug = require('debug')('v2:images');
-const config = require('config');
-const Zenodo = config.get('uri.remote') + '/records/';
+const Config = require('config');
+const Zenodo = Config.get('uri.remote') + '/records/';
 
 module.exports = {
 
@@ -129,6 +129,7 @@ const getImages = async (queryStr) => {
             const images = result.hits.hits;
             const num = images.length;
 
+
             const byAccessRight = result.aggregations.access_right.buckets;
             const byKeywords = result.aggregations.keywords.buckets;
             const statistics = {};
@@ -142,48 +143,44 @@ const getImages = async (queryStr) => {
             const from = (page * 30) + 1;
             const to = num < limit ? from + num - 1 : from + limit - 1;
 
-            const imagesOfRecords = {};
+            let imagesOfRecords = {};
+            if (total) {
 
-            debug(`found ${total} open records… now getting their images`);
-            debug(`number of images: ${images.length}`);
+                debug(`found ${total} open records… now getting their images`);
+                debug(`number of images: ${images.length}`);
+    
+                await Promise.all(images.map(async (record) => {
+                    
+                    const bucket = await getBuckets(record.links.self);
+                    
+                    let contents;
+                    if (bucket) {
+                        contents = await getImageFiles(bucket);
+                        imagesOfRecords[record.links.self] = {
+                            title: record.metadata.title,
+                            creators: record.metadata.creators,
+                            images: contents.map(el => { return el.links.self }),
+                            thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
+                        };
+                    }
+                    
+                }));
 
-            await Promise.all(images.map(async (record) => {
-                
-                const bucket = await getBuckets(record.links.self);
-                
-                let contents;
-                if (bucket) {
-                    contents = await getImageFiles(bucket);
-                    imagesOfRecords[record.links.self] = {
-                        title: record.metadata.title,
-                        creators: record.metadata.creators,
-                        images: contents.map(el => { return el.links.self }),
-                        thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
-                    };
-                }
-                
-            }));
-
-            return {
-                'num-of-records': total,
-                from: from,
-                to: to,
-                'search-criteria': qryObj,
-                records: imagesOfRecords,
-                statistics: statistics,
-            };
-
-            // return {
-            //     previd: page >= 1 ? page - 1 : '',
-            //     nextid: num < limit ? '' : parseInt(page) + 1,
-            //     recordsFound: total,
-            //     from: from,
-            //     to: to,
-            //     images: imagesOfRecords,
-            //     statistics: statistics,
-            //     whereCondition: qryObj
-            // };
-            
+                return {
+                    previd: page >= 1 ? page - 1 : '',
+                    nextid: num < limit ? '' : parseInt(page) + 1,
+                    recordsFound: total,
+                    from: from,
+                    to: to,
+                    images: imagesOfRecords,
+                    statistics: statistics,
+                    whereCondition: qryObj
+                };
+            }
+            else {
+                debug('nothing found');
+                return {recordsFound: 0, images: imagesOfRecords};
+            }
         }
         catch(err) {
             console.error(err);
