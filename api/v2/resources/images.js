@@ -96,7 +96,8 @@ const getImages = async (queryStr) => {
     //let Zenodo = 'https://zenodo.org/api/records/';
     let uri = Zenodo;
 
-    if (qryObj.stats) {
+    //if (qryObj.stats) {
+    if (Object.keys(qryObj).length === 0) {
 
         // '?communities=biosyslit&type=image&access_right=open'
         const statistics = await getStats('?communities=biosyslit');
@@ -136,10 +137,11 @@ const getImages = async (queryStr) => {
                 statistics[k.key] = k.doc_count;
             });
 
-            const page = qryObj.page ? parseInt(qryObj.page) : 0;
+            const page = qryObj.page ? parseInt(qryObj.page) : 1;
+
             //const offset = page * 30;
 
-            const from = (page * 30) + 1;
+            const from = ((page - 1) * 30) + 1;
             const to = num < limit ? from + num - 1 : from + limit - 1;
 
             const imagesOfRecords = {};
@@ -168,21 +170,12 @@ const getImages = async (queryStr) => {
                 'num-of-records': total,
                 from: from,
                 to: to,
+                prevpage: page >= 1 ? page - 1 : '',
+                nextpage: num < limit ? '' : parseInt(page) + 1,
                 'search-criteria': qryObj,
                 records: imagesOfRecords,
                 statistics: statistics,
             };
-
-            // return {
-            //     previd: page >= 1 ? page - 1 : '',
-            //     nextid: num < limit ? '' : parseInt(page) + 1,
-            //     recordsFound: total,
-            //     from: from,
-            //     to: to,
-            //     images: imagesOfRecords,
-            //     statistics: statistics,
-            //     whereCondition: qryObj
-            // };
             
         }
         catch(err) {
