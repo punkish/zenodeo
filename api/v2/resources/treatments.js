@@ -68,7 +68,7 @@ const _select = {
             
             //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q AND t.id > @id ORDER BY t.id ASC  LIMIT @limit',
 
-            data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context, f.httpUri, f.captionText FROM treatments t JOIN figureCitations f ON t.treatmentId = f.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q LIMIT @limit OFFSET @offset',
+            data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context, f.httpUri, f.captionText FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId LEFT JOIN figureCitations f ON t.treatmentId = f.treatmentId WHERE vtreatments MATCH @q LIMIT @limit OFFSET @offset',
             
             stats: {
                 'treatments by numbers': [
@@ -379,7 +379,6 @@ const getManyRecords = function(queryObject) {
         }
         queryObjectTmp.limit = limit;
         queryObjectTmp.offset = offset;
-
         data.records = db.prepare(selectData).all(queryObjectTmp);
     }
     catch (error) {
