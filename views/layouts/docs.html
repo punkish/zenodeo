@@ -34,7 +34,7 @@
     <div class="container">
         {{> head}}
         
-        version: <select id="version"></select>
+        <!-- API version: <select id="version"></select> -->
         
         {{{content}}}
     </div>
@@ -54,9 +54,27 @@
         return vars;
     }
 
-    function selectVersion() {
+    function createVersionSelector() {
         const vContainers = document.querySelectorAll('.opblock-tag-section');
-        console.log(vContainers)
+        const len = vContainers.length;
+
+        //Create and append select list
+        const select = document.getElementById('version');
+
+        //Create and append the options
+        for (var i = 0; i < len; i++) {
+            var option = document.createElement("option");
+            option.value = `v${i + 1}`;
+            option.text = `v${i + 1}`;
+            select.appendChild(option);
+        }
+
+        select.addEventListener('change', changeVersion);
+        select.selectedIndex = len - 1;
+    }
+
+    function changeVersion(event) {
+        console.log("changing API version to " + (+event.target.selectedIndex + 1))
     }
 
     function createUi() {
@@ -82,20 +100,26 @@
             validatorUrl: validatorUrl,
             dom_id: '#swagger-ui',
             deepLinking: true,
+            displayRequestDuration: true,
             presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
             plugins: [SwaggerUIBundle.plugins.DownloadUrl],
             layout: 'StandaloneLayout',
-            docExpansion: "{{hapiSwagger.expanded}}",
+            // defaultModelsExpandDepth: 1,
+            // defaultModelExpandDepth: 1,
+            // defaultModelRendering: ["model"],
+            //docExpansion: "{{hapiSwagger.expanded}}",
+            docExpansion: "none",
             tagsSorter: apisSorter.{{hapiSwagger.sortTags}},
-            operationsSorter: operationsSorter.{{hapiSwagger.sortEndpoints}}
+            operationsSorter: operationsSorter.{{hapiSwagger.sortEndpoints}},
+            //onComplete: createVersionSelector
         }
 
-        var ui = SwaggerUIBundle(swaggerOptions);
-        window.ui = ui;
+        return SwaggerUIBundle(swaggerOptions);
+        //window.ui = ui;
     }
 
     window.onload = function() {
-        createUi();
+        window.ui = createUi();
     };
     </script>
 </body>

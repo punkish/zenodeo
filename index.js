@@ -54,8 +54,7 @@ const swaggerOptions = {
     documentationPage: false,
     documentationPath: "/docs",
     sortEndpoints: 'ordered',
-    validatorUrl: null,
-    uiCompleteScript: 'selectVersion()'
+    validatorUrl: null
 };
 
 const server = new Hapi.server({
