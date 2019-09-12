@@ -26,6 +26,12 @@ details summary {
 .footer h4 {font-size: 1em !important;}
 input.submit {background-color: #f5f5f5;  line-height: 0;}
 
+/******************* new doc **********************/
+/* hide the ugly swagger topbar */
+#swagger-ui div.topbar {
+	display: none;
+}
+
 /* install.html and examples.html */
 pre code {border: 1px black;}
 

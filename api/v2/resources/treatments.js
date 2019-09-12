@@ -177,7 +177,7 @@ module.exports = {
                             responseMessages: ResponseMessages
                         }
                     },
-                    //validate: Schema.treatments,
+                    validate: Schema.treatments,
                     notes: [
                         'This is the main route for retrieving taxonomic treatments from the database.',
                     ]

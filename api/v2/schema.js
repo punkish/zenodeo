@@ -185,7 +185,7 @@ module.exports = {
                 .description('Response format')
                 .when('treatmentId', {
                     is: Joi.string(), 
-                    then: Joi.required()
+                    then: Joi.optional()
                 }),
 
             page: Joi.number()
