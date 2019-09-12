@@ -3,120 +3,55 @@
 <section id="example1" class="row">
     <h2>Web page with images</h2>
 
-    <p>Let’s say you want to make a web page that displays images for all records with the word 'pelagic' in their text. Below is a script that will do the work:</p>
-
-    <aside>
-        <i>Note: change the value below for a different query</i><br>
-        <div class="qryLabel">query</div> 
-        <div class="qryStr" id="q" contenteditable="true" onkeyup="updateCode();">nymphalidae</div>
-        <!-- <div class="qryLabel">number of records to fetch</div> 
-        <div class="qryStr" id="size" contenteditable="true" onkeyup="updateCode();">30</div> -->
-    </aside>
+    <p>Let’s say you want to make a web page that displays images for all records with the word 'nymphalidae' in their text. Below is a script that will do the work <i>(change the value  for a different query)</i>:</p> <div class="qryStr" id="q" contenteditable="true" onkeyup="updateCode();">nymphalidae</div>
     <br clear="both">
 
-<pre><code class="js">var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=<span id="urlQ">nymphalidae</span>&size=<span id="urlSize">30</span>";
+<pre><code class="js">const url = "v2/treatments?page=1&q=<span id="urlQ">nymphalidae</span>&size=<span id="urlSize">30</span>";
 
-var x = new XMLHttpRequest();
-
-x.onload = function(event) {
-    if (x.readyState === 4) {
-        if (x.status === 200) {
-            var html = "";
-            if (x.responseText) {
-                var res = JSON.parse(x.responseText);
-                
-                for (var record in res) {
-                    html += "&lt;figure&gt;";
-                    var images = res[record];
-                    var j = images.length;
-                    for (var i = 0; i < j; i++) {
-                        html += `&lt;img src='${images[i]}'&gt;`;
-                    }
-    
-                    html += `&lt;figcaption&gt;
-                        rec ID: &lt;a href='https://zenodo.org/record/${record.split('/').pop()} target='_blank'&gt;
-                            ${record.split('/').pop()}&lt;/a&gt;
-                        &lt;/figcaption&gt;
-                    &lt;/figure&gt;`;
-                }
-                var imageDiv = document.getElementById('images');
-                imageDiv.innerHTML = html;
-                
-                event.preventDefault();
-                event.stopPropagation();
-                return false;
-            }
-            else {
-                html += "nothing found";
-            }
+fetch(url)
+    .then(function(response) {
+        if (!response.ok) {
+            throw new Error('HTTP error, status = ' + response.status);
         }
-    }
-};
 
-x.onerror = function(e) {
-    console.error(x.statusText);
-};
+        return response.json();
+    })
+    .then(function(res) {
+        const result = document.getElementById('result');
+        result.innerHTML = JSON.stringify(res, null, 2);
+    });</code></pre>
 
-x.open("GET", url, true);
-x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-x.send();</code></pre>
-
-    <button class="button-primary" onclick="getImages();">Run Code</button>
+    <button class="button-primary" onclick="getTreatments();">Run Code</button>
     <div id="loader" style="display:block; visibility: hidden;"></div>
-    <div id="images" class="animate-bottom" style="display:none;"></div>
+<pre id="result" class="animate-bottom" style="display:none;"></pre>
 </section>
 
 <script>
 var updateCode = function() {
     document.getElementById('urlQ').innerHTML = document.getElementById('q').innerHTML;
-    //document.getElementById('urlSize').innerHTML = document.getElementById('size').innerHTML;
 };
 
-var getImages = function() {
-    document.getElementById('images').style.display = 'none';
+const getTreatments = function() {
+    document.getElementById('result').style.display = 'none';
     document.getElementById('loader').style.visibility = 'visible';
-    var url = "v1/records?communities=biosyslit&type=image&summary=false&images=true&q=" + 
-        document.getElementById('q').innerHTML + 
-        "&size=30";
-    
-    var x = new XMLHttpRequest();
+    const q = document.getElementById('q').innerHTML;
+    const url = `v2/treatments?page=1&size=30&q=${q}`;
 
-    x.onload = function(event) {
-        if (x.readyState === 4) {
-            if (x.status === 200) {
-                var res = JSON.parse(x.responseText);
-                var html = "";
-                for (var record in res) {
-                    html += "<figure>";
-                    var images = res[record];
-                    var j = images.length;
-                    for (var i = 0; i < j; i++) {
-                        html += `<img src='${images[i]}'>`;
-                    }
-    
-                        html += `<figcaption>rec ID: <a href='https://zenodo.org/record/${record.split('/').pop()}' target='_blank'>${record.split('/').pop()}</a></figcaption>
-                    </figure>`;
-                }
-                var imageDiv = document.getElementById('images');
-                imageDiv.innerHTML = html;
-
-                document.getElementById("loader").style.display = "none";
-                document.getElementById("images").style.display = "block";
-                
-                event.preventDefault();
-                event.stopPropagation();
-                return false;
+    fetch(url)
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('HTTP error, status = ' + response.status);
             }
-        }
-    };
 
-    x.onerror = function(e) {
-        console.error(x.statusText);
-    };
+            return response.json();
+        })
+        .then(function(res) {
+            const result = document.getElementById('result');
+            result.innerHTML = JSON.stringify(res, null, 2);
 
-    x.open("GET", url, true);
-    x.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-    x.send();
+            document.getElementById("loader").style.display = "none";
+            document.getElementById("result").style.display = "block";
+        });
 };
 
 var codes = document.getElementsByTagName("pre");
