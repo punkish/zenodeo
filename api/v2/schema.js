@@ -208,6 +208,11 @@ module.exports = {
                     //otherwise: Joi.required() 
                 }),
 
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .optional()
+                .default(false),
+
             // If 'treatmentId' is present in the queryString, all of the below are 
             // ignored if also present. The following rules apply *only* if 
             // 'treatmentId' is not present
