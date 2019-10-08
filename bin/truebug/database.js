@@ -141,6 +141,10 @@ const database = {
 
         const insertVtableBibRefCit = 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0';
         deBugger({debug: debug, type: 'createInsert', stmt: insertVtableBibRefCit, table: 'vbibrefcitations', values: []});
+
+        const createViewActiveTreatments = 'CREATE VIEW IF NOT EXISTS activeTreatments AS SELECT id, treatmentId, treatmentTitle, doi AS articleDoi, zenodoDep, zoobank, articleTitle, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, pages, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, taxonomicNameLabel, rank FROM treatments WHERE deleted = 0';
+
+        deBugger({debug: debug, type: 'create', stmt: createViewActiveTreatments, table: 'activeTreatments', values: []});
     },
 
     // store the insert statements for later use

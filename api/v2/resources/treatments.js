@@ -27,10 +27,10 @@ const _queries = {
     none: {
 
         // total number of records in the table
-        count: 'SELECT Count(treatmentId) AS numOfRecords FROM activeTreatments',
+        count: 'SELECT Count(treatmentId) AS numOfRecords FROM treatments WHERE deleted = 0',
 
         // the first page (OFFSET 1) of 30 records (LIMIT 30)
-        data:  `SELECT * FROM activeTreatments LIMIT @limit OFFSET @offset`,
+        data:  `SELECT id, treatmentId, treatmentTitle, doi AS articleDoi, zenodoDep, zoobank, articleTitle, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, pages, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, taxonomicNameLabel, rank FROM treatments WHERE deleted = 0 LIMIT @limit OFFSET @offset`,
 
         // related records: there are no related records since many treatments are being returned
         // related records are returned only for a single treatment
@@ -39,7 +39,7 @@ const _queries = {
         // stats over all the records
         stats: {
             'treatments by numbers': {
-                                        treatments: 'SELECT Count(treatmentId) FROM activeTreatments',
+                                        treatments: 'SELECT Count(treatmentId) FROM treatments WHERE deleted = 0',
                 
                                          specimens: `SELECT  Sum(specimenCount)  
                                                      FROM    materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
@@ -72,16 +72,16 @@ const _queries = {
         },
 
         facets: {
-            journalTitle: 'SELECT Count(DISTINCT journalTitle)  AS journalTitle FROM activeTreatments',
-             journalYear: 'SELECT Count(DISTINCT journalYear)   AS journalYear  FROM activeTreatments',
-                 kingdom: 'SELECT Count(DISTINCT kingdom)       AS kingdom      FROM activeTreatments',
-                  phylum: 'SELECT Count(DISTINCT phylum)        AS phylum       FROM activeTreatments',
-                   order: 'SELECT Count(DISTINCT "order")       AS "order"      FROM activeTreatments',
-                  family: 'SELECT Count(DISTINCT family)        AS family       FROM activeTreatments',
-                   genus: 'SELECT Count(DISTINCT genus)         AS genus        FROM activeTreatments',
-                 species: 'SELECT Count(DISTINCT species)       AS species      FROM activeTreatments',
-                  status: 'SELECT Count(DISTINCT status)        AS status       FROM activeTreatments',
-                    rank: 'SELECT Count(DISTINCT rank)          AS rank         FROM activeTreatments'
+            journalTitle: 'SELECT Count(DISTINCT journalTitle)  AS journalTitle FROM treatments WHERE deleted = 0',
+             journalYear: 'SELECT Count(DISTINCT journalYear)   AS journalYear  FROM treatments WHERE deleted = 0',
+                 kingdom: 'SELECT Count(DISTINCT kingdom)       AS kingdom      FROM treatments WHERE deleted = 0',
+                  phylum: 'SELECT Count(DISTINCT phylum)        AS phylum       FROM treatments WHERE deleted = 0',
+                   order: 'SELECT Count(DISTINCT "order")       AS "order"      FROM treatments WHERE deleted = 0',
+                  family: 'SELECT Count(DISTINCT family)        AS family       FROM treatments WHERE deleted = 0',
+                   genus: 'SELECT Count(DISTINCT genus)         AS genus        FROM treatments WHERE deleted = 0',
+                 species: 'SELECT Count(DISTINCT species)       AS species      FROM treatments WHERE deleted = 0',
+                  status: 'SELECT Count(DISTINCT status)        AS status       FROM treatments WHERE deleted = 0',
+                    rank: 'SELECT Count(DISTINCT rank)          AS rank         FROM treatments WHERE deleted = 0'
         }
     },
 
@@ -366,10 +366,10 @@ const getManyRecords = function(queryObject) {
         // create the queries
         const snippet = 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context';
         const queries = {
-            count: 'Count(activeTreatments.treatmentId) AS numOfRecords',
-            columns: ['id', 'activeTreatments.treatmentId', 'treatmentTitle', 'articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'activeTreatments.rank'],
+            count: 'Count(treatments.treatmentId) AS numOfRecords',
+            columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
             facets: config.get('v2.facets'),
-            from: ['activeTreatments'],
+            from: ['treatments'],
             where: [],
         }
         
@@ -380,7 +380,7 @@ const getManyRecords = function(queryObject) {
             if (!exclude.includes(param)) {
                 if (param === 'q') {
                     queries.columns.push(snippet);
-                    queries.from.push('JOIN vtreatments ON activeTreatments.treatmentId = vtreatments.treatmentId')
+                    queries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId')
                     queries.where.push('vtreatments MATCH @q');
                 }
                 else {
@@ -397,7 +397,7 @@ const getManyRecords = function(queryObject) {
             // throws an error. That is why we prefix the column 'rank' with the 
             // table name
             let f = facet;
-            if (facet === 'activeTreatments.rank') {
+            if (facet === 'treatments.rank') {
                 f = 'rank';
             }
 
@@ -545,7 +545,7 @@ const getTaxonStats = function(data) {
     ];
 
     taxonStats.forEach((taxon, index) => {
-        const select = `SELECT Count(treatmentId) AS num FROM activeTreatments WHERE ${taxon.name} = '${taxon.value}'`;
+        const select = `SELECT Count(treatmentId) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
 
         try {
             debug(select);
