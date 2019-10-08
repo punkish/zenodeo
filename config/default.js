@@ -27,7 +27,7 @@ module.exports = {
         'v2': {
             'path': path.join(cwd, 'cache', 'catbox'),
             'name': 'catbox',
-            'on': false
+            'on': true
         }
     },
     'uri': {
