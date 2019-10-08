@@ -1,4 +1,6 @@
 // default route, redirects to the most recent API
+const debug = require('debug')('default');
+
 const deefault = {
     method: 'GET',
     path: '/{param*}',
@@ -8,41 +10,40 @@ const deefault = {
     },
     handler: function(request, h) {
 
-        //Debug(request.url);
+        //debug(request.url);
 
         let uri = '';
 
-        const collections = [
-            'v1',
-            'v2',
-            'records',
-            'communities'
-        ];
+        const APIs = ['v1', 'v2'];
+        // const collections = [
+        //     'v1',
+        //     'v2',
+        //     'records',
+        //     'communities'
+        // ];
 
-        const singles = [
-            'record'
-        ];
+        // const singles = [
+        //     'record'
+        // ];
 
         
         if (request.params.param) {
 
             let params = request.params.param.split('/');
 
-            Debug(params);
+            //Debug(params);
 
             // add latest version if there is no version 
             if ((params[0] !== 'v1') && (params[0] !== 'v2')) {
                 params.unshift(`v${APIs.length}`);
             }
 
-            Debug(params);
+            //Debug(params);
 
             uri = params.join('/');
 
             // add a trailing slash if requesting a collection
-            if (collections.indexOf(params[1]) != -1) {
-                uri += '/';
-            }
+            // 
 
             // add the query params
             if (request.query) {
@@ -62,7 +63,7 @@ const deefault = {
         }
         
 
-        Debug(`uri: ${uri}`);
+        //debug(`uri: ${uri}`);
         return h.redirect(uri);
     }
 };

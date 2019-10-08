@@ -164,32 +164,36 @@ module.exports = {
         });
     },
 
+    // cacheKey is the URL query without the refreshCache param.
+    // The default params, if any, are used in making the cacheKey.
     makeCacheKey: function(request) {
 
-        // remove 'refreshCache' from the query params and make the 
-        // queryString into a standard form (all params sorted) so
-        // it can be used as a cachekey
+        // debug(`url.href: ${request.url.href}`);
+        // debug(`url.pathname: ${request.url.pathname}`);
+        // debug(`url.search: ${request.url.search}`);
+        // debug(`url.searchParams: ${request.url.searchParams}`);
+
+        // remove 'refreshCache' from the query params
         let arr = [];
-    
         for (let k in request.query) {
             if (k !== 'refreshCache') {
                 arr.push(k + '=' + request.query[k]);
             }
         }
     
-        return arr.sort().join('&');
+        // now make the queryString into a standard form (all params 
+        // sorted) and prefix it with the pathname
+        return request.url.pathname + '?' + arr.sort().join('&');
     },
 
     makeQueryObject: function(cacheKey) {
         const queryObject = {};
-        debug(`cacheKey: ${cacheKey}`);
         if (cacheKey) {
-            cacheKey.split('&').forEach(pair => {
+            cacheKey.split('?')[1].split('&').forEach(pair => {
                 queryObject[pair.split('=')[0]] = pair.split('=')[1]
             })
         }
         
-    
         return queryObject;
     },
 

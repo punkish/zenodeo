@@ -81,18 +81,15 @@ const stats = function(treatments, endProc) {
 
 const parseOne = function(treatmentId) {
     const xml = fs.readFileSync(`${xmlDumpDir}/${treatmentId + '.xml'}`, 'utf8');
-    const treatment = cheerioparse(xml, treatmentId);
 
-    return {
-        treatment:          treatment.treatment,
-        treatmentAuthors:   treatment.treatmentAuthors,
-        materialsCitations: treatment.materialsCitations,
-        treatmentCitations: treatment.treatmentCitations,
-        figureCitations:    treatment.figureCitations,
-        bibRefCitations:    treatment.bibRefCitations
-    }
-    
+    //038787DAFFF7FF904BBFF925FD13F9AA
+    //730087F21E00FF81FF61FC34FDA561A5
+    //const xml = fs.readFileSync(`${process.cwd()}/data/${treatmentId}.xml`, 'utf8');
+    return cheerioparse(xml, treatmentId);    
 };
+
+
+// As to the deleted (or retired, or whatever) elements: they are marked with a deleted attribute bearing value true. In addition, they also have deleteUser, deleteTime, and deleteVersion attributes.
 
 const parseTreatmentCitations = function($, treatmentId) {
 
@@ -117,15 +114,13 @@ const parseTreatmentCitations = function($, treatmentId) {
             let tcPrefix = tcPrefixArray.join(' ');
             
             const treatmentCitations = $('treatmentCitation', trecitgroup);
-            const treatmentCitationId = chance.guid();
+            //const treatmentCitationId = chance.guid();
 
             let treatmentCitation;
-            if (treatmentCitations.length) {
+            const l = treatmentCitations.length;
+            if (l) {
 
-                let k = 0;
-                let l = treatmentCitations.length
-
-                for (; k < l; k++) {
+                for (let k = 0; k < l; k++) {
                     treatmentCitation = tcPrefix;
 
                     const bib = $('bibRefCitation', treatmentCitations[k]);
@@ -133,12 +128,18 @@ const parseTreatmentCitations = function($, treatmentId) {
                         treatmentCitation += ' sec. ' + bib.text();
                     }
 
+                    let deleted = 0;
+                    if (bib.attr('deleted') && (bib.attr('deleted') === 'true')) {
+                        deleted = 1;
+                    }
+
                     tc.push({
-                        treatmentCitationId: treatmentCitationId,
+                        treatmentCitationId: bib.attr('id') || chance.guid(),
                         treatmentId: treatmentId,
                         treatmentCitation: treatmentCitation,
                         refString: bib.attr('refString'),
-                        deleted: 'false'
+                        updateVersion: bib.attr('updateVersion'),
+                        deleted: deleted
                     });
                 }
             }
@@ -150,12 +151,18 @@ const parseTreatmentCitations = function($, treatmentId) {
                     treatmentCitation += ' sec. ' + bib.text()
                 }
 
+                let deleted = 0;
+                if (bib.attr('deleted') && (bib.attr('deleted') === 'true')) {
+                    deleted = 1;
+                }
+
                 tc.push({
-                    treatmentCitationId: treatmentCitationId,
+                    treatmentCitationId: bib.attr('id') || chance.guid(),
                     treatmentId: treatmentId,
                     treatmentCitation: treatmentCitation,
                     refString: bib.attr('refString'),
-                    deleted: 'false'
+                    updateVersion: bib.attr('updateVersion'),
+                    deleted: deleted
                 });
             }
         }
@@ -169,6 +176,7 @@ const parseTreatmentCitations = function($, treatmentId) {
 const parseTreatmentAuthors = function($, treatmentId) {
 
     const treaut = $('mods\\:mods mods\\:name[type=personal]');
+    
     let ta = [];
 
     if (treaut.length) {
@@ -176,13 +184,20 @@ const parseTreatmentAuthors = function($, treatmentId) {
         for (let i = 0, j = treaut.length; i < j; i++) {
 
             const role = $('mods\\:role mods\\:roleTerm', treaut[i]).text();
+            
             if (role === 'Author') {
 
+                let deleted = 0;
+                if ($('mods\\:namePart', treaut[i]).attr('deleted') && ($('mods\\:namePart', treaut[i]).attr('deleted') === 'true')) {
+                    deleted = 1;
+                }
+
                 ta.push({
-                    treatmentAuthorId: chance.guid(),
+                    treatmentAuthorId: $('mods\\:namePart', treaut[i]).attr('id') || chance.guid(),
                     treatmentId: treatmentId,
                     treatmentAuthor: $('mods\\:namePart', treaut[i]).text() || '',
-                    deleted: 'false'
+                    updateVersion: $('mods\\:namePart', treaut[i]).attr('updateVersion'),
+                    deleted: deleted
                 })
             }
             
@@ -191,37 +206,63 @@ const parseTreatmentAuthors = function($, treatmentId) {
     }
 
     return ta;
-  
 };
 
-const foo = function($, treatmentId, part) {
-
-    const elements = $(part);
-    const id = part + 'Id';
+const _parse = function($, elements, parts, partId, treatmentId) {
     const num = elements.length;
-    const parts = part + 's';
     let entries = [];
 
     if (num) {
+        for (let i = 0; i < num; i++) {
 
-        for (let i = 0, j = num; i < j; i++) {
-
-            let entry = {};
+            const missingAttr = [];
+            const entry = {};
 
             dataDict[parts].forEach(el => {
-                entry[el.plazi] = $(elements[i]).attr(el.plazi) || '';
+                const attr = $(elements[i]).attr(el.plazi);
+                if (attr) {
+                    entry[el.plazi] = attr;
+                }
+                else {
+                    entry[el.plazi] = '';
+                    missingAttr.push(el.plazi);
+
+                }
             });
 
-            entry[id] = chance.guid();
+            let deleted = 0;
+            if ($(elements[i]).attr('deleted') && ($(elements[i]).attr('deleted') === 'true')) {
+                deleted = 1;
+            }
+
+            entry[partId] = $(elements[i]).attr('id') || chance.guid();
             entry.treatmentId = treatmentId;
-            entry.deleted = 'false';
+            entry.updateVersion = $(elements[i]).attr('updateVersion');
+            entry.deleted = deleted;
 
             entries.push(entry)
         }
     }
 
     return entries;
-  
+};
+
+const parseBibRefCitations = function($, treatmentId) {
+
+    const elements = $('bibRefCitation');
+    return _parse($, elements, 'bibRefCitations', 'bibRefCitationId', treatmentId);  
+};
+
+const parseFigureCitations = function($, treatmentId) {
+
+    const elements = $('figureCitation');
+    return _parse($, elements, 'figureCitations', 'figureCitationId', treatmentId);
+};
+
+const parseMaterialsCitations = function($, treatmentId) {
+
+    const elements = $('materialsCitation');
+    return _parse($, elements, 'materialsCitations', 'materialsCitationId', treatmentId);
 };
 
 const parseTreament = function($, treatmentId) {
@@ -234,7 +275,12 @@ const parseTreament = function($, treatmentId) {
             val = treatmentId;
         }
         else if (el.plazi === 'deleted') {
-            val = 'false';
+            if (val && val === 'true') {
+                val = 1;
+            }
+            else {
+                val = 0;
+            }
         }
         
         if (typeof val === 'string') {
@@ -248,6 +294,35 @@ const parseTreament = function($, treatmentId) {
     return treatment
 };
 
+const getLatest = function(array, groupByKey, versionKey) {
+
+    // remove any empty objects
+    array = array.filter((el) => Object.keys(el).length > 0);
+    
+    const tmp = array.reduce((accumulator, currentValue, currentIndex, array) => {
+        (accumulator[ currentValue[groupByKey] ] = accumulator[ currentValue[groupByKey] ] || []).push(currentValue);
+        return accumulator;
+    }, {});
+
+    const reducer = (accumulator, currentValue, currentIndex, array) => {
+        if (accumulator[versionKey] > currentValue[versionKey]) {
+            return accumulator;
+        }
+        else {
+            return currentValue;
+        }
+    };
+
+    const foo = [];
+    Object.values(tmp).forEach(el => {
+        const reduced = el.reduce(reducer);
+        delete(reduced[versionKey]);
+        foo.push(reduced);
+    });
+
+    return foo;
+};
+
 const cheerioparse = function(xml, treatmentId) {
     
     const $ = cheerio.load(xml, {
@@ -255,65 +330,53 @@ const cheerioparse = function(xml, treatmentId) {
         xmlMode: true
     });
 
-    let treatment = {};
-    treatment.treatment = parseTreament($, treatmentId)
+    //const report = {};
+    const treatment = {};
+    treatment.treatment = parseTreament($, treatmentId);
 
     // The following two functions are used to filter out any 
     // empty objects returned from parsing, and to add the 
     // 'treatmentId' to each remaining object so it can be 
     // used as a foreign key to connect the object to the 
     // parent treatment
-    const emptyObjs = (el) => Object.keys(el).length > 0;
-    // const addTreatmentId = (el) => {
-    //     el.treatmentId = treatmentId;
-    //     return el;
-    // }
+    //const emptyObjs = (el) => Object.keys(el).length > 0;
+    //const addTreatmentId = (el) => el.treatmentId = treatmentId;
 
     let ta = parseTreatmentAuthors($, treatmentId);
     if (ta.length) {
-        treatment.treatmentAuthors = ta.filter(emptyObjs);
-        //treatment.treatmentAuthors.forEach(addTreatmentId);
+        treatment.treatmentAuthors = getLatest(ta, 'treatmentAuthorId', 'updateVersion');
     }
 
-    let tc = parseTreatmentCitations($, treatmentId);
+    const tc = parseTreatmentCitations($, treatmentId);
     if (tc.length) {
-        treatment.treatmentCitations = tc.filter(emptyObjs);
-        //treatment.treatmentCitations.forEach(addTreatmentId);
+        treatment.treatmentCitations = getLatest(tc, 'treatmentCitationId', 'updateVersion');
     }
 
-    //let br = parseBibRefCitations($);
-    let br = foo($, treatmentId, 'bibRefCitation');
+    const br = parseBibRefCitations($, treatmentId);
     if (br.length) {
-        treatment.bibRefCitations = br.filter(emptyObjs);
-        //treatment.bibRefCitations.forEach(addTreatmentId);
+        treatment.bibRefCitations = getLatest(br, 'bibRefCitationId', 'updateVersion');
     }
 
-    //let fc = parseFigureCitations($);
-    let fc = foo($, treatmentId, 'figureCitation');
+    const fc = parseFigureCitations($, treatmentId);
     if (fc.length) {
-        treatment.figureCitations = fc.filter(emptyObjs);
-        //treatment.figureCitations.forEach(addTreatmentId);
+        treatment.figureCitations = getLatest(fc, 'figureCitationId', 'updateVersion');
     }
-
-    //let mc = parseMaterialsCitations($);
-    let mc = foo($, treatmentId, 'materialsCitation');
+    
+    const mc = parseMaterialsCitations($, treatmentId);
     if (mc.length) {
-        treatment.materialsCitations = mc.filter(emptyObjs);
-        //treatment.materialsCitations.forEach(addTreatmentId);
+        treatment.materialsCitations = getLatest(mc, 'materialsCitationId', 'updateVersion');
     }
-
+    
     return treatment;
-        
 };
 
 module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
 
     //const xmlre = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$/i;
     if (n.length === 32) {
-
         const treatment = parseOne(n);
+        console.log('----------------------------------------\n')
         console.log(treatment);
-
     }
     else {
 
@@ -383,6 +446,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
             database.indexTables();
             database.loadFTSTreatments();
             database.loadFTSFigureCitations();
+            database.loadFTSBibRefCitations();
         }
 
         console.log('\n\n')

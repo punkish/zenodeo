@@ -12,7 +12,6 @@ module.exports = {
             "plazi": "treatmentTitle",
             "zenodo": "title",
             "type": "TEXT",
-            //"element": "$('subSubSection[type=nomenclature] taxonomicName').text() + ' ' + $('subSubSection[type=nomenclature] taxonomicName').attr('authority')",
             "element": "$('document').attr('docTitle')",
             "definition": "Title of the article that contains this treatment",
             "queryable": true
@@ -196,9 +195,9 @@ module.exports = {
         {
             "plazi": "deleted",
             "zenodo": "",
-            "type": "BOOLEAN DEFAULT false",
+            "type": "INTEGER DEFAULT 0",
             "element": "$('document').attr('deleted')",
-            "definition": "'yes' if the treatment has been withdrawn, 'no' or not present if the treatment is active",
+            "definition": "1 if the treatment is deleted, 0 if the treatment is active",
             "queryable": true
         }
     ],
@@ -230,9 +229,9 @@ module.exports = {
         {
             "plazi": "deleted",
             "zenodo": "",
-            "type": "BOOLEAN DEFAULT false",
+            "type": "INTEGER DEFAULT 0",
             "element": "$('document').attr('deleted')",
-            "definition": "'yes' if the treatment has been withdrawn, 'no' or not present if the treatment is active",
+            "definition": "1 if the treatmentAuthor has been withdrawn, 0 if the treatmentAuthor is active",
             "queryable": true
         }
     ],
@@ -241,7 +240,7 @@ module.exports = {
             "plazi": "materialsCitationId",
             "zenodo": "",
             "type": "TEXT NOT NULL UNIQUE",
-            "element": "chance.guid()",
+            "element": "$('materialsCitation').attr('id')",
             "definition": "The unique ID of this materialsCitation",
             "queryable": true
         },
@@ -254,11 +253,86 @@ module.exports = {
             "queryable": true
         },
         {
+            "plazi": "collectingDate",
+            "zenodo": "date[type=collected] + range parsing",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('collectingDate')",
+            "definition": "The data when the specimen has been collected",
+            "queryable": true
+        },
+        {
             "plazi": "collectionCode",
             "zenodo": "subjects",
             "type": "TEXT",
             "element": "$('materialsCitation').attr('collectionCode')",
             "definition": "The collection code for a natural history collection",
+            "queryable": true
+        },
+        {
+            "plazi": "collectorName",
+            "zenodo": "contributor=collector",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('collectorName')",
+            "definition": "Person who collected the specimen",
+            "queryable": true
+        },
+        {
+            "plazi": "country",
+            "previousName": "collectingCountry",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('country')",
+            "definition": "Country where the specimen has been collected",
+            "queryable": true
+        },
+        {
+            "plazi": "collectingRegion",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('collectingRegion')",
+            "definition": "The geographic region where the specimen as been collected",
+            "queryable": true
+        },
+        {
+            "plazi": "municipality",
+            "previousName": "collectingMunicipality",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('municipality')",
+            "definition": "A lower administrative region",
+            "queryable": true
+        },
+        {
+            "plazi": "county",
+            "previousName": "collectingCounty",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('county')",
+            "definition": "A less lower administrative region",
+            "queryable": true
+        },
+        {
+            "plazi": "stateProvince",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('stateProvince')",
+            "definition": "A less lower administrative region",
+            "queryable": true
+        },
+        {
+            "plazi": "location",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('location')",
+            "definition": "The collecting location",
+            "queryable": true
+        },
+        {
+            "plazi": "locationDeviation",
+            "zenodo": "geo_place",
+            "type": "TEXT",
+            "element": "$('materialsCitation').attr('locationDeviation')",
+            "definition": "Distance to the nearest location, e.g. 23km NW from…",
             "queryable": true
         },
         {
@@ -302,75 +376,11 @@ module.exports = {
             "queryable": true
         },
         {
-            "plazi": "collectingCountry",
-            "zenodo": "geo_place",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('collectingCountry')",
-            "definition": "Country where the specimen has been collected",
-            "queryable": true
-        },
-        {
-            "plazi": "collectingRegion",
-            "zenodo": "geo_place",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('collectingRegion')",
-            "definition": "The geographic region where the specimen as been collected",
-            "queryable": true
-        },
-        {
-            "plazi": "collectingMunicipality",
-            "zenodo": "geo_place",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('collectingMunicipality')",
-            "definition": "A lower administrative region",
-            "queryable": true
-        },
-        {
-            "plazi": "collectingCounty",
-            "zenodo": "geo_place",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('collectingCounty')",
-            "definition": "A less lower administrative region",
-            "queryable": true
-        },
-        {
-            "plazi": "location",
-            "zenodo": "geo_place",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('location')",
-            "definition": "The collecting location",
-            "queryable": true
-        },
-        {
-            "plazi": "locationDeviation",
-            "zenodo": "geo_place",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('locationDeviation')",
-            "definition": "Distance to the nearest location, e.g. 23km NW from…",
-            "queryable": true
-        },
-        {
             "plazi": "determinerName",
             "zenodo": "-",
             "type": "TEXT",
             "element": "$('materialsCitation').attr('determinerName')",
             "definition": "Person or agent who identified the specimen",
-            "queryable": true
-        },
-        {
-            "plazi": "collectorName",
-            "zenodo": "contributor=collector",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('collectorName')",
-            "definition": "Person who collected the specimen",
-            "queryable": true
-        },
-        {
-            "plazi": "collectingDate",
-            "zenodo": "date[type=collected] + range parsing",
-            "type": "TEXT",
-            "element": "$('materialsCitation').attr('collectingDate')",
-            "definition": "The data when the specimen has been collected",
             "queryable": true
         },
         {
@@ -423,9 +433,9 @@ module.exports = {
         {
             "plazi": "deleted",
             "zenodo": "",
-            "type": "BOOLEAN DEFAULT false",
+            "type": "INTEGER DEFAULT 0",
             "element": "$('materialsCitation').attr('deleted')",
-            "definition": "'yes' if the materialsCitation has been withdrawn, 'no' or not present if the materialsCitation is active",
+            "definition": "1 if the materialsCitation is deleted, 0 if the materialsCitation is active",
             "queryable": true
         }
     ],
@@ -463,9 +473,9 @@ module.exports = {
         {
             "plazi": "deleted",
             "zenodo": "",
-            "type": "BOOLEAN DEFAULT false",
+            "type": "INTEGER DEFAULT 0",
             "element": "$('treatmentCitation').attr('deleted')",
-            "definition": "'yes' if the treatmentCitation has been withdrawn, 'no' or not present if the treatmentCitation is active",
+            "definition": "1 if the treatmentCitation has been withdrawn, 0 if the treatmentCitation is active",
             "queryable": true
         }
     ],
@@ -474,7 +484,7 @@ module.exports = {
             "plazi": "figureCitationId",
             "zenodo": "",
             "type": "TEXT NOT NULL UNIQUE",
-            "element": "chance.guid()",
+            "element": "$('figureCitation').attr('id')",
             "definition": "The unique ID of this figureCitation",
             "queryable": true
         },
@@ -490,14 +500,14 @@ module.exports = {
             "plazi": "captionText",
             "zenodo": "relatedIdentifiers[cites]",
             "type": "TEXT",
-            "element": "$('figureCitation')",
+            "element": "$('figureCitation').attr('captionText')",
             "definition": "The figure cited by this treatment"
         },
         {
             "plazi": "httpUri",
             "zenodo": "relatedIdentifiers[cites]",
             "type": "TEXT",
-            "element": "$('figureCitation')",
+            "element": "$('figureCitation').attr('httpUri')",
             "definition": "The figure cited by this treatment"
         },
         {
@@ -510,9 +520,9 @@ module.exports = {
         {
             "plazi": "deleted",
             "zenodo": "",
-            "type": "BOOLEAN DEFAULT false",
+            "type": "INTEGER DEFAULT 0",
             "element": "$('figureCitation').attr('deleted')",
-            "definition": "'yes' if the treatmentCitation has been withdrawn, 'no' or not present if the treatmentCitation is active",
+            "definition": "1 if the figureCitations is deleted, 0 if the figureCitations is valid",
             "queryable": true
         }
     ],
@@ -521,7 +531,7 @@ module.exports = {
             "plazi": "bibRefCitationId",
             "zenodo": "",
             "type": "TEXT NOT NULL UNIQUE",
-            "element": "chance.guid()",
+            "element": "$('bibRefCitation').attr('id')",
             "definition": "The unique ID of this bibRefCitation",
             "queryable": true
         },
@@ -537,15 +547,29 @@ module.exports = {
             "plazi": "refString",
             "zenodo": "relatedIdentifiers[cites]",
             "type": "TEXT",
-            "element": "text()",
-            "definition": "The figures cited by this treatment"
+            "element": "$('bibRefCitation').attr('refString')",
+            "definition": "The reference cited by this treatment"
+        },
+        {
+            "plazi": "type",
+            "zenodo": "relatedIdentifiers[cites]",
+            "type": "TEXT",
+            "element": "$('bibRefCitation').attr('type')",
+            "definition": "The type of reference cited by this treatment"
+        },
+        {
+            "plazi": "year",
+            "zenodo": "relatedIdentifiers[cites]",
+            "type": "TEXT",
+            "element": "$('bibRefCitation').attr('year')",
+            "definition": "The year of the reference cited by this treatment"
         },
         {
             "plazi": "deleted",
             "zenodo": "",
-            "type": "BOOLEAN DEFAULT false",
+            "type": "INTEGER DEFAULT 0",
             "element": "$('bibRefCitation').attr('deleted')",
-            "definition": "'yes' if the bibRefCitation has been withdrawn, 'no' or not present if the bibRefCitation is active",
+            "definition": "1 if the bibRefCitation is deleted, 0 if the bibRefCitation is valid",
             "queryable": true
         }
     ]

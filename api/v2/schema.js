@@ -64,11 +64,11 @@ module.exports = {
                     otherwise: Joi.required() 
                 }),
 
-            communities: Joi.string()
-                .description('The community on Zenodo; defaults to "biosyslit"')
-                .valid('all', 'BLR', 'belgiumherbarium')
-                .default('BLR')
-                .optional(),
+            // communities: Joi.string()
+            //     .description('The community on Zenodo; defaults to "biosyslit"')
+            //     .valid('all', 'BLR', 'belgiumherbarium')
+            //     .default('BLR')
+            //     .optional(),
 
             q: Joi.string()
                 .description('any text string')

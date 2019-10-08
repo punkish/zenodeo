@@ -113,7 +113,8 @@ const start = async () => {
         require('./resources/install'),
         require('./resources/examples'),
         require('./resources/about'),
-        require('./resources/releases')
+        require('./resources/releases'),
+        require('./resources/deefault')
     ]);
     
     await server.start();

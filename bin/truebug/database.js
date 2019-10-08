@@ -4,7 +4,7 @@ const Database = require('better-sqlite3');
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
 const db = new Database(config.get('data.treatments'));
-const debug = true;
+const debug = false;
 
 const deBugger = function(options) {
     
@@ -12,6 +12,8 @@ const deBugger = function(options) {
     const stmt = options.stmt;
     const table = options.table;
     const values = options.values;
+
+    //console.log(options)
 
     if (options.debug) {
         if (type === 'insert') {
@@ -30,7 +32,6 @@ const deBugger = function(options) {
             database.insertStmts[table] = db.prepare(stmt);
         }
         else if (type === 'insert') {
-            //console.log(`inserting ${values.length} cols in ${table}`)
             database.insertStmts[table].run(values);
         }
         else if (type === 'create') {
@@ -103,8 +104,8 @@ const database = {
             }
 
             // the following are to increase legibility of the statements
-            let s0 = '';
-            let s1 = '';
+            let s0 = ' ';
+            let s1 = ' ';
             let s2 = ', ';
 
             if (debug) {
@@ -113,45 +114,39 @@ const database = {
                 s2 = `,${s1}`;
             }
             
-
             const createStmt = `CREATE TABLE IF NOT EXISTS ${table} (${s1}${colsWithTypes.join(s2)}${s0})`;
-
-            deBugger({debug: false, type: 'create', stmt: createStmt, table: table, values: []});
+            deBugger({debug: debug, type: 'create', stmt: createStmt, table: table, values: []});
 
             const colNotUniqStr = colNotUniq.map(c => { return c + '=excluded.' + c; });
 
             const insertStmt = `INSERT INTO ${table} (${s1}${cols.join(s2)} ${s0})${s0}VALUES (${s1}${colsForBinding.join(s2)} ${s0})${s0}ON CONFLICT (${colUniq.join(', ')})${s0}DO UPDATE SET${s1}${colNotUniqStr.join(s2)}`;
-            
-            deBugger({debug: false, type: 'createInsert', stmt: insertStmt, table: table, values: []});
+            deBugger({debug: debug, type: 'createInsert', stmt: insertStmt, table: table, values: []});
         }
 
         // create virtual FTS table
-
         const createStmt = 'CREATE VIRTUAL TABLE IF NOT EXISTS vtreatments USING FTS5(treatmentId, fullText)';
-        deBugger({debug: false, type: 'create', stmt: createStmt, table: 'vtreatments', values: []});
+        deBugger({debug: debug, type: 'create', stmt: createStmt, table: 'vtreatments', values: []});
 
-        const insertStmt = 'INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments';
-        deBugger({debug: false, type: 'createInsert', stmt: insertStmt, table: 'vtreatments', values: []});
+        const insertStmt = 'INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments WHERE deleted = 0';
+        deBugger({debug: debug, type: 'createInsert', stmt: insertStmt, table: 'vtreatments', values: []});
 
         const createVtableFigCit = 'CREATE VIRTUAL TABLE IF NOT EXISTS vfigurecitations USING FTS5(figureCitationId, captionText)';
-        deBugger({debug: false, type: 'create', stmt: createVtableFigCit, table: 'vfigurecitations', values: []});
+        deBugger({debug: debug, type: 'create', stmt: createVtableFigCit, table: 'vfigurecitations', values: []});
 
-        const insertVtableFigCit = 'INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations';
-        deBugger({debug: false, type: 'insertVtableFigCit', stmt: insertVtableFigCit, table: 'vfigurecitations', values: []});
+        const insertVtableFigCit = 'INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations WHERE deleted = 0';
+        deBugger({debug: debug, type: 'createInsert', stmt: insertVtableFigCit, table: 'vfigurecitations', values: []});
 
         const createVtableBibRefCit = 'CREATE VIRTUAL TABLE IF NOT EXISTS vbibrefcitations USING FTS5(bibRefCitationId, refString)';
-        deBugger({debug: false, type: 'create', stmt: createVtableFigCit, table: 'vbibrefcitations', values: []});
+        deBugger({debug: debug, type: 'create', stmt: createVtableBibRefCit, table: 'vbibrefcitations', values: []});
 
-        const insertVtableBibRefCit = 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations';
-        deBugger({debug: false, type: 'insertVtableFigCit', stmt: insertVtableFigCit, table: 'vfigurecitations', values: []});
+        const insertVtableBibRefCit = 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0';
+        deBugger({debug: debug, type: 'createInsert', stmt: insertVtableBibRefCit, table: 'vbibrefcitations', values: []});
     },
 
     // store the insert statements for later use
     insertStmts: {},
     
     loadData: function(data) {
-
-        
 
         // The data structure submitted to `loadData()` looks as follows
         // 
@@ -226,7 +221,7 @@ const database = {
             const insertMany = db.transaction((rows) => {
                 for (const row of rows) {      
                     const r = Object.values(row);
-                    deBugger({debug: false, type: 'insert', stmt: '', table: table, values: r});
+                    deBugger({debug: debug, type: 'insert', stmt: '', table: table, values: r});
                 }
             });
             
@@ -272,8 +267,8 @@ const database = {
                 if (col.queryable) {
                     //bar.tick(1);
 
-                    const indexStmt = `CREATE INDEX IF NOT EXISTS ix_${t}_${colName} ON ${t} (${colname})`;
-                    deBugger({debug: false, type: 'index', stmt: indexStmt, table: t, values: []});
+                    const indexStmt = `CREATE INDEX IF NOT EXISTS ix_${t}_${colName} ON ${t} (${colname}) WHERE deleted = 0`;
+                    deBugger({debug: debug, type: 'index', stmt: indexStmt, table: t, values: []});
                 }
             }
             
@@ -282,17 +277,27 @@ const database = {
         taxonIndexes.forEach(cols => {
             const i = cols.indexOf('"order"');
             let name = cols.join('_').replace(/"/g, '');
-            const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_${name} ON treatments (${cols.join(', ')})`;
-            deBugger({debug: false, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
+            const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_${name} ON treatments (${cols.join(', ')}) WHERE deleted = 0`;
+            deBugger({debug: debug, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
         });
+
+        let facets = config.get('v2.facets');
+        facets.unshift('treatmentId');
+        //CREATE INDEX IF NOT EXISTS ix_treatments_facets ON treatments (deleted, treatmentId, journalTitle, journalYear, kingdom, phylum, "order", family, genus, species, status, rank) WHERE deleted = 0
+        const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_facets ON treatments (deleted, ${facets.join(', ')}) WHERE deleted = 0`;
+        deBugger({debug: debug, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
     },
 
     loadFTSTreatments: function() {
-        deBugger({debug: false, type: 'insert', stmt: '', table: 'vtreatments', values: []})
+        deBugger({debug: debug, type: 'insert', stmt: '', table: 'vtreatments', values: []})
     },
 
-    loadFTSTFigureCitations: function() {
-        deBugger({debug: false, type: 'insert', stmt: '', table: 'vfigurecitations', values: []})
+    loadFTSFigureCitations: function() {
+        deBugger({debug: debug, type: 'insert', stmt: '', table: 'vfigurecitations', values: []})
+    },
+
+    loadFTSBibRefCitations: function() {
+        deBugger({debug: debug, type: 'insert', stmt: '', table: 'vbibrefcitations', values: []})
     }
 
 };

@@ -1,29 +1,41 @@
 'use strict';
 
-const Wreck = require('wreck');
+const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
 const debug = require('debug')('v2:images');
 const config = require('config');
-const Zenodo = config.get('uri.remote') + '/records/';
+const Utils = require('../utils');
+
+const uriZenodeo = config.get('uri.zenodeo') + '/v2';
+const cacheOn = config.get('cache.v2.on');
+
+const Wreck = require('wreck');
+const uriZenodo = config.get('uri.remote') + '/records/';
 
 module.exports = {
-
     plugin: {
         name: 'images2',
         register: async function(server, options) {
 
-            const imagesCache = server.cache({
-                cache: options.cacheName,
-                expiresIn: options.expiresIn,
-                generateTimeout: options.generateTimeout,
-                segment: 'images2', 
-                generateFunc: async (query) => { return await getImages(query) },
-                getDecoratedValue: options.getDecoratedValue
+            // const imagesCache = server.cache({
+            //     cache: options.cacheName,
+            //     expiresIn: options.expiresIn,
+            //     generateTimeout: options.generateTimeout,
+            //     segment: 'images2', 
+            //     generateFunc: async (query) => { return await getImages(query) },
+            //     getDecoratedValue: options.getDecoratedValue
+            // });
+
+            const cache = Utils.makeCache({
+                server: server, 
+                options: options, 
+                query: getRecords,  
+                segment: 'images2'
             });
 
-            // binds imagesCache to every route registered  
+            // binds cache to every route registered  
             // **within this plugin** after this line
-            server.bind({ imagesCache });
+            server.bind({ cache });
 
             server.route([{ 
                 path: '/images', 
@@ -37,7 +49,7 @@ module.exports = {
                             responseMessages: ResponseMessages
                         }
                     },
-                    //validate: Schema.images,
+                    validate: Schema.images,
                     notes: [
                         'This is the main route for fetching images matching the provided query parameters.',
                     ]
@@ -47,6 +59,169 @@ module.exports = {
         },
     },
 };
+
+const handler = async function(request, h) {
+
+    // cacheKey is the URL query without the refreshCache param.
+    // The default params, if any, are used in making the cacheKey.
+    // The default params are also used in queryObject to actually 
+    // perform the query. However, the default params are not used 
+    // to determine what kind of query to perform.
+    const cacheKey = Utils.makeCacheKey(request);
+    debug(`cacheKey: ${cacheKey}`);
+
+    if (cacheOn) {
+        if (request.query.refreshCache === 'true') {
+            debug('forcing refreshCache')
+            this.cache.drop(cacheKey);
+        }
+
+        return this.cache.get(cacheKey);
+    }
+    else {
+        return getRecords(cacheKey);
+    }
+
+    // let query;
+
+    // // ignore all other query params if id is present
+    // if (request.query.id) {
+    //     query = 'id=' + request.query.id;
+    // }
+    // else if (request.query.count) {
+    //     query = 'stats=true';
+    // }
+    // else {
+    //     query = queryMaker(request);
+    // }
+
+    // if (request.query.refreshCache === 'true') {
+    //     debug('forcing refreshCache')
+    //     await this.imagesCache.drop(query);
+    // }
+
+    // uses the bound imagesCache instance from index.js
+    //return await this.imagesCache.get(query); 
+};
+
+const getRecords = function(cacheKey) {
+    const queryObject = Utils.makeQueryObject(cacheKey);
+    debug(`queryObject: ${JSON.stringify(queryObject)}`);
+
+    // An id is present. The query is for a specific
+    // record. All other query params are ignored
+    if (queryObject.id) {
+        return getOneRecord(queryObject);
+    }
+    
+    // More complicated queries with search parameters
+    else {
+        return getManyRecords(queryObject)
+    }
+};
+
+const getOneRecord = async function(queryObject) {    
+    let data;
+    const uriRemote = uriZenodo + queryObject.id;
+    try {
+        debug(`querying ${uriRemote}`);
+        const {res, payload} =  await Wreck.get(uriRemote);
+        data = await JSON.parse(payload) || { 'num-of-records': 0 };
+    }
+    catch(err) {
+        console.error(err);
+    }
+    
+    data['search-criteria'] = queryObject;
+    data._links = Utils.makeSelfLink({
+        uri: uriZenodeo, 
+        resource: 'images', 
+        queryString: Object.entries(queryObject)
+            .map(e => e[0] + '=' + e[1])
+            .sort()
+            .join('&')
+    });
+
+    return data;
+};
+
+const getManyRecords = async function(queryObject) {
+
+    const tmp = [];
+    for (let k in queryObject) {
+        if (k !== 'refreshCache') {
+            tmp.push(`${k}=${queryObject[k]}`);
+        }
+    }
+    const queryString = tmp.join('&');
+
+    const uriRemote = `${uriZenodo}?${queryString}&type=image&access_right=open`;
+    const limit = 30;
+
+    try {
+        debug(`querying ${uriRemote}`);
+        const {res, payload} =  await Wreck.get(uriRemote);
+        const result = await JSON.parse(payload);
+        const total = result.hits.total;
+        const hits = result.hits.hits;
+        const num = hits.length;
+
+        //const byAccessRight = result.aggregations.access_right.buckets;
+        const byKeywords = result.aggregations.keywords.buckets;
+        const statistics = {};
+        byKeywords.forEach(k => {
+            statistics[k.key] = k.doc_count;
+        });
+
+        const page = queryObject.page ? parseInt(queryObject.page) : 1;
+
+        //const offset = page * 30;
+
+        const from = ((page - 1) * 30) + 1;
+        const to = num < limit ? from + num - 1 : from + limit - 1;
+
+        const records = [];
+
+        debug(`found ${total} open records… now getting their images`);
+        debug(`number of images: ${hits.length}`);
+
+        hits.forEach(h => {
+            records.push({
+                conceptdoi: h.conceptdoi,
+                conceptrecid: h.conceptrecid,
+                created: h.created,
+                doi: h.doi,
+                files: h.files.forEach(f => f.links.self),
+                id: h.id,
+                html: h.links.latest_html,
+                thumbs: h.links.thumbs,
+                creators: h.metadata.creators.forEach(c => c.name),
+                description: h.metadata.description,
+                journal: h.metadata.journal,
+                keywords: h.metadata.keywords,
+                publication_date: h.metadata.publication_date,
+                related_identifiers: h.metadata.related_identifiers,
+                title: h.metadata.title
+            })
+        });
+
+        return {
+            'num-of-records': total,
+            from: from,
+            to: to,
+            prevpage: page >= 1 ? page - 1 : '',
+            nextpage: num < limit ? '' : parseInt(page) + 1,
+            'search-criteria': queryObject,
+            records: records,
+            statistics: statistics,
+        };
+        
+    }
+    catch(err) {
+        console.error(err);
+    }
+};
+
 
 const getStats = async function(query) {
 
@@ -84,138 +259,3 @@ const queryMaker = function(request) {
 
     return hrefArray.sort().join('&');
 }
-
-const getImages = async (queryStr) => {
-
-    const qryObj = {};
-    queryStr.split('&').forEach(el => { 
-        const a = el.split('='); 
-        qryObj[ a[0] ] = a[1]; 
-    });
-
-    //let Zenodo = 'https://zenodo.org/api/records/';
-    let uri = Zenodo;
-
-    //if (qryObj.stats) {
-    if (Object.keys(qryObj).length === 0) {
-
-        // '?communities=biosyslit&type=image&access_right=open'
-        const statistics = await getStats('?communities=biosyslit');
-        return statistics;
-        
-    }
-    else if (qryObj.id) {
-        uri += qryObj.id;
-
-        try {
-            debug('querying ' + uri);
-            const {res, payload} =  await Wreck.get(uri);
-            return await JSON.parse(payload);
-        }
-        catch(err) {
-            console.error(err);
-            return {error: err}
-        }
-    }
-    else {
-        uri = Zenodo + '?' + queryStr + '&type=image&access_right=open';
-
-        const limit = 30;
-
-        try {
-            debug('querying ' + uri);
-            const {res, payload} =  await Wreck.get(uri);
-            const result = await JSON.parse(payload);
-            const total = result.hits.total;
-            const images = result.hits.hits;
-            const num = images.length;
-
-            const byAccessRight = result.aggregations.access_right.buckets;
-            const byKeywords = result.aggregations.keywords.buckets;
-            const statistics = {};
-            byKeywords.forEach(k => {
-                statistics[k.key] = k.doc_count;
-            });
-
-            const page = qryObj.page ? parseInt(qryObj.page) : 1;
-
-            //const offset = page * 30;
-
-            const from = ((page - 1) * 30) + 1;
-            const to = num < limit ? from + num - 1 : from + limit - 1;
-
-            const imagesOfRecords = {};
-
-            debug(`found ${total} open records… now getting their images`);
-            debug(`number of images: ${images.length}`);
-
-            await Promise.all(images.map(async (record) => {
-                
-                const bucket = await getBuckets(record.links.self);
-                
-                let contents;
-                if (bucket) {
-                    contents = await getImageFiles(bucket);
-                    imagesOfRecords[record.links.self] = {
-                        title: record.metadata.title,
-                        creators: record.metadata.creators,
-                        images: contents.map(el => { return el.links.self }),
-                        thumb250: record.links.thumb250 ? record.links.thumb250 : 'na'
-                    };
-                }
-                
-            }));
-
-            return {
-                'num-of-records': total,
-                from: from,
-                to: to,
-                prevpage: page >= 1 ? page - 1 : '',
-                nextpage: num < limit ? '' : parseInt(page) + 1,
-                'search-criteria': qryObj,
-                records: imagesOfRecords,
-                statistics: statistics,
-            };
-            
-        }
-        catch(err) {
-            console.error(err);
-            return {error: err}
-        }
-    }
-    
-};
-
-const getImageFiles = async function(uri) {
-    const { res, payload } = await Wreck.get(uri);
-    return JSON.parse(payload.toString()).contents;
-};
-
-const getBuckets = async function(uri) {
-    const { res, payload } = await Wreck.get(uri);
-    return JSON.parse(payload.toString()).links.bucket;
-};
-
-const handler = async function(request, h) {
-
-    let query;
-
-    // ignore all other query params if id is present
-    if (request.query.id) {
-        query = 'id=' + request.query.id;
-    }
-    else if (request.query.count) {
-        query = 'stats=true';
-    }
-    else {
-        query = queryMaker(request);
-    }
-
-    if (request.query.refreshCache === 'true') {
-        debug('forcing refreshCache')
-        await this.imagesCache.drop(query);
-    }
-
-    // uses the bound imagesCache instance from index.js
-    return await this.imagesCache.get(query); 
-};
