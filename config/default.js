@@ -27,7 +27,7 @@ module.exports = {
         'v2': {
             'path': path.join(cwd, 'cache', 'catbox'),
             'name': 'catbox',
-            'on': true
+            'on': false
         }
     },
     'uri': {
@@ -61,7 +61,7 @@ module.exports = {
         },
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v2', 'schema.js'),
-        'facets': ['journalTitle', 'journalYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank']
+        'facets': ['journalTitle', 'journalYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'activeTreatments.rank']
     },
 
     'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',

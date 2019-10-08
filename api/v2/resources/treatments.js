@@ -366,8 +366,8 @@ const getManyRecords = function(queryObject) {
         // create the queries
         const snippet = 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context';
         const queries = {
-            count: 'Count(treatments.treatmentId) AS numOfRecords',
-            columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
+            count: 'Count(activeTreatments.treatmentId) AS numOfRecords',
+            columns: ['id', 'activeTreatments.treatmentId', 'treatmentTitle', 'articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'activeTreatments.rank'],
             facets: config.get('v2.facets'),
             from: ['activeTreatments'],
             where: [],
@@ -380,7 +380,7 @@ const getManyRecords = function(queryObject) {
             if (!exclude.includes(param)) {
                 if (param === 'q') {
                     queries.columns.push(snippet);
-                    queries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId')
+                    queries.from.push('JOIN vtreatments ON activeTreatments.treatmentId = vtreatments.treatmentId')
                     queries.where.push('vtreatments MATCH @q');
                 }
                 else {
@@ -397,7 +397,7 @@ const getManyRecords = function(queryObject) {
             // throws an error. That is why we prefix the column 'rank' with the 
             // table name
             let f = facet;
-            if (facet === 'treatments.rank') {
+            if (facet === 'activeTreatments.rank') {
                 f = 'rank';
             }
 
