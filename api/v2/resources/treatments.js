@@ -473,22 +473,42 @@ const getManyRecords = function(queryObject) {
         queryObject.limit = limit;
         queryObject.offset = offset;
         debug(`seldata: ${seldata}`);
-        data.records = db.prepare(seldata).all(queryObject);
+        data.records = db.prepare(seldata).all(queryObject) || [];
     }
     catch (error) {
         console.log(error);
     }
 
-    data.records.forEach(rec => {
-        rec._links = Utils.makeSelfLink({
-            uri: uriZenodeo, 
-            resource: 'treatments', 
-            queryString: Object.entries({treatmentId: rec.treatmentId})
-                .map(e => e[0] + '=' + e[1])
-                .sort()
-                .join('&')
+    if (data.records.length > 0) {
+        data.records.forEach(rec => {
+            rec._links = Utils.makeSelfLink({
+                uri: uriZenodeo, 
+                resource: 'treatments', 
+                queryString: Object.entries({treatmentId: rec.treatmentId})
+                    .map(e => e[0] + '=' + e[1])
+                    .sort()
+                    .join('&')
+            });
         });
-    })
+
+        // set some records-specific from and to for the formatted
+        // search criteria string
+        // data.from = ((page - 1) * 30) + 1;
+        // data.to = data.records.length < limit ? 
+        //     data.from + data.records.length - 1 : 
+        //     data.from + limit - 1;
+
+        // data.previd = id;
+
+        const lastrec = data.records[data.records.length - 1];
+        data.nextid = lastrec.id;
+
+        // data.prevpage = page >= 1 ? page - 1 : '';
+        // data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
+    }
+    else {
+        data.nextid = '';
+    }
 
     // set some records-specific from and to for the formatted
     // search criteria string
@@ -499,11 +519,12 @@ const getManyRecords = function(queryObject) {
 
     data.previd = id;
 
-    const lastrec = data.records[data.records.length - 1];
-    data.nextid = lastrec.id;
+    // const lastrec = data.records[data.records.length - 1];
+    // data.nextid = lastrec.id;
 
     data.prevpage = page >= 1 ? page - 1 : '';
     data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
+    
 
     return data;
 };

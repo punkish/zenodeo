@@ -1,10 +1,14 @@
 module.exports = {
-    "uri": {
+    uri: {
         'zenodeo': 'https://zenodeo.punkish.org',
     },
-    "cache": {
-        "path": "/home/punkish/Nodes/zenodeo/cache"
+    cache: {
+        path: "/home/punkish/Nodes/zenodeo/cache",
+        v2: {
+            on: true
+        }
     },
+
     "swaggered-scheme": ['https'],
-    "port": 3030
+    port: 3030
 }
