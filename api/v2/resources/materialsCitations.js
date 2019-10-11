@@ -3,12 +3,14 @@
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
 const debug = require('debug')('v2:figureCitations');
-const Database = require('better-sqlite3');
 const config = require('config');
-const db = new Database(config.get('data.treatments'));
 const Utils = require('../utils');
 
-const uri = config.get('uri.zenodeo') + '/v2';
+const uriZenodeo = config.get('uri.zenodeo') + '/v2';
+const cacheOn = config.get('cache.v2.on');
+
+const Database = require('better-sqlite3');
+const db = new Database(config.get('data.treatments'));
 
 String.prototype.format = function() {
     var args = arguments;
@@ -17,9 +19,6 @@ String.prototype.format = function() {
     });
 };
 
-const _plugin = 'materialsCitations2';
-const _resource = 'materialscitations';  // impt: lowercase, because used in URI
-const _resourceId = 'materialsCitationId';
 const _select = {
     none: {
         stats: {
@@ -85,16 +84,15 @@ const _select = {
 };
 
 module.exports = {
-
     plugin: {
-        name: _plugin,
+        name: 'materialsCitations2',
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: _plugin
+                segment: 'materialsCitations2'
             });
 
             // binds the cache to every route registered  
@@ -102,18 +100,18 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: `/${_resource}`,  
+                path: 'materialsCitationId',  
                 method: 'GET', 
                 config: {
                     description: "Retrieve materials citations",
-                    tags: ['treatments', 'materials reference citations', 'api'],
+                    tags: ['materials reference citations', 'api'],
                     plugins: {
                         'hapi-swagger': {
                             order: 7,
                             responseMessages: ResponseMessages
                         }
                     },
-                    //validate: Schema.treatments,
+                    validate: Schema.treatments,
                     notes: [
                         'This is the main route for retrieving materials citations for treatments from the database.',
                     ]
@@ -125,28 +123,35 @@ module.exports = {
 };
 
 const handler = function(request, h) {
-    //preprocess(request, h);
     
+    // cacheKey is the URL query without the refreshCache param.
+    // The default params, if any, are used in making the cacheKey.
+    // The default params are also used in queryObject to actually 
+    // perform the query. However, the default params are not used 
+    // to determine what kind of query to perform.
     const cacheKey = Utils.makeCacheKey(request);
+    debug(`cacheKey: ${cacheKey}`);
 
-    if (request.query.refreshCache === 'true') {
-        debug('forcing refreshCache')
-        this.cache.drop(cacheKey);
+    if (cacheOn) {
+        if (request.query.refreshCache === 'true') {
+            debug('forcing refreshCache')
+            this.cache.drop(cacheKey);
+        }
+
+        return this.cache.get(cacheKey);
     }
-
-    return this.cache.get(cacheKey);
+    else {
+        return getRecords(cacheKey);
+    }
 };
 
 const getRecords = function(cacheKey) {
     const queryObject = Utils.makeQueryObject(cacheKey);
+    debug(`queryObject: ${JSON.stringify(queryObject)}`);
 
-    if (Object.keys(queryObject).length === 0) {
-        return Utils.calcStats({stats: _select.none.stats})
-    }
-
-     // A resourceId is present. The query is for a specific
+    // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    else if (queryObject[_resourceId]) {
+    if (queryObject.materialsCitationId) {
         return getOneRecord(queryObject);
     }
     
@@ -159,25 +164,28 @@ const getRecords = function(cacheKey) {
 const getOneRecord = function(queryObject) {    
     let data;
     try {
-        data = db.prepare(_select.one.data).get(queryObject);
+        debug(`sel.one.data: ${_select.one.data}`);
+        data = db.prepare(_select.one.data).get(queryObject) || { 'num-of-records': 0 };
     } 
     catch (error) {
         console.log(`error: ${error}`);
     }
 
     data['search-criteria'] = queryObject;
-    
     data._links = Utils.makeSelfLink({
-        uri: uri, 
-        resource: _resource, 
+        uri: uriZenodeo, 
+        resource: 'materialsCitations', 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
     });
 
-    data['related-records'] = getRelatedRecords(queryObject);
-    return data
+    if (data['num-of-records']) {
+        data['related-records'] = getRelatedRecords(queryObject);
+    }
+
+    return data;
 };
 
 const getManyRecords = function(queryObject) {
@@ -238,8 +246,8 @@ const getManyRecords = function(queryObject) {
 
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
-        uri: uri, 
-        resource: _resource, 
+        uri: uriZenodeo, 
+        resource: 'materialscitations', 
         queryString: Object.entries(queryObject)
             .filter(e => 
                 e[0] !== 'min_latitude' && e[0] !== 'max_latitude' && e[0] !== 'min_longitude' && e[0] !== 'max_longitude'
@@ -281,8 +289,8 @@ const getManyRecords = function(queryObject) {
 
     data.records.forEach(rec => {
         rec._links = Utils.makeSelfLink({
-            uri: uri, 
-            resource: _resource, 
+            uri: uriZenodeo, 
+            resource: 'materialscitations', 
             queryString: Object.entries({
                 materialsCitationId: rec.materialsCitationId
             })
@@ -318,7 +326,7 @@ const getRelatedRecords = function(queryObject) {
 
             rr[relatedResource] = Utils.halify({
                 records: data, 
-                uri: uri, 
+                uri: uriZenodeo, 
                 resource: relatedResource,
                 id: `${relatedResource.substr(0, relatedResource.length - 1)}Id`
             })

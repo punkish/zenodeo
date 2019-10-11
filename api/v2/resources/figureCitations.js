@@ -219,8 +219,8 @@ const getManyRecords = function(queryObject) {
 
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
-        uri: uri, 
-        resource: _resource, 
+        uri: uriZenodeo, 
+        resource: 'figurecitations', 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
@@ -259,8 +259,8 @@ const getManyRecords = function(queryObject) {
 
     data.records.forEach(rec => {
         rec._links = Utils.makeSelfLink({
-            uri: uri, 
-            resource: _resource, 
+            uri: uriZenodeo, 
+            resource: 'figurecitations', 
             queryString: Object.entries({
                 figureCitationId: rec.figureCitationId
             })
@@ -296,7 +296,7 @@ const getRelatedRecords = function(queryObject) {
 
             rr[relatedResource] = Utils.halify({
                 records: data, 
-                uri: uri, 
+                uri: uriZenodeo, 
                 resource: relatedResource,
                 id: `${relatedResource.substr(0, relatedResource.length - 1)}Id`
             })
