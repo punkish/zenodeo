@@ -19,10 +19,16 @@ String.prototype.format = function() {
     });
 };
 
+const _resource = 'figureCitations'; 
+const _plugin = 'figureCitations2';
+const _segment = 'figureCitations2';
+const _path = '/figurecitations'; // impt: lowercase, because used in URI
+const _resourceId = 'figureCitationId';
+
 const _select = {
     none: {
         stats: [
-            'SELECT Count(*) AS "figure citations" FROM figureCitations'
+            `SELECT Count(*) AS ${_resource} FROM ${_resource} WHERE deleted = 0`
         ]
     },
     one: {
@@ -57,14 +63,14 @@ const _select = {
 
 module.exports = {
     plugin: {
-        name: 'figureCitations2',
+        name: _plugin,
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'figureCitations2'
+                segment: _segment
             });
 
             // binds the cache to every route registered  
@@ -72,20 +78,20 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: '/figurecitations',  
+                path: _path,  
                 method: 'GET', 
                 config: {
-                    description: "Retrieve figure citations",
-                    tags: ['figure citations', 'api'],
+                    description: `Retrieve ${_resource}`,
+                    tags: [_resource, 'api'],
                     plugins: {
                         'hapi-swagger': {
                             order: 4,
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.figureCitations,
+                    validate: Schema[_resource],
                     notes: [
-                        'This is the main route for retrieving figure citations for treatments from the database.',
+                        `This is the main route for retrieving ${_resource} for treatments from the database.`
                     ]
                 },
                 handler 
@@ -123,7 +129,7 @@ const getRecords = function(cacheKey) {
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject.figureCitationId) {
+    if (queryObject[_resourceId]) {
         return getOneRecord(queryObject);
     }
     
@@ -146,7 +152,7 @@ const getOneRecord = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'figurecitations', 
+        resource: _resource.toLowerCase(), 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()

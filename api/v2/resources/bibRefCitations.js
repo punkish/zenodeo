@@ -19,10 +19,16 @@ String.prototype.format = function() {
     });
 };
 
+const _resource = 'bibRefCitations'; 
+const _plugin = 'bibRefCitations2';
+const _segment = 'bibRefCitations2';
+const _path = '/bibrefcitations'; // impt: lowercase, because used in URI
+const _resourceId = 'bibRefCitationsId';
+
 const _select = {
     none: {
         stats: [
-            'SELECT Count(*) AS "bibref citations" FROM bibrefcitations'
+            `SELECT Count(*) AS ${_resource} FROM ${_resource} WHERE deleted = 0`
         ]
     },
     one: {
@@ -57,14 +63,14 @@ const _select = {
 
 module.exports = {
     plugin: {
-        name: 'bibRefCitations2',
+        name: _plugin,
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'bibRefCitations2'
+                segment: _segment
             });
 
             // binds the cache to every route registered  
@@ -72,20 +78,20 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: '/bibrefcitations',  
+                path: _path,   
                 method: 'GET', 
                 config: {
-                    description: "Retrieve bibref citations",
-                    tags: ['bibliographic reference citations', 'api'],
+                    description: `Retrieve ${_resource}`,
+                    tags: [_resource, 'api'],
                     plugins: {
                         'hapi-swagger': {
                             order: 6,
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.bibRefCitations,
+                    validate: Schema[_resource],
                     notes: [
-                        'This is the main route for retrieving bibref citations for treatments from the database.',
+                        `This is the main route for retrieving ${_resource} for treatments from the database.`
                     ]
                 },
                 handler 
@@ -123,7 +129,7 @@ const getRecords = function(cacheKey) {
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject.bibRefCitationId) {
+    if (queryObject[_resourceId]) {
         return getOneRecord(queryObject);
     }
     
@@ -146,7 +152,7 @@ const getOneRecord = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'bibrefcitations', 
+        resource: _resource.toLowerCase(), 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()

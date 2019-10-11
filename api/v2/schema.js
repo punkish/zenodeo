@@ -358,8 +358,37 @@ module.exports = {
 
     treatmentAuthors: {
         query: {
-            treatmentAuthor: Joi.string()
-                .description(descriptions.treatmentAuthor)
+            treatmentAuthorId: Joi.string()
+                .description(descriptions.treatmentAuthorId)
+                .optional(),
+
+            page: Joi.number()
+                .integer()
+                .description('Starting page, defaults to 1')
+                .default(1)
+                .when('treatmentAuthorId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    //otherwise: Joi.required() 
+                }),
+
+            size: Joi.number()
+                .integer()
+                .description('Number of records to fetch per query, defaults to 30')
+                .default(30)
+                .when('treatmentAuthorId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    //otherwise: Joi.required() 
+                }),
+
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .optional()
+                .default(false),
+
+            q: Joi.string()
+                .description(descriptions.fullText)
                 .optional()
         }
     },

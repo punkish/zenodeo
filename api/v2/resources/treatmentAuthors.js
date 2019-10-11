@@ -19,13 +19,16 @@ String.prototype.format = function() {
     });
 };
 
+const _resource = 'treatmentAuthors'; 
 const _plugin = 'treatmentAuthors2';
-const _resource = 'treatmentauthors';  // impt: lowercase, because used in URI
+const _segment = 'treatmentAuthors2';
+const _path = '/treatmentauthors'; // impt: lowercase, because used in URI
 const _resourceId = 'treatmentAuthorId';
+
 const _select = {
     none: {
         stats: [
-            'SELECT Count(*) AS "treatment authors" FROM treatmentAuthors'
+            `SELECT Count(*) AS ${_resource} FROM ${_resource} WHERE deleted = 0`
         ]
     },
     one: {
@@ -50,14 +53,14 @@ const _select = {
 
 module.exports = {
     plugin: {
-        name: 'treatmentAuthors2',
+        name: _plugin,
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'treatmentAuthors2'
+                segment: _segment
             });
 
             // binds the cache to every route registered  
@@ -65,20 +68,20 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: 'treatmentauthors',  
+                path: _path,  
                 method: 'GET', 
                 config: {
-                    description: "Retrieve treatment authors",
-                    tags: ['treatment authors', 'api'],
+                    description: `Retrieve ${_resource}`,
+                    tags: [_resource, 'api'],
                     plugins: {
                         'hapi-swagger': {
                             order: 5,
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.treatments,
+                    validate: Schema[_resource],
                     notes: [
-                        'This is the main route for retrieving treatment authors for treatments from the database.',
+                        `This is the main route for retrieving ${_resource} for treatments from the database.`
                     ]
                 },
                 handler 
@@ -116,7 +119,7 @@ const getRecords = function(cacheKey) {
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject.figureCitationId) {
+    if (queryObject[_resourceId]) {
         return getOneRecord(queryObject);
     }
     
@@ -130,7 +133,7 @@ const getOneRecord = function(queryObject) {
     let data;
     try {
         debug(`sel.one.data: ${_select.one.data}`);
-        data = db.prepare(_select.one.data).get(queryObject);
+        data = db.prepare(_select.one.data).get(queryObject) || { 'num-of-records': 0 };
     } 
     catch (error) {
         console.log(`error: ${error}`);
@@ -139,7 +142,7 @@ const getOneRecord = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'treatmentauthors', 
+        resource: _resource.toLowerCase(), 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
@@ -181,7 +184,7 @@ const getManyRecords = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: _resource, 
+        resource: _resource.toLowerCase(), 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
@@ -221,10 +224,8 @@ const getManyRecords = function(queryObject) {
     data.records.forEach(rec => {
         rec._links = Utils.makeSelfLink({
             uri: uriZenodeo, 
-            resource: _resource, 
-            queryString: Object.entries({
-                treatmentAuthorId: rec.treatmentAuthorId
-            })
+            resource: _resource.toLowerCase(), 
+            queryString: Object.entries({treatmentAuthorId: rec[_resourceId]})
                 .map(e => e[0] + '=' + e[1])
                 .sort()
                 .join('&')

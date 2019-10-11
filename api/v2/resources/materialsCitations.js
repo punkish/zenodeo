@@ -100,7 +100,7 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: 'materialsCitationId',  
+                path: '/materialsCitationId',  
                 method: 'GET', 
                 config: {
                     description: "Retrieve materials citations",
