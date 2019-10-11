@@ -19,11 +19,17 @@ String.prototype.format = function() {
     });
 };
 
+const _resource = 'materialsCitations'; 
+const _plugin = 'materialsCitations2';
+const _segment = 'materialsCitations2';
+const _path = '/materialscitations'; // impt: lowercase, because used in URI
+const _resourceId = 'materialsCitationId';
+
 const _select = {
     none: {
         stats: {
             'materials citations by numbers': [
-                'SELECT Count(*) AS "materials citations" FROM materialsCitations',
+                `SELECT Count(*) AS ${_resource} FROM ${_resource} WHERE deleted = 0`,
         
                 'SELECT Count(DISTINCT collectionCode) AS "collection codes" FROM materialsCitations',
         
@@ -85,14 +91,14 @@ const _select = {
 
 module.exports = {
     plugin: {
-        name: 'materialsCitations2',
+        name: _plugin,
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'materialsCitations2'
+                segment: _segment
             });
 
             // binds the cache to every route registered  
@@ -100,20 +106,20 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: '/materialsCitationId',  
+                path: _path, 
                 method: 'GET', 
                 config: {
-                    description: "Retrieve materials citations",
-                    tags: ['materials reference citations', 'api'],
+                    description: `Retrieve ${_resource}`,
+                    tags: [_resource, 'api'],
                     plugins: {
                         'hapi-swagger': {
                             order: 7,
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.treatments,
+                    validate: Schema[_resource],
                     notes: [
-                        'This is the main route for retrieving materials citations for treatments from the database.',
+                        `This is the main route for retrieving ${_resource} for treatments from the database.`
                     ]
                 },
                 handler 
@@ -151,7 +157,7 @@ const getRecords = function(cacheKey) {
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject.materialsCitationId) {
+    if (queryObject[_resourceId]) {
         return getOneRecord(queryObject);
     }
     
@@ -174,7 +180,7 @@ const getOneRecord = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'materialscitations', 
+        resource: _resource.toLowerCase(), 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
@@ -247,7 +253,7 @@ const getManyRecords = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'materialscitations', 
+        resource: _resource.toLowerCase(), 
         queryString: Object.entries(queryObject)
             .filter(e => 
                 e[0] !== 'min_latitude' && e[0] !== 'max_latitude' && e[0] !== 'min_longitude' && e[0] !== 'max_longitude'
@@ -290,7 +296,7 @@ const getManyRecords = function(queryObject) {
     data.records.forEach(rec => {
         rec._links = Utils.makeSelfLink({
             uri: uriZenodeo, 
-            resource: 'materialscitations', 
+            resource: _resource.toLowerCase(), 
             queryString: Object.entries({
                 materialsCitationId: rec.materialsCitationId
             })
