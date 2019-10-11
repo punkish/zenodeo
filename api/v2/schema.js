@@ -282,6 +282,80 @@ module.exports = {
         }
     },
 
+    figureCitations: {
+        query: {
+            figureCitationId: Joi.string()
+                .description(descriptions.figureCitationId)
+                .optional(),
+
+            page: Joi.number()
+                .integer()
+                .description('Starting page, defaults to 1')
+                .default(1)
+                .when('figureCitationId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    //otherwise: Joi.required() 
+                }),
+
+            size: Joi.number()
+                .integer()
+                .description('Number of records to fetch per query, defaults to 30')
+                .default(30)
+                .when('figureCitationId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    //otherwise: Joi.required() 
+                }),
+
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .optional()
+                .default(false),
+
+            q: Joi.string()
+                .description(descriptions.fullText)
+                .optional()
+        }
+    },
+
+    bibRefCitations: {
+        query: {
+            bibRefCitationId: Joi.string()
+                .description(descriptions.bibRefCitationId)
+                .optional(),
+
+            page: Joi.number()
+                .integer()
+                .description('Starting page, defaults to 1')
+                .default(1)
+                .when('bibRefCitationId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    //otherwise: Joi.required() 
+                }),
+
+            size: Joi.number()
+                .integer()
+                .description('Number of records to fetch per query, defaults to 30')
+                .default(30)
+                .when('bibRefCitationId', {
+                    is: Joi.string(), 
+                    then: Joi.optional(),
+                    //otherwise: Joi.required() 
+                }),
+
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .optional()
+                .default(false),
+
+            q: Joi.string()
+                .description(descriptions.fullText)
+                .optional()
+        }
+    },
+
     treatmentAuthors: {
         query: {
             treatmentAuthor: Joi.string()

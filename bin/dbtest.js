@@ -4,10 +4,10 @@ const db = new Database(config.get('data.treatments'));
 const debug = require('debug')('dbtest');
 
 
+let totalTime = 0;
+
 const queryDb = function(queries) {
     const timing = {};
-
-    let totalTime = 0;
 
     for (let q in queries) {
         try {
@@ -22,6 +22,8 @@ const queryDb = function(queries) {
             console.log(error);
         }
     }
+
+    //return totalTime;
 
     const longest = Math.max(...Object.keys(timing).map(t => t.length)) + 1;
 
@@ -77,8 +79,19 @@ const q2 = {
                     FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
                     WHERE  m.deleted = 0 AND specimenCountFemale != ""`,
 
-    'figure citations': 'SELECT Count(figureCitationId) FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId WHERE f.deleted = 0 AND t.deleted = 0'
+    'figure citations': 'SELECT Count(figureCitationId) FROM treatments t JOIN figureCitations f ON t.treatmentId = f.treatmentId WHERE t.deleted = 0 AND f.deleted = 0'
+};
+
+const runQuery = async function(num) {
+    const q = [];
+    for (let i = 0; i < num; i++) {
+        q.push(queryDb(q2));
+    }
+
+    await Promise.all(q);
+    console.log(`${num} runs of ${Object.keys(q2).length} queries took ${totalTime / num}ms per run`);
 };
 
 
-queryDb(q2);
+//runQuery(30)
+queryDb(q2)

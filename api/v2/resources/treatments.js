@@ -297,7 +297,7 @@ const getRecords = function(cacheKey) {
 const getOneRecord = function(queryObject) {    
     let data;
     try {
-        debug(`sel.one.data: ${_queries.one.data}`)
+        debug(`sel.one.data: ${_queries.one.data}`);
         data = db.prepare(_queries.one.data).get(queryObject) || { 'num-of-records': 0 };
     } 
     catch (error) {
@@ -491,20 +491,8 @@ const getManyRecords = function(queryObject) {
             });
         });
 
-        // set some records-specific from and to for the formatted
-        // search criteria string
-        // data.from = ((page - 1) * 30) + 1;
-        // data.to = data.records.length < limit ? 
-        //     data.from + data.records.length - 1 : 
-        //     data.from + limit - 1;
-
-        // data.previd = id;
-
         const lastrec = data.records[data.records.length - 1];
         data.nextid = lastrec.id;
-
-        // data.prevpage = page >= 1 ? page - 1 : '';
-        // data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
     }
     else {
         data.nextid = '';
@@ -519,13 +507,9 @@ const getManyRecords = function(queryObject) {
 
     data.previd = id;
 
-    // const lastrec = data.records[data.records.length - 1];
-    // data.nextid = lastrec.id;
-
     data.prevpage = page >= 1 ? page - 1 : '';
     data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
     
-
     return data;
 };
 
