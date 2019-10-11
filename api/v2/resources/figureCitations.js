@@ -146,7 +146,7 @@ const getOneRecord = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'figureCitations', 
+        resource: 'figurecitations', 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()

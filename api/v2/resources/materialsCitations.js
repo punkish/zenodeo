@@ -2,7 +2,7 @@
 
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
-const debug = require('debug')('v2:figureCitations');
+const debug = require('debug')('v2:materialsCitations');
 const config = require('config');
 const Utils = require('../utils');
 
@@ -174,7 +174,7 @@ const getOneRecord = function(queryObject) {
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'materialsCitations', 
+        resource: 'materialscitations', 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()

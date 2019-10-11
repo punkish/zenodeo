@@ -2,13 +2,15 @@
 
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
-const debug = require('debug')('v2:figureCitations');
-const Database = require('better-sqlite3');
+const debug = require('debug')('v2:treatmentAuthors');
 const config = require('config');
-const db = new Database(config.get('data.treatments'));
 const Utils = require('../utils');
 
-const uri = config.get('uri.zenodeo') + '/v2';
+const uriZenodeo = config.get('uri.zenodeo') + '/v2';
+const cacheOn = config.get('cache.v2.on');
+
+const Database = require('better-sqlite3');
+const db = new Database(config.get('data.treatments'));
 
 String.prototype.format = function() {
     var args = arguments;
@@ -47,16 +49,15 @@ const _select = {
 };
 
 module.exports = {
-
     plugin: {
-        name: _plugin,
+        name: 'treatmentAuthors2',
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: _plugin
+                segment: 'treatmentAuthors2'
             });
 
             // binds the cache to every route registered  
@@ -64,18 +65,18 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: `/${_resource}`,  
+                path: 'treatmentauthors',  
                 method: 'GET', 
                 config: {
                     description: "Retrieve treatment authors",
-                    tags: ['treatments', 'treatment authors', 'api'],
+                    tags: ['treatment authors', 'api'],
                     plugins: {
                         'hapi-swagger': {
                             order: 5,
                             responseMessages: ResponseMessages
                         }
                     },
-                    //validate: Schema.treatments,
+                    validate: Schema.treatments,
                     notes: [
                         'This is the main route for retrieving treatment authors for treatments from the database.',
                     ]
@@ -87,28 +88,35 @@ module.exports = {
 };
 
 const handler = function(request, h) {
-    //preprocess(request, h);
     
+    // cacheKey is the URL query without the refreshCache param.
+    // The default params, if any, are used in making the cacheKey.
+    // The default params are also used in queryObject to actually 
+    // perform the query. However, the default params are not used 
+    // to determine what kind of query to perform.
     const cacheKey = Utils.makeCacheKey(request);
+    debug(`cacheKey: ${cacheKey}`);
 
-    if (request.query.refreshCache === 'true') {
-        debug('forcing refreshCache')
-        this.cache.drop(cacheKey);
+    if (cacheOn) {
+        if (request.query.refreshCache === 'true') {
+            debug('forcing refreshCache')
+            this.cache.drop(cacheKey);
+        }
+
+        return this.cache.get(cacheKey);
     }
-
-    return this.cache.get(cacheKey);
+    else {
+        return getRecords(cacheKey);
+    }
 };
 
 const getRecords = function(cacheKey) {
     const queryObject = Utils.makeQueryObject(cacheKey);
+    debug(`queryObject: ${JSON.stringify(queryObject)}`);
 
-    if (Object.keys(queryObject).length === 0) {
-        return Utils.calcStats({queries: _select.none.stats})
-    }
-
-     // A resourceId is present. The query is for a specific
+    // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    else if (queryObject[_resourceId]) {
+    if (queryObject.figureCitationId) {
         return getOneRecord(queryObject);
     }
     
@@ -121,6 +129,7 @@ const getRecords = function(cacheKey) {
 const getOneRecord = function(queryObject) {    
     let data;
     try {
+        debug(`sel.one.data: ${_select.one.data}`);
         data = db.prepare(_select.one.data).get(queryObject);
     } 
     catch (error) {
@@ -128,17 +137,19 @@ const getOneRecord = function(queryObject) {
     }
 
     data['search-criteria'] = queryObject;
-    
     data._links = Utils.makeSelfLink({
-        uri: uri, 
-        resource: _resource, 
+        uri: uriZenodeo, 
+        resource: 'treatmentauthors', 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
     });
 
-    data['related-records'] = getRelatedRecords(queryObject);
+    if (data['num-of-records']) {
+        data['related-records'] = getRelatedRecords(queryObject);
+    }
+
     return data
 };
 
@@ -169,7 +180,7 @@ const getManyRecords = function(queryObject) {
     
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
-        uri: uri, 
+        uri: uriZenodeo, 
         resource: _resource, 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
@@ -209,7 +220,7 @@ const getManyRecords = function(queryObject) {
 
     data.records.forEach(rec => {
         rec._links = Utils.makeSelfLink({
-            uri: uri, 
+            uri: uriZenodeo, 
             resource: _resource, 
             queryString: Object.entries({
                 treatmentAuthorId: rec.treatmentAuthorId
@@ -246,7 +257,7 @@ const getRelatedRecords = function(queryObject) {
 
             rr[relatedResource] = Utils.halify({
                 records: data, 
-                uri: uri, 
+                uri: uriZenodeo, 
                 resource: relatedResource,
                 id: `${relatedResource.substr(0, relatedResource.length - 1)}Id`
             })
