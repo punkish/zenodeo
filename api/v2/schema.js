@@ -118,7 +118,7 @@ module.exports = {
                     }
                 ),
 
-            publication_subtype: Joi.string()
+            subtype: Joi.string()
                 .description('Subtype based on the file_type \"publication\"')
                 .optional()
                 .when(
@@ -255,15 +255,15 @@ module.exports = {
                     }
                 ),
 
-            publication_subtype: Joi.string()
+            subtype: Joi.string()
                 .description('Subtype based on the file_type \"publication\"')
                 .optional()
                 .when(
                     'type', {
-                        is: 'image',
+                        is: 'publication',
                         then: Joi.valid(
                             'article', 
-                            'conferencepaper', 
+                            'taxonomictreatment', 
                             'report', 
                             'other', 
                             'book', 
@@ -290,7 +290,7 @@ module.exports = {
                 .description('More than one keywords may be used')
                 .when('id', {is: Joi.number().integer().positive(), then: Joi.optional() } )
                 .optional(),
-                
+
             refreshCache: Joi.boolean()
                 .description("force refresh cache")
                 .optional()
