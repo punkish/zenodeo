@@ -168,6 +168,136 @@ module.exports = {
         }
     },
 
+    publications: {
+        query: {
+            
+            id: Joi.number()
+                .description("record id. All other query params are ignored if id is provided.")
+                .integer()
+                .positive()
+                .optional(),
+
+            // If 'id' is present in the queryString, all of 
+            // the below are ignored if also present.
+            // The following rules apply *only* if 'id' is 
+            // not present
+            page: Joi.number()
+                .integer()
+                .description('Starting page, defaults to 1')
+                .default(1)
+                .when('id', {
+                    is: Joi.number().integer().positive(), 
+                    then: Joi.optional(),
+                    otherwise: Joi.required() 
+                }),
+
+            size: Joi.number()
+                .integer()
+                .description('Number of records to fetch per query, defaults to 30')
+                .default(30)
+                .when('id', {
+                    is: Joi.number().integer().positive(), 
+                    then: Joi.optional(),
+                    otherwise: Joi.required() 
+                }),
+
+            // communities: Joi.string()
+            //     .description('The community on Zenodo; defaults to "biosyslit"')
+            //     .valid('all', 'BLR', 'belgiumherbarium')
+            //     .default('BLR')
+            //     .optional(),
+
+            q: Joi.string()
+                .description('any text string')
+                .optional(),
+
+            file_type: Joi.string()
+                .description('File type, usually determined by the extension')
+                .optional()
+                .valid(
+                    'png', 
+                    'jpg', 
+                    'pdf', 
+                    'xml', 
+                    'xlsx', 
+                    'docx', 
+                    'xls', 
+                    'csv', 
+                    'svg', 
+                    'doc'
+                ),
+
+            type: Joi.string()
+                .description('Type of resource')
+                .optional()
+                .valid(
+                    'image', 
+                    'publication', 
+                    'dataset', 
+                    'presentation', 
+                    'video'
+                ),
+        
+            image_subtype: Joi.string()
+                .description('Subtype based on the file_type \"image\"')
+                .optional()
+                .when(
+                    'type', {
+                        is: 'image',
+                        then: Joi.valid(
+                            'figure', 
+                            'photo', 
+                            'drawing', 
+                            'other', 
+                            'diagram', 
+                            'plot'
+                        )
+                    }
+                ),
+
+            publication_subtype: Joi.string()
+                .description('Subtype based on the file_type \"publication\"')
+                .optional()
+                .when(
+                    'type', {
+                        is: 'image',
+                        then: Joi.valid(
+                            'article', 
+                            'conferencepaper', 
+                            'report', 
+                            'other', 
+                            'book', 
+                            'thesis', 
+                            'section', 
+                            'workingpaper', 
+                            'deliverable', 
+                            'preprint'
+                        )
+                    }
+                ),
+
+            access_right: Joi.string()
+                .description('Access rights for the resource')
+                .optional()
+                .valid(
+                    'open', 
+                    'closed', 
+                    'embargoed', 
+                    'restricted'
+                ),
+
+            keywords: Joi.array()
+                .description('More than one keywords may be used')
+                .when('id', {is: Joi.number().integer().positive(), then: Joi.optional() } )
+                .optional(),
+                
+            refreshCache: Joi.boolean()
+                .description("force refresh cache")
+                .optional()
+                .default(false)
+        }
+    },
+
     files: {
         params: {
             file_id: Joi.string()

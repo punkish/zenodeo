@@ -40,7 +40,7 @@ module.exports = {
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.images,
+                    validate: Schema.publications,
                     notes: [
                         'This is the main route for fetching publications matching the provided query parameters.',
                     ]
