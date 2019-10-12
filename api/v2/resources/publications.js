@@ -14,23 +14,14 @@ const uriZenodo = config.get('uri.remote') + '/records/';
 
 module.exports = {
     plugin: {
-        name: 'images2',
+        name: 'publications2',
         register: async function(server, options) {
-
-            // const imagesCache = server.cache({
-            //     cache: options.cacheName,
-            //     expiresIn: options.expiresIn,
-            //     generateTimeout: options.generateTimeout,
-            //     segment: 'images2', 
-            //     generateFunc: async (query) => { return await getImages(query) },
-            //     getDecoratedValue: options.getDecoratedValue
-            // });
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'images2'
+                segment: 'publications2'
             });
 
             // binds cache to every route registered  
@@ -38,20 +29,20 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: '/images', 
+                path: '/publications', 
                 method: 'GET', 
                 config: {
-                    description: "Fetch images from Zenodo",
-                    tags: ['images', 'api'],
+                    description: "Fetch publications from Zenodo",
+                    tags: ['publications', 'api'],
                     plugins: {
                         'hapi-swagger': {
-                            order: 7,
+                            order: 8,
                             responseMessages: ResponseMessages
                         }
                     },
                     validate: Schema.images,
                     notes: [
-                        'This is the main route for fetching images matching the provided query parameters.',
+                        'This is the main route for fetching publications matching the provided query parameters.',
                     ]
                 },
                 handler 
@@ -81,27 +72,6 @@ const handler = async function(request, h) {
     else {
         return getRecords(cacheKey);
     }
-
-    // let query;
-
-    // // ignore all other query params if id is present
-    // if (request.query.id) {
-    //     query = 'id=' + request.query.id;
-    // }
-    // else if (request.query.count) {
-    //     query = 'stats=true';
-    // }
-    // else {
-    //     query = queryMaker(request);
-    // }
-
-    // if (request.query.refreshCache === 'true') {
-    //     debug('forcing refreshCache')
-    //     await this.imagesCache.drop(query);
-    // }
-
-    // uses the bound imagesCache instance from index.js
-    //return await this.imagesCache.get(query); 
 };
 
 const getRecords = function(cacheKey) {
@@ -154,8 +124,8 @@ const getManyRecords = async function(queryObject) {
         }
     }
     const queryString = tmp.join('&');
-
-    const uriRemote = `${uriZenodo}?${queryString}&communities=biosyslit&type=image&access_right=open`;
+    
+    const uriRemote = `${uriZenodo}?${queryString}&communities=biosyslit&type=publication&access_right=open`;
     const limit = 30;
 
     try {
@@ -187,7 +157,6 @@ const getManyRecords = async function(queryObject) {
 
         hits.forEach(h => {
             records.push({
-                conceptdoi: h.conceptdoi,
                 conceptrecid: h.conceptrecid,
                 created: h.created,
                 doi: h.doi,
@@ -195,7 +164,7 @@ const getManyRecords = async function(queryObject) {
                 id: h.id,
                 html: h.links.latest_html,
                 thumbs: h.links.thumbs,
-                creators: h.metadata.creators.forEach(c => c.name),
+                creators: h.metadata.creators,
                 description: h.metadata.description,
                 journal: h.metadata.journal,
                 keywords: h.metadata.keywords,

@@ -16,7 +16,7 @@ module.exports = {
                         tags: ['families', 'api'],
                         plugins: {
                             'hapi-swagger': {
-                                order: 7,
+                                order: 8,
                                 //responseMessages: ResponseMessages
                             }
                         },

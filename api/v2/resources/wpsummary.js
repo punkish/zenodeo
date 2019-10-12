@@ -28,7 +28,7 @@ module.exports = {
                         tags: ['wikipedia', 'api'],
                         plugins: {
                             'hapi-swagger': {
-                                order: 5,
+                                order: 13,
                                 //responseMessages: ResponseMessages
                             }
                         },

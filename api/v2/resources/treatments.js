@@ -215,7 +215,7 @@ module.exports = {
                     tags: ['treatments', 'api'],
                     plugins: {
                         'hapi-swagger': {
-                            order: 3,
+                            order: 2,
                             responseMessages: ResponseMessages
                         }
                     },

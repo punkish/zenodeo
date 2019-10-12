@@ -113,7 +113,7 @@ module.exports = {
                     tags: [_resource, 'api'],
                     plugins: {
                         'hapi-swagger': {
-                            order: 7,
+                            order: 6,
                             responseMessages: ResponseMessages
                         }
                     },
