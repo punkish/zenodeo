@@ -149,6 +149,34 @@ module.exports = {
                     'restricted'
                 ),
 
+            // starts with
+            // creators.name:/Agosti.*/
+            //// creator = /Agosti.*/;
+
+            // single token
+            // creators.name:Agosti
+            //// creator = 'Agosti';
+
+            // exact phrase
+            // creators.name:”Agosti, Donat”
+            //// creator = '"Agosti, Donat"';
+
+            // OR
+            // creators.name:(Agosti Donat)
+            //// creator = 'Agosti Donat';
+
+            // AND
+            // creators.name:(Agosti AND Donat) 
+            //// creator = 'Agosti AND Donat';
+            creator: Joi.string()
+                .description(`Usually author. Use the following syntax:
+                - starts with "Agosti": /Agosti.*/, 
+                - contains "Agosti": Agosti,
+                - is exactly "Agosti, Donat": "Agosti, Donat",
+                - either "Agosti" or "Donat": Agosti Donat,
+                - both "Agosti" and "Donat": Agosti AND Donat`)
+                .optional(),
+
             keywords: Joi.array()
                 .description('More than one keywords may be used')
                 .when('id', {is: Joi.number().integer().positive(), then: Joi.optional() } )
@@ -286,9 +314,41 @@ module.exports = {
                     'restricted'
                 ),
 
+            // starts with
+            // creators.name:/Agosti.*/
+            //// creator = /Agosti.*/;
+
+            // single token
+            // creators.name:Agosti
+            //// creator = 'Agosti';
+
+            // exact phrase
+            // creators.name:”Agosti, Donat”
+            //// creator = '"Agosti, Donat"';
+
+            // OR
+            // creators.name:(Agosti Donat)
+            //// creator = 'Agosti Donat';
+
+            // AND
+            // creators.name:(Agosti AND Donat) 
+            //// creator = 'Agosti AND Donat';
+            creator: Joi.string()
+                .description(`Usually author. Use the following syntax:
+                - starts with "Agosti": /Agosti.*/, 
+                - contains "Agosti": Agosti,
+                - is exactly "Agosti, Donat": "Agosti, Donat",
+                - either "Agosti" or "Donat": Agosti Donat,
+                - both "Agosti" and "Donat": Agosti AND Donat`)
+                .optional(),
+
             keywords: Joi.array()
                 .description('More than one keywords may be used')
-                .when('id', {is: Joi.number().integer().positive(), then: Joi.optional() } )
+                .when(
+                    'id', {
+                        is: Joi.number().integer().positive(), then: Joi.optional() 
+                    } 
+                )
                 .optional(),
 
             refreshCache: Joi.boolean()
