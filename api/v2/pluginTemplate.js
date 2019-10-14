@@ -1,10 +1,10 @@
 'use strict';
 
-const Schema = require('../schema.js');
-const ResponseMessages = require('../../responseMessages');
+const Schema = require('./schema.js');
+const ResponseMessages = require('../responseMessages');
 const debug = require('debug')('v2:images');
 const config = require('config');
-const Utils = require('../utils');
+const Utils = require('./utils');
 
 const uriZenodeo = config.get('uri.zenodeo') + '/v2';
 const cacheOn = config.get('cache.v2.on');
@@ -12,52 +12,41 @@ const cacheOn = config.get('cache.v2.on');
 const Wreck = require('wreck');
 const uriZenodo = config.get('uri.remote') + '/records/';
 
-const plugins = {
-    _resource: 'publication',
-    _resources: 'publications',
-    _name: 'publications2',
-    _segment: 'publications2',
-    _path: '/publications',
-    _order: 8
-};
+const plugin = {
+    name: plugins._name,
+    register: async function(server, options) {
 
-module.exports = {
-    plugin: {
-        name: plugins._name,
-        register: async function(server, options) {
+        const cache = Utils.makeCache({
+            server: server, 
+            options: options, 
+            query: getRecords,  
+            segment: plugins._segment
+        });
 
-            const cache = Utils.makeCache({
-                server: server, 
-                options: options, 
-                query: getRecords,  
-                segment: plugins._segment
-            });
+        // binds cache to every route registered  
+        // **within this plugin** after this line
+        server.bind({ cache });
 
-            // binds cache to every route registered  
-            // **within this plugin** after this line
-            server.bind({ cache });
-
-            server.route([{ 
-                path: plugins._path, 
-                method: 'GET', 
-                config: {
-                    description: `Fetch ${plugins._resources} from Zenodo`,
-                    tags: [plugins._resources, 'api'],
-                    plugins: {
-                        'hapi-swagger': {
-                            order: plugins._order,
-                            responseMessages: ResponseMessages
-                        }
-                    },
-                    validate: Schema[plugins._resources],
-                    notes: [
-                        `This is the main route for fetching ${plugins._resources} matching the provided query parameters.`
-                    ]
+        server.route([{ 
+            path: plugins._path, 
+            method: 'GET', 
+            config: {
+                description: `Fetch ${plugins._resources} from Zenodo`,
+                tags: [plugins._resources, 'api'],
+                plugins: {
+                    'hapi-swagger': {
+                        order: plugins._order,
+                        responseMessages: ResponseMessages
+                    }
                 },
-                handler 
-            }]);
-        },
-    },
+                validate: Schema[plugins._resources],
+                notes: [
+                    `This is the main route for fetching ${plugins._resources} matching the provided query parameters.`
+                ]
+            },
+            handler 
+        }]);
+    }
 };
 
 const handler = async function(request, h) {
@@ -247,3 +236,5 @@ const getStats = async function(query) {
         return {error: err}
     }
 };
+
+module.exports = plugin;

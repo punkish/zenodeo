@@ -74,80 +74,80 @@ module.exports = {
                 .description('any text string')
                 .optional(),
 
-            file_type: Joi.string()
-                .description('File type, usually determined by the extension')
-                .optional()
-                .valid(
-                    'png', 
-                    'jpg', 
-                    'pdf', 
-                    'xml', 
-                    'xlsx', 
-                    'docx', 
-                    'xls', 
-                    'csv', 
-                    'svg', 
-                    'doc'
-                ),
+            // file_type: Joi.string()
+            //     .description('File type, usually determined by the extension')
+            //     .optional()
+            //     .valid(
+            //         'png', 
+            //         'jpg', 
+            //         'pdf', 
+            //         'xml', 
+            //         'xlsx', 
+            //         'docx', 
+            //         'xls', 
+            //         'csv', 
+            //         'svg', 
+            //         'doc'
+            //     ),
 
-            type: Joi.string()
-                .description('Type of resource')
-                .optional()
-                .valid(
-                    'image', 
-                    'publication', 
-                    'dataset', 
-                    'presentation', 
-                    'video'
-                ),
+            // type: Joi.string()
+            //     .description('Type of resource')
+            //     .optional()
+            //     .valid(
+            //         'image', 
+            //         'publication', 
+            //         'dataset', 
+            //         'presentation', 
+            //         'video'
+            //     ),
         
-            image_subtype: Joi.string()
-                .description('Subtype based on the file_type \"image\"')
-                .optional()
-                .when(
-                    'type', {
-                        is: 'image',
-                        then: Joi.valid(
-                            'figure', 
-                            'photo', 
-                            'drawing', 
-                            'other', 
-                            'diagram', 
-                            'plot'
-                        )
-                    }
-                ),
+            // image_subtype: Joi.string()
+            //     .description('Subtype based on the file_type \"image\"')
+            //     .optional()
+            //     .when(
+            //         'type', {
+            //             is: 'image',
+            //             then: Joi.valid(
+            //                 'figure', 
+            //                 'photo', 
+            //                 'drawing', 
+            //                 'other', 
+            //                 'diagram', 
+            //                 'plot'
+            //             )
+            //         }
+            //     ),
 
-            subtype: Joi.string()
-                .description('Subtype based on the file_type \"publication\"')
-                .optional()
-                .when(
-                    'type', {
-                        is: 'image',
-                        then: Joi.valid(
-                            'article', 
-                            'conferencepaper', 
-                            'report', 
-                            'other', 
-                            'book', 
-                            'thesis', 
-                            'section', 
-                            'workingpaper', 
-                            'deliverable', 
-                            'preprint'
-                        )
-                    }
-                ),
+            // subtype: Joi.string()
+            //     .description('Subtype based on the file_type \"publication\"')
+            //     .optional()
+            //     .when(
+            //         'type', {
+            //             is: 'image',
+            //             then: Joi.valid(
+            //                 'article', 
+            //                 'conferencepaper', 
+            //                 'report', 
+            //                 'other', 
+            //                 'book', 
+            //                 'thesis', 
+            //                 'section', 
+            //                 'workingpaper', 
+            //                 'deliverable', 
+            //                 'preprint'
+            //             )
+            //         }
+            //     ),
 
-            access_right: Joi.string()
-                .description('Access rights for the resource')
-                .optional()
-                .valid(
-                    'open', 
-                    'closed', 
-                    'embargoed', 
-                    'restricted'
-                ),
+            // access_right: Joi.string()
+            //     .description('Access rights for the resource')
+            //     .optional()
+            //     .valid(
+            //         'open', 
+            //         'closed', 
+            //         'embargoed', 
+            //         'restricted'
+            //     ),
 
             // starts with
             // creators.name:/Agosti.*/
@@ -175,6 +175,15 @@ module.exports = {
                 - is exactly "Agosti, Donat": "Agosti, Donat",
                 - either "Agosti" or "Donat": Agosti Donat,
                 - both "Agosti" and "Donat": Agosti AND Donat`)
+                .optional(),
+
+            title: Joi.string()
+                .description(`Title of the record. Use the following syntax:
+                - starts with "Peacock": /Peacock.*/, 
+                - contains "peacock": peacock,
+                - is exactly "spider, peacock": "spider, peacock",
+                - either "spider" or "peacock": spider peacock,
+                - both "spider" and "peacock" in any order: spider AND peacock`)
                 .optional(),
 
             keywords: Joi.array()
@@ -239,80 +248,96 @@ module.exports = {
                 .description('any text string')
                 .optional(),
 
-            file_type: Joi.string()
-                .description('File type, usually determined by the extension')
-                .optional()
-                .valid(
-                    'png', 
-                    'jpg', 
-                    'pdf', 
-                    'xml', 
-                    'xlsx', 
-                    'docx', 
-                    'xls', 
-                    'csv', 
-                    'svg', 
-                    'doc'
-                ),
+            // file_type: Joi.string()
+            //     .description('File type, usually determined by the extension')
+            //     .optional()
+            //     .valid(
+            //         'png', 
+            //         'jpg', 
+            //         'pdf', 
+            //         'xml', 
+            //         'xlsx', 
+            //         'docx', 
+            //         'xls', 
+            //         'csv', 
+            //         'svg', 
+            //         'doc'
+            //     ),
+
+            // type: Joi.string()
+            //     .description('Type of resource')
+            //     .optional()
+            //     .valid(
+            //         'image', 
+            //         'publication', 
+            //         'dataset', 
+            //         'presentation', 
+            //         'video'
+            //     ),
+        
+            // image_subtype: Joi.string()
+            //     .description('Subtype based on the file_type \"image\"')
+            //     .optional()
+            //     .when(
+            //         'type', {
+            //             is: 'image',
+            //             then: Joi.valid(
+            //                 'figure', 
+            //                 'photo', 
+            //                 'drawing', 
+            //                 'other', 
+            //                 'diagram', 
+            //                 'plot'
+            //             )
+            //         }
+            //     ),
+
+            // subtype: Joi.string()
+            //     .description('Subtype based on the file_type \"publication\"')
+            //     .optional()
+            //     .when(
+            //         'type', {
+            //             is: 'publication',
+            //             then: Joi.valid(
+            //                 'article', 
+            //                 'taxonomictreatment', 
+            //                 'report', 
+            //                 'other', 
+            //                 'book', 
+            //                 'thesis', 
+            //                 'section', 
+            //                 'workingpaper', 
+            //                 'deliverable', 
+            //                 'preprint'
+            //             )
+            //         }
+            //     ),
 
             type: Joi.string()
-                .description('Type of resource')
+                .description('Type of \"publication\"')
                 .optional()
                 .valid(
-                    'image', 
-                    'publication', 
-                    'dataset', 
-                    'presentation', 
-                    'video'
-                ),
-        
-            image_subtype: Joi.string()
-                .description('Subtype based on the file_type \"image\"')
-                .optional()
-                .when(
-                    'type', {
-                        is: 'image',
-                        then: Joi.valid(
-                            'figure', 
-                            'photo', 
-                            'drawing', 
-                            'other', 
-                            'diagram', 
-                            'plot'
-                        )
-                    }
+                    'article', 
+                    'taxonomictreatment', 
+                    'report', 
+                    'other', 
+                    'book', 
+                    'thesis', 
+                    'section', 
+                    'workingpaper', 
+                    'deliverable', 
+                    'preprint'
                 ),
 
-            subtype: Joi.string()
-                .description('Subtype based on the file_type \"publication\"')
-                .optional()
-                .when(
-                    'type', {
-                        is: 'publication',
-                        then: Joi.valid(
-                            'article', 
-                            'taxonomictreatment', 
-                            'report', 
-                            'other', 
-                            'book', 
-                            'thesis', 
-                            'section', 
-                            'workingpaper', 
-                            'deliverable', 
-                            'preprint'
-                        )
-                    }
-                ),
-
-            access_right: Joi.string()
-                .description('Access rights for the resource')
-                .optional()
-                .valid(
-                    'open', 
-                    'closed', 
-                    'embargoed', 
-                    'restricted'
-                ),
+            // access_right: Joi.string()
+            //     .description('Access rights for the resource')
+            //     .optional()
+            //     .valid(
+            //         'open', 
+            //         'closed', 
+            //         'embargoed', 
+            //         'restricted'
+            //     ),
 
             // starts with
             // creators.name:/Agosti.*/
@@ -340,6 +365,15 @@ module.exports = {
                 - is exactly "Agosti, Donat": "Agosti, Donat",
                 - either "Agosti" or "Donat": Agosti Donat,
                 - both "Agosti" and "Donat": Agosti AND Donat`)
+                .optional(),
+
+            title: Joi.string()
+                .description(`Title of the record. Use the following syntax:
+                - starts with "Peacock": /Peacock.*/, 
+                - contains "peacock": peacock,
+                - is exactly "spider, peacock": "spider, peacock",
+                - either "spider" or "peacock": spider peacock,
+                - both "spider" and "peacock" in any order: spider AND peacock`)
                 .optional(),
 
             keywords: Joi.array()

@@ -12,16 +12,25 @@ const cacheOn = config.get('cache.v2.on');
 const Wreck = require('wreck');
 const uriZenodo = config.get('uri.remote') + '/records/';
 
+const plugins = {
+    _resource: 'image',
+    _resources: 'images',
+    _name: 'images2',
+    _segment: 'images2',
+    _path: '/images',
+    _order: 7
+};
+
 module.exports = {
     plugin: {
-        name: 'images2',
+        name: plugins._name,
         register: async function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'images2'
+                segment: plugins._segment
             });
 
             // binds cache to every route registered  
@@ -29,20 +38,20 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: '/images', 
+                path: plugins._path, 
                 method: 'GET', 
                 config: {
-                    description: "Fetch images from Zenodo",
-                    tags: ['images', 'api'],
+                    description: `Fetch ${plugins._resources} from Zenodo`,
+                    tags: [plugins._resources, 'api'],
                     plugins: {
                         'hapi-swagger': {
-                            order: 7,
+                            order: plugins._order,
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.images,
+                    validate: Schema[plugins._resources],
                     notes: [
-                        'This is the main route for fetching images matching the provided query parameters.',
+                        `This is the main route for fetching ${plugins._resources} matching the provided query parameters.`
                     ]
                 },
                 handler 
@@ -117,60 +126,35 @@ const getOneRecord = async function(queryObject) {
 };
 
 const getManyRecords = async function(queryObject) {
+    const exclude = ['page', 'size'];
+    const zenodoSynonyms = {
+        title: 'title',
+        creator: 'creators.name',
+        type: 'type'
+    };
 
-    // const tmp = [];
-    // for (let k in queryObject) {
-    //     if (k !== 'refreshCache') {
-    //         tmp.push(`${k}=${queryObject[k]}`);
-    //     }
-    // }
-    // const queryString = tmp.join('&');
-
-    // const uriRemote = `${uriZenodo}?${queryString}&communities=biosyslit&type=image&access_right=open`;
     const queryArray = [];
-    if (queryObject.q) {
-        queryArray.push(`+${queryObject.q}`);
-        delete(queryObject.q);
-    }
+    for (let k in queryObject) {
+        if (!exclude.includes(k)) {
+            if (k === 'q') {
+                queryArray.push(`+${queryObject.q}`);
+            }
+            else {
+                if (queryObject[k].indexOf(' AND ') > -1) {
+                    queryArray.push(`+${zenodoSynonyms[k]}:(${queryObject[k]})`);
+                }
+                else {
+                    queryArray.push(`+${zenodoSynonyms[k]}:${queryObject[k]}`);
+                }
+            }
 
-    if (queryObject.creator) {
-
-        // if the user wants to use boolean AND, we need to wrap the 
-        // search terms in parens
-
-        // AND
-        // creators.name:(Agosti AND Donat) 
-        //// creator = 'Agosti AND Donat';
-        if (queryObject.creator.indexOf(' AND ') > -1) {
-            queryArray.push(`+creators.name:(${queryObject.creator})`);
+            delete(queryObject[k]);
         }
-        else {
-
-            // for all other cases
-            
-            // starts with
-            // creators.name:/Agosti.*/
-            //// creator = /Agosti.*/;
-
-            // single token
-            // creators.name:Agosti
-            //// creator = 'Agosti';
-
-            // exact phrase
-            // creators.name:”Agosti, Donat”
-            //// creator = '"Agosti, Donat"';
-
-            // OR
-            // creators.name:(Agosti Donat)
-            //// creator = 'Agosti Donat';
-            queryArray.push(`+creators.name:${queryObject.creator}`);
-        }
-        
-        // remove 'creator' from queryObject as its job is done
-        delete(queryObject.creator);
     }
-
-    const queryString = 'q=' + encodeURIComponent(queryArray.join(' ')) + '&' + Object.keys(queryObject).map(e => `${e}=${queryObject[e]}`).join('&') + '&communities=biosyslit&type=image&access_right=open';
+    
+    const qs = queryArray.join(' ');
+    debug(`qs: ${qs}`);
+    const queryString = `q=${encodeURIComponent(qs)}&${Object.keys(queryObject).map(e => e + '=' + queryObject[e]).join('&')}&communities=biosyslit&type=${plugins._resource}&&access_right=open`;
 
     const uriRemote = `${uriZenodo}?${queryString}`;
     const limit = 30;
@@ -199,12 +183,11 @@ const getManyRecords = async function(queryObject) {
 
         const records = [];
 
-        debug(`found ${total} open records… now getting their images`);
+        debug(`found ${total} open records… now getting their ${plugins._resources}`);
         debug(`number of images: ${hits.length}`);
 
         hits.forEach(h => {
             records.push({
-                conceptdoi: h.conceptdoi,
                 conceptrecid: h.conceptrecid,
                 created: h.created,
                 doi: h.doi,
@@ -212,7 +195,7 @@ const getManyRecords = async function(queryObject) {
                 id: h.id,
                 html: h.links.latest_html,
                 thumbs: h.links.thumbs,
-                creators: h.metadata.creators.forEach(c => c.name),
+                creators: h.metadata.creators,
                 description: h.metadata.description,
                 journal: h.metadata.journal,
                 keywords: h.metadata.keywords,
@@ -264,15 +247,3 @@ const getStats = async function(query) {
         return {error: err}
     }
 };
-
-const queryMaker = function(request) {
-
-    let hrefArray = [];
-    for (let p in request.query) {
-        if (p !== 'refreshCache') {
-            hrefArray.push(p + '=' + request.query[p]);
-        }
-    }
-
-    return hrefArray.sort().join('&');
-}
