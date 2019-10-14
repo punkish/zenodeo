@@ -126,6 +126,10 @@ const getOneRecord = async function(queryObject) {
 };
 
 const getManyRecords = async function(queryObject) {
+    const data = {
+        'search-criteria': JSON.parse(JSON.stringify(queryObject))
+    };
+
     const exclude = ['page', 'size', 'type'];
     const zenodoSynonyms = {
         title: 'title',
@@ -204,17 +208,15 @@ const getManyRecords = async function(queryObject) {
             })
         });
 
-        return {
-            'num-of-records': total,
-            from: from,
-            to: to,
-            prevpage: page >= 1 ? page - 1 : '',
-            nextpage: num < limit ? '' : parseInt(page) + 1,
-            'search-criteria': queryObject,
-            records: records,
-            statistics: statistics,
-        };
+        data['num-of-records'] = total;
+        data.from = from;
+        data.to = to;
+        data.prevpage = page >= 1 ? page - 1 : '';
+        data.nextpage = num < limit ? '' : parseInt(page) + 1;
+        data.records = records;
+        data.statistics = statistics;
         
+        return data;
     }
     catch(err) {
         console.error(err);
