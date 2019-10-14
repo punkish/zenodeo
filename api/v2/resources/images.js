@@ -17,15 +17,6 @@ module.exports = {
         name: 'images2',
         register: async function(server, options) {
 
-            // const imagesCache = server.cache({
-            //     cache: options.cacheName,
-            //     expiresIn: options.expiresIn,
-            //     generateTimeout: options.generateTimeout,
-            //     segment: 'images2', 
-            //     generateFunc: async (query) => { return await getImages(query) },
-            //     getDecoratedValue: options.getDecoratedValue
-            // });
-
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
@@ -81,27 +72,6 @@ const handler = async function(request, h) {
     else {
         return getRecords(cacheKey);
     }
-
-    // let query;
-
-    // // ignore all other query params if id is present
-    // if (request.query.id) {
-    //     query = 'id=' + request.query.id;
-    // }
-    // else if (request.query.count) {
-    //     query = 'stats=true';
-    // }
-    // else {
-    //     query = queryMaker(request);
-    // }
-
-    // if (request.query.refreshCache === 'true') {
-    //     debug('forcing refreshCache')
-    //     await this.imagesCache.drop(query);
-    // }
-
-    // uses the bound imagesCache instance from index.js
-    //return await this.imagesCache.get(query); 
 };
 
 const getRecords = function(cacheKey) {
@@ -123,6 +93,7 @@ const getRecords = function(cacheKey) {
 const getOneRecord = async function(queryObject) {    
     let data;
     const uriRemote = uriZenodo + queryObject.id;
+
     try {
         debug(`querying ${uriRemote}`);
         const {res, payload} =  await Wreck.get(uriRemote);
@@ -147,15 +118,61 @@ const getOneRecord = async function(queryObject) {
 
 const getManyRecords = async function(queryObject) {
 
-    const tmp = [];
-    for (let k in queryObject) {
-        if (k !== 'refreshCache') {
-            tmp.push(`${k}=${queryObject[k]}`);
-        }
-    }
-    const queryString = tmp.join('&');
+    // const tmp = [];
+    // for (let k in queryObject) {
+    //     if (k !== 'refreshCache') {
+    //         tmp.push(`${k}=${queryObject[k]}`);
+    //     }
+    // }
+    // const queryString = tmp.join('&');
 
-    const uriRemote = `${uriZenodo}?${queryString}&communities=biosyslit&type=image&access_right=open`;
+    // const uriRemote = `${uriZenodo}?${queryString}&communities=biosyslit&type=image&access_right=open`;
+    const queryArray = [];
+    if (queryObject.q) {
+        queryArray.push(`+${queryObject.q}`);
+        delete(queryObject.q);
+    }
+
+    if (queryObject.creator) {
+
+        // if the user wants to use boolean AND, we need to wrap the 
+        // search terms in parens
+
+        // AND
+        // creators.name:(Agosti AND Donat) 
+        //// creator = 'Agosti AND Donat';
+        if (queryObject.creator.indexOf(' AND ') > -1) {
+            queryArray.push(`+creators.name:(${queryObject.creator})`);
+        }
+        else {
+
+            // for all other cases
+            
+            // starts with
+            // creators.name:/Agosti.*/
+            //// creator = /Agosti.*/;
+
+            // single token
+            // creators.name:Agosti
+            //// creator = 'Agosti';
+
+            // exact phrase
+            // creators.name:”Agosti, Donat”
+            //// creator = '"Agosti, Donat"';
+
+            // OR
+            // creators.name:(Agosti Donat)
+            //// creator = 'Agosti Donat';
+            queryArray.push(`+creators.name:${queryObject.creator}`);
+        }
+        
+        // remove 'creator' from queryObject as its job is done
+        delete(queryObject.creator);
+    }
+
+    const queryString = 'q=' + encodeURIComponent(queryArray.join(' ')) + '&' + Object.keys(queryObject).map(e => `${e}=${queryObject[e]}`).join('&') + '&communities=biosyslit&type=image&access_right=open';
+
+    const uriRemote = `${uriZenodo}?${queryString}`;
     const limit = 30;
 
     try {

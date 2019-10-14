@@ -190,8 +190,8 @@ const getManyRecords = async function(queryObject) {
 
         const records = [];
 
-        debug(`found ${total} open records… now getting their images`);
-        debug(`number of images: ${hits.length}`);
+        debug(`found ${total} open records… now getting their publications`);
+        //debug(`number of images: ${hits.length}`);
 
         hits.forEach(h => {
             records.push({
