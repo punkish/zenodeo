@@ -126,11 +126,10 @@ const getOneRecord = async function(queryObject) {
 };
 
 const getManyRecords = async function(queryObject) {
-    const exclude = ['page', 'size'];
+    const exclude = ['page', 'size', 'type'];
     const zenodoSynonyms = {
         title: 'title',
-        creator: 'creators.name',
-        type: 'type'
+        creator: 'creators.name'
     };
 
     const queryArray = [];
