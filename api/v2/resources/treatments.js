@@ -70,18 +70,17 @@ const _queries = {
                                                      WHERE  f.deleted = 0`
             }
         },
-
+    
         facets: {
-            journalTitle: 'SELECT Count(DISTINCT journalTitle)  AS journalTitle FROM treatments WHERE deleted = 0',
-             journalYear: 'SELECT Count(DISTINCT journalYear)   AS journalYear  FROM treatments WHERE deleted = 0',
-                 kingdom: 'SELECT Count(DISTINCT kingdom)       AS kingdom      FROM treatments WHERE deleted = 0',
-                  phylum: 'SELECT Count(DISTINCT phylum)        AS phylum       FROM treatments WHERE deleted = 0',
-                   order: 'SELECT Count(DISTINCT "order")       AS "order"      FROM treatments WHERE deleted = 0',
-                  family: 'SELECT Count(DISTINCT family)        AS family       FROM treatments WHERE deleted = 0',
-                   genus: 'SELECT Count(DISTINCT genus)         AS genus        FROM treatments WHERE deleted = 0',
-                 species: 'SELECT Count(DISTINCT species)       AS species      FROM treatments WHERE deleted = 0',
-                  status: 'SELECT Count(DISTINCT status)        AS status       FROM treatments WHERE deleted = 0',
-                    rank: 'SELECT Count(DISTINCT rank)          AS rank         FROM treatments WHERE deleted = 0'
+            journalTitle: "SELECT journalTitle, Count(journalTitle) AS c FROM treatments WHERE deleted = 0 AND journalTitle != '' GROUP BY journalTitle",
+             journalYear: "SELECT journalYear,  Count(journalYear)  AS c FROM treatments WHERE deleted = 0 AND journalYear  != '' GROUP BY journalYear",
+                 kingdom: "SELECT kingdom,      Count(kingdom)      AS c FROM treatments WHERE deleted = 0 AND kingdom      != '' GROUP BY kingdom",
+                  phylum: "SELECT phylum,       Count(phylum)       AS c FROM treatments WHERE deleted = 0 AND phylum       != '' GROUP BY phylum",
+                   order: "SELECT \"order\",    Count(\"order\")    AS c FROM treatments WHERE deleted = 0 AND \"order\"    != '' GROUP BY \"order\"",
+                  family: "SELECT family,       Count(family)       AS c FROM treatments WHERE deleted = 0 AND family       != '' GROUP BY family",
+                   genus: "SELECT genus,        Count(genus)        AS c FROM treatments WHERE deleted = 0 AND genus        != '' GROUP BY genus",
+                  status: "SELECT status,       Count(status)       AS c FROM treatments WHERE deleted = 0 AND status       != '' GROUP BY status",
+                    rank: "SELECT rank,         Count(rank)         AS c FROM treatments WHERE deleted = 0 AND rank         != '' GROUP BY rank"
         }
     },
 
@@ -348,11 +347,8 @@ const getManyRecords = function(queryObject) {
         // total number of matches
         selcount = _queries.none.count;
 
-        // the first page (OFFSET 1) of 30 records (LIMIT 30)
+        // the a page of 30 records (LIMIT 30)
         seldata = _queries.none.data;
-
-        // no related records
-        // selrelated
 
         // stats
         selstats = _queries.none.stats;
@@ -384,7 +380,12 @@ const getManyRecords = function(queryObject) {
                     queries.where.push('vtreatments MATCH @q');
                 }
                 else {
-                    queries.where.push(`${param} = @${param}`);
+                    if (param === 'order') {
+                        queries.where.push('"order" = @order');
+                    }
+                    else {
+                        queries.where.push(`${param} = @${param}`);
+                    }
                 }
             }
         }
@@ -401,7 +402,7 @@ const getManyRecords = function(queryObject) {
                 f = 'rank';
             }
 
-            selfacets[facet] = `SELECT Count(DISTINCT ${facet}) AS ${f} ${fromwhere}`;
+            selfacets[facet] = `SELECT ${facet}, Count(${facet}) AS c ${fromwhere} AND ${facet} != '' GROUP BY ${facet}`;
         });
 
         // total number of matches
@@ -455,7 +456,7 @@ const getManyRecords = function(queryObject) {
     for (let q in selfacets) {
         try {
             debug(`${q}: ${selfacets[q]}`);
-            data.facets[q] = db.prepare(selfacets[q]).get(queryObject)[q];
+            data.facets[q] = db.prepare(selfacets[q]).all(queryObject);
         }
         catch (error) {
             console.log(error);
