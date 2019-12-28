@@ -30,7 +30,7 @@
     "good": "^8.1.2",
     "good-console": "^7.1.0",
     "good-squeeze": "^5.1.0",
-    "handlebars": "^4.1.2",
+    "handlebars": "^4.3.0",
     "hapi": "18.1.0",
     "hapi-swagger": "^10.1.1",
     "hapi-swagger-9.4.2": "npm:hapi-swagger@9.4.2",
