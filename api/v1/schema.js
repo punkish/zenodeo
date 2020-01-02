@@ -1,26 +1,26 @@
 // v1 schema
-const Joi = require('joi');
+const Joi = require('@hapi/joi');
 
 const schema = {
     record: {
-        params: {
+        params: Joi.object({
             id: Joi.number()
                 .description("record id")
                 .integer()
                 .positive()
                 .required()
-        },
-        query: {
+        }),
+        query: Joi.object({
             images: Joi.boolean()
                 .description("force refresh cache"),
 
             refreshCache: Joi.boolean()
                 .default(false)
-        }
+        })
     },
 
     records: {
-        query: {
+        query: Joi.object({
             page: Joi.number()
                 .integer()
                 .description('starting page')
@@ -130,27 +130,27 @@ const schema = {
 
             refreshCache: Joi.boolean()
                 .default(false)
-        }
+        })
     },
 
     files: {
-        params: {
+        params: Joi.object({
             file_id: Joi.string()
-        },
-        query: {                
+        }),
+        query: Joi.object({                
             refreshCache: Joi.boolean()
                 .default(false)
-        }
+        })
     },
 
     treatments: {
-        params: {
+        params: Joi.object({
             id: Joi.string().required()
-        },
-        query: {
+        }),
+        query: Joi.object({
             refreshCache: Joi.boolean()
                 .default(false)
-        }
+        })
     }
 };
 

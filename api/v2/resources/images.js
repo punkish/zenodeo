@@ -6,10 +6,18 @@ const debug = require('debug')('v2:images');
 const config = require('config');
 const Utils = require('../utils');
 
+const chalk = require('chalk');
+const log = require('picolog');
+log.level = log.INFO;
+
+const logger = function(str) {
+    log.info(chalk.blue.bold(str));
+};
+
 const uriZenodeo = config.get('uri.zenodeo') + '/v2';
 const cacheOn = config.get('cache.v2.on');
 
-const Wreck = require('wreck');
+const Wreck = require('@hapi/wreck');
 const uriZenodo = config.get('uri.remote') + '/records/';
 
 const plugins = {
@@ -62,6 +70,8 @@ module.exports = {
 
 const handler = async function(request, h) {
 
+    console.log(request.query);
+    
     // cacheKey is the URL query without the refreshCache param.
     // The default params, if any, are used in making the cacheKey.
     // The default params are also used in queryObject to actually 
@@ -130,34 +140,98 @@ const getManyRecords = async function(queryObject) {
         'search-criteria': JSON.parse(JSON.stringify(queryObject))
     };
 
-    const exclude = ['page', 'size', 'type'];
-    const zenodoSynonyms = {
-        title: 'title',
-        creator: 'creators.name'
-    };
+    const mandatoryparams = ['page', 'size', 'communities', 'q'];
 
-    const queryArray = [];
+    // default search
+    let searchType = 'simple';
+
     for (let k in queryObject) {
-        if (!exclude.includes(k)) {
-            if (k === 'q') {
-                queryArray.push(`+${queryObject.q}`);
-            }
-            else {
-                if (queryObject[k].indexOf(' AND ') > -1) {
-                    queryArray.push(`+${zenodoSynonyms[k]}:(${queryObject[k]})`);
-                }
-                else {
-                    queryArray.push(`+${zenodoSynonyms[k]}:${queryObject[k]}`);
-                }
-            }
-
-            delete(queryObject[k]);
+        if (!mandatoryparams.includes(k)) {
+            searchType = 'fancy';
+            break;
         }
     }
-    
-    const qs = queryArray.join(' ');
-    debug(`qs: ${qs}`);
-    const queryString = `q=${encodeURIComponent(qs)}&${Object.keys(queryObject).map(e => e + '=' + queryObject[e]).join('&')}&communities=biosyslit&type=${plugins._resource}&&access_right=open`;
+
+    let queryString = '';
+
+    // if queryObject contains *only* q besides the mandatory params
+    // then it is a simple search
+    if (searchType === 'simple') {
+        const others = [];
+
+        for (let k in queryObject) {
+            if (k === 'communities') {
+                queryObject['communities'].split(',').forEach(c => others.push(`communities=${c}`));
+            }
+            else {
+                others.push(`${k}=${queryObject[k]}`);
+            }
+        }
+
+        const qs = others.join('&');
+        debug(`qs: ${qs}`);
+        //const queryString = `q=${encodeURIComponent(qs)}&${Object.keys(queryObject).map(e => e + '=' + queryObject[e]).join('&')}&communities=biosyslit&type=${plugins._resource}&access_right=open`;
+        queryString = `${qs}&type=${plugins._resource}&access_right=open`;
+    }
+
+    // if queryObject contains other search params besides q then 
+    // it is a fancysearch
+    else if (searchType === 'fancy') {
+
+        const exclude = ['page', 'size', 'type', 'communities'];
+        const zenodoSynonyms = {
+            author: 'creators.name',
+            text: 'q'
+        };
+
+        // the following params are searched for exact pattern
+        const exact = ['doi'];
+
+        const queryArray = [];
+        const others = [];
+
+        for (let k in queryObject) {
+            if (!exclude.includes(k)) {
+                if (k === 'q') {
+                    queryArray.push(`+${queryObject.q}`);
+                }
+                else {
+
+                    if (k in zenodoSynonyms) {
+                        if (exact.includes(k)) {
+                            queryArray.push(`+${zenodoSynonyms[k]}:"${queryObject[k]}"`);
+                        }
+                        else {
+                            queryArray.push(`+${zenodoSynonyms[k]}:${queryObject[k]}`);
+                        }
+                        
+                    }
+                    else {
+                        if (exact.includes(k)) {
+                            queryArray.push(`+${k}:"${queryObject[k]}"`);
+                        }
+                        else {
+                            queryArray.push(`+${k}:${queryObject[k]}`);
+                        }
+                    }
+                    
+                }
+
+                delete(queryObject[k]);
+            }
+            else {
+                others.push(`${k}=${queryObject[k]}`);
+            }
+        }
+        
+        const qs = queryArray.join(' ');
+        //debug(`qs: ${qs}`);
+        //const queryString = `q=${encodeURIComponent(qs)}&${Object.keys(queryObject).map(e => e + '=' + queryObject[e]).join('&')}&communities=biosyslit&type=${plugins._resource}&access_right=open`;
+        queryString = `q=${encodeURIComponent(qs)}&type=${plugins._resource}&access_right=open&${others.join('&')}`;
+        
+        logger(`queryString: ${queryString}`)
+
+    }
 
     const uriRemote = `${uriZenodo}?${queryString}`;
     const limit = 30;

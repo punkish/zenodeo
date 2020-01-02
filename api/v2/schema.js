@@ -1,7 +1,7 @@
 // v2 schema
 'use strict';
 
-const Joi = require('joi');
+const Joi = require('@hapi/joi');
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
 
@@ -18,7 +18,7 @@ for (let table in dataDict) {
 module.exports = {
 
     communities: {
-        query: {
+        query: Joi.object({
             name: Joi.string()
                 .description('The Zenodo Community to be queried for the records; defaults to "biosyslit"')
                 .valid('all', 'biosyslit', 'belgiumherbarium')
@@ -28,11 +28,11 @@ module.exports = {
             refreshCache: Joi.boolean()
                 .description("force refresh cache")
                 .default(false),
-        }
+        })
     },
 
     images: {
-        query: {
+        query: Joi.object({
             
             id: Joi.number()
                 .description("record id. All other query params are ignored if id is provided.")
@@ -64,10 +64,15 @@ module.exports = {
                     otherwise: Joi.required() 
                 }),
 
-            // communities: Joi.string()
+            communities: Joi.string()
+                .description('The community on Zenodo; defaults to "biosyslit"')
+                .valid('biosyslit', 'belgiumherbarium')
+                .default('biosyslit')
+                .optional(),
+            // communities: Joi.array()
             //     .description('The community on Zenodo; defaults to "biosyslit"')
-            //     .valid('all', 'BLR', 'belgiumherbarium')
-            //     .default('BLR')
+            //     .items(Joi.string().valid('biosyslit', 'belgiumherbarium'))
+            //     .default('biosyslit')
             //     .optional(),
 
             q: Joi.string()
@@ -168,13 +173,17 @@ module.exports = {
             // AND
             // creators.name:(Agosti AND Donat) 
             //// creator = 'Agosti AND Donat';
-            creator: Joi.string()
+            author: Joi.string()
                 .description(`Usually author. Use the following syntax:
                 - starts with "Agosti": /Agosti.*/, 
                 - contains "Agosti": Agosti,
                 - is exactly "Agosti, Donat": "Agosti, Donat",
                 - either "Agosti" or "Donat": Agosti Donat,
                 - both "Agosti" and "Donat": Agosti AND Donat`)
+                .optional(),
+
+            doi: Joi.string()
+                .description('DOI')
                 .optional(),
 
             title: Joi.string()
@@ -202,11 +211,11 @@ module.exports = {
                 .description("force refresh cache")
                 .optional()
                 .default(false)
-        }
+        })
     },
 
     publications: {
-        query: {
+        query: Joi.object({
             
             id: Joi.number()
                 .description("record id. All other query params are ignored if id is provided.")
@@ -389,19 +398,20 @@ module.exports = {
                 .description("force refresh cache")
                 .optional()
                 .default(false)
-        }
+        })
     },
 
     files: {
-        params: {
+        params: Joi.object({
             file_id: Joi.string()
-        }
+        })
     },
 
     treatments: {
-        query: {
+        query: Joi.object({
             
             treatmentId: Joi.string()
+                .alphanum()
                 .description(descriptions.treatmentId)
                 .optional(),
 
@@ -502,12 +512,16 @@ module.exports = {
                 .min(-180)
                 .max(180)
                 .description(descriptions.longitude)
-                .optional()
-        }
+                .optional(),
+
+            sortBy: Joi.string()
+                .description('sort column and order')
+                .optional(),
+        })
     },
 
     figureCitations: {
-        query: {
+        query: Joi.object({
             figureCitationId: Joi.string()
                 .description(descriptions.figureCitationId)
                 .optional(),
@@ -540,11 +554,11 @@ module.exports = {
             q: Joi.string()
                 .description(descriptions.fullText)
                 .optional()
-        }
+        })
     },
 
     bibRefCitations: {
-        query: {
+        query: Joi.object({
             bibRefCitationId: Joi.string()
                 .description(descriptions.bibRefCitationId)
                 .optional(),
@@ -577,11 +591,11 @@ module.exports = {
             q: Joi.string()
                 .description(descriptions.fullText)
                 .optional()
-        }
+        })
     },
 
     treatmentAuthors: {
-        query: {
+        query: Joi.object({
             treatmentAuthorId: Joi.string()
                 .description(descriptions.treatmentAuthorId)
                 .optional(),
@@ -614,38 +628,38 @@ module.exports = {
             q: Joi.string()
                 .description(descriptions.fullText)
                 .optional()
-        }
+        })
     },
 
     wpsummary: {
-        query: {
+        query: Joi.object({
             q: Joi.string().required()
-        }
+        })
     },
 
     // no caching for any of the resources below
     authors: {
-        query: {
+        query: Joi.object({
             q: Joi.string().required()
-        }
+        })
     },
 
     keywords: {
-        query: {
+        query: Joi.object({
             q: Joi.string().required()
-        }
+        })
     },
 
     families: {
-        query: {
+        query: Joi.object({
             q: Joi.string().required()
-        }
+        })
     },
 
     taxa: {
-        query: {
+        query: Joi.object({
             q: Joi.string().required()
-        }
+        })
     }
 
 }

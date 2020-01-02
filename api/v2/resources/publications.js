@@ -9,7 +9,7 @@ const Utils = require('../utils');
 const uriZenodeo = config.get('uri.zenodeo') + '/v2';
 const cacheOn = config.get('cache.v2.on');
 
-const Wreck = require('wreck');
+const Wreck = require('@hapi/wreck');
 const uriZenodo = config.get('uri.remote') + '/records/';
 
 const plugins = {

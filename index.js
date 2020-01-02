@@ -7,13 +7,7 @@ Start this program from the command line with `pm2`
 
 'use strict';
 
-/*** hapi 18.1.x *************************************/
-// const Hapi = require('hapi');
-// const Inert = require('inert');
-// const Vision = require('vision');
-// const HapiSwagger = require('hapi-swagger-9.4.2');
-
-/*** hapi 18.3.1 *************************************/
+/*** hapi 18.4.0 *************************************/
 const Hapi = require('@hapi/hapi');
 const Inert = require('@hapi/inert');
 const Vision = require('@hapi/vision');
@@ -22,7 +16,7 @@ const HapiSwagger = require('hapi-swagger');
 const Disk = require('catbox-disk');
 const Blipp = require('blipp');
 
-const debug = require('debug')('v2: index');
+//const debug = require('debug')('v2: index');
 const config = require('config');
 const cacheName = config.get('cache.v2.name');
 const cachePath = config.get('cache.v2.path');

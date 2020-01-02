@@ -61,7 +61,22 @@ module.exports = {
         },
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v2', 'schema.js'),
-        'facets': ['journalTitle', 'journalYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank']
+        'facets': ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCodes']
+  
+
+        // relatedMaterialCitations: {
+        //     yes: integer, // count
+        //     no: integer // count
+        // },
+        // relatedTreatmentCitations: {
+        //     yes: integer, // count
+        //     no: integer // count
+        // }, 
+        // hasFigures: {
+        //     yes: integer, // count
+        //     no: integer // count
+        // }, 
+
     },
 
     'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',

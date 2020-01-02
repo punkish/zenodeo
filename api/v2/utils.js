@@ -1,7 +1,7 @@
-const Wreck = require('wreck');
-const Schema = require('./schema.js');
-const ResponseMessages = require('../responseMessages');
-const debug = require('debug')('v2:utils');
+const Wreck = require('@hapi/wreck');
+// const Schema = require('./schema.js');
+// const ResponseMessages = require('../responseMessages');
+// const debug = require('debug')('v2:utils');
 
 const config = require('config');
 // const authors = config.get('data.authors');

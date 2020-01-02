@@ -23,6 +23,45 @@ String.prototype.format = function() {
 
 const _queries = {
 
+    /*
+    The following columns are not part of the 'treatments' table. They are related records for every treatment
+    - treatmentAuthors
+    - materialsCitations
+    - figureCitations
+
+    I don't have 'treatmentCitations'.
+
+    That leaves only 'journalYear' from what you asked for.
+
+    Remember, I can only sort by the columns in my table. The columns are 
+    - treatmentTitle
+    - articleDoi
+    - zenodoDep
+    - zoobank
+    - articleTitle
+    - publicationDate
+    - journalTitle
+    - journalYear
+    - journalVolume
+    - journalIssue
+    - pages
+    - authorityName
+    - authorityYear
+    - kingdom
+    - phylum
+    - order
+    - family
+    - genus
+    - species
+    - status
+    - taxonomicNameLabel
+    - rank
+
+    Thought sorting by many of the above may not make sense.
+
+    The default sort is by 'treatmentId' with sort order ASC
+*/
+
     // no parameters
     none: {
 
@@ -30,7 +69,7 @@ const _queries = {
         count: 'SELECT Count(treatmentId) AS numOfRecords FROM treatments WHERE deleted = 0',
 
         // the first page (OFFSET 1) of 30 records (LIMIT 30)
-        data:  `SELECT id, treatmentId, treatmentTitle, doi AS articleDoi, zenodoDep, zoobank, articleTitle, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, pages, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, taxonomicNameLabel, rank FROM treatments WHERE deleted = 0 LIMIT @limit OFFSET @offset`,
+        data:  'SELECT id, treatmentId, treatmentTitle, doi AS articleDoi, zenodoDep, zoobank, articleTitle, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, pages, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, taxonomicNameLabel, rank FROM treatments WHERE deleted = 0 ORDER BY {0} {1} LIMIT @limit OFFSET @offset',
 
         // related records: there are no related records since many treatments are being returned
         // related records are returned only for a single treatment
@@ -72,15 +111,18 @@ const _queries = {
         },
     
         facets: {
-            journalTitle: "SELECT journalTitle, Count(journalTitle) AS c FROM treatments WHERE deleted = 0 AND journalTitle != '' GROUP BY journalTitle",
-             journalYear: "SELECT journalYear,  Count(journalYear)  AS c FROM treatments WHERE deleted = 0 AND journalYear  != '' GROUP BY journalYear",
-                 kingdom: "SELECT kingdom,      Count(kingdom)      AS c FROM treatments WHERE deleted = 0 AND kingdom      != '' GROUP BY kingdom",
-                  phylum: "SELECT phylum,       Count(phylum)       AS c FROM treatments WHERE deleted = 0 AND phylum       != '' GROUP BY phylum",
-                   order: "SELECT \"order\",    Count(\"order\")    AS c FROM treatments WHERE deleted = 0 AND \"order\"    != '' GROUP BY \"order\"",
-                  family: "SELECT family,       Count(family)       AS c FROM treatments WHERE deleted = 0 AND family       != '' GROUP BY family",
-                   genus: "SELECT genus,        Count(genus)        AS c FROM treatments WHERE deleted = 0 AND genus        != '' GROUP BY genus",
-                  status: "SELECT status,       Count(status)       AS c FROM treatments WHERE deleted = 0 AND status       != '' GROUP BY status",
-                    rank: "SELECT rank,         Count(rank)         AS c FROM treatments WHERE deleted = 0 AND rank         != '' GROUP BY rank"
+           journalVolume: "SELECT journalVolume,  Count(journalVolume)  AS c FROM treatments WHERE deleted = 0 AND journalVolume != '' GROUP BY journalVolume",
+            journalTitle: "SELECT journalTitle,   Count(journalTitle)   AS c FROM treatments WHERE deleted = 0 AND journalTitle  != '' GROUP BY journalTitle",
+             journalYear: "SELECT journalYear,    Count(journalYear)    AS c FROM treatments WHERE deleted = 0 AND journalYear   != '' GROUP BY journalYear",
+                 kingdom: "SELECT kingdom,        Count(kingdom)        AS c FROM treatments WHERE deleted = 0 AND kingdom       != '' GROUP BY kingdom",
+                  phylum: "SELECT phylum,         Count(phylum)         AS c FROM treatments WHERE deleted = 0 AND phylum        != '' GROUP BY phylum",
+                   order: "SELECT \"order\",      Count(\"order\")      AS c FROM treatments WHERE deleted = 0 AND \"order\"     != '' GROUP BY \"order\"",
+                  family: "SELECT family,         Count(family)         AS c FROM treatments WHERE deleted = 0 AND family        != '' GROUP BY family",
+                   genus: "SELECT genus,          Count(genus)          AS c FROM treatments WHERE deleted = 0 AND genus         != '' GROUP BY genus",
+                  status: "SELECT status,         Count(status)         AS c FROM treatments WHERE deleted = 0 AND status        != '' GROUP BY status",
+                    rank: "SELECT rank,           Count(rank)           AS c FROM treatments WHERE deleted = 0 AND rank          != '' GROUP BY rank",
+                 species: "SELECT species,        Count(species)        AS c FROM treatments WHERE deleted = 0 AND species       != '' GROUP BY species",
+          collectionCode: "SELECT collectionCode, Count(collectionCode) AS c FROM materialsCitations m JOIN treatments t on m.treatmentId = t.treatmentId WHERE m.deleted = 0 AND t.deleted = 0 AND collectionCode != '' GROUP BY collectionCode"
         }
     },
 
@@ -88,6 +130,7 @@ const _queries = {
     one: {
 
         count: 1,
+
         data: 'SELECT treatmentId, treatmentTitle, pages, doi AS articleDoi, zenodoDep, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, rank, fullText FROM treatments WHERE deleted = 0 AND treatmentId = @treatmentId',
         
         related: {
@@ -328,11 +371,28 @@ const getManyRecords = function(queryObject) {
     const data = {};
     
     const exclude = ['page', 'size'];
+    const sortable = ['journalYear'];
+    let sort = 'treatmentId';
+    let sortdir = 'ASC';
 
     let noParams = true;
+
     for (let param in queryObject) {
-        if (!exclude.includes(param)) {
-            noParams = false;
+        if (param === 'sortBy') {
+            [sort, sortdir] = queryObject[param].split(':');
+
+            if (!sortable.includes(sort)) {
+                sort = 'treatmentId';
+            }
+
+            if (sortdir !== 'ASC' && sortdir !== 'DESC') {
+                sortdir = 'ASC';
+            }
+        }
+        else {
+            if (!exclude.includes(param)) {
+                noParams = false;
+            }
         }
     }
 
@@ -348,7 +408,7 @@ const getManyRecords = function(queryObject) {
         selcount = _queries.none.count;
 
         // the a page of 30 records (LIMIT 30)
-        seldata = _queries.none.data;
+        seldata = _queries.none.data.format(sort, sortdir);
 
         // stats
         selstats = _queries.none.stats;
@@ -366,27 +426,43 @@ const getManyRecords = function(queryObject) {
             columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
             facets: config.get('v2.facets'),
             from: ['treatments'],
-            where: [],
+            where: []
         }
         
         // We don't need 'page' and 'size' in the query params
-        const exclude = ['page', 'size'];
+        //const exclude = ['page', 'size'];
 
         for (let param in queryObject) {
-            if (!exclude.includes(param)) {
-                if (param === 'q') {
-                    queries.columns.push(snippet);
-                    queries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId')
-                    queries.where.push('vtreatments MATCH @q');
+
+            if (param === 'sortBy') {
+                [sort, sortdir] = queryObject[param].split(':');
+    
+                if (!sortable.includes(sort)) {
+                    sort = 'treatmentId';
                 }
-                else {
-                    if (param === 'order') {
-                        queries.where.push('"order" = @order');
+    
+                if (sortdir !== 'ASC' && sortdir !== 'DESC') {
+                    sortdir = 'ASC';
+                }
+            }
+            else {
+
+                if (!exclude.includes(param)) {
+                    if (param === 'q') {
+                        queries.columns.push(snippet);
+                        queries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId')
+                        queries.where.push('vtreatments MATCH @q');
                     }
                     else {
-                        queries.where.push(`${param} = @${param}`);
+                        if (param === 'order') {
+                            queries.where.push('"order" = @order');
+                        }
+                        else {
+                            queries.where.push(`${param} = @${param}`);
+                        }
                     }
                 }
+
             }
         }
 
@@ -409,7 +485,7 @@ const getManyRecords = function(queryObject) {
         selcount = `SELECT ${queries.count} ${fromwhere}`;
 
         // the first page (OFFSET 1) of 30 records (LIMIT 30)
-        seldata = `SELECT ${queries.columns.join(', ')} ${fromwhere} LIMIT @limit OFFSET @offset`;
+        seldata = `SELECT ${queries.columns.join(', ')} ${fromwhere} ORDER BY ${sort} ${sortdir} LIMIT @limit OFFSET @offset`;
 
         // no related records
         // selrelated

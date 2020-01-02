@@ -1,4 +1,4 @@
-const Wreck = require('wreck');
+const Wreck = require('@hapi/wreck');
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
 

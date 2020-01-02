@@ -1,5 +1,5 @@
 const Crypto = require('crypto');
-const Joi = require('joi');
+const Joi = require('@hapi/joi');
 const ResponseMessages = require('../responseMessages');
 
 const config = require('config');
