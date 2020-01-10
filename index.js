@@ -124,7 +124,6 @@ const start = async () => {
                 resource: '',
                 query: '',
                 message: `Server error: ${event.error ? event.error.message : 'unknown'}`
-                //message: JSON.stringify(event.error)
             });
         }
         
@@ -143,16 +142,6 @@ const start = async () => {
         });
 
     });
-
-    // logger({
-    //     host: server.info.uri,
-    //     start: '',
-    //     end: '',
-    //     status: 200,
-    //     resource: 'zenodeo',
-    //     query: '',
-    //     message: `Server running at: ${server.info.uri}`
-    // });
 
 };
 

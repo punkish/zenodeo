@@ -231,24 +231,6 @@ const getRecords = function(cacheKey) {
     }
 };
 
-
-// const getStatistics = function() {
-//     const data = {};
-
-    // try {
-    //     data['num-of-records'] = db.prepare(_select.none.count)
-    //         .get()
-    //         .numOfRecords;
-    // }
-    // catch (error) {
-    //     console.log(error);
-    // }
-
-//     data.statistics = Utils.calcStats({stats: _select.none.stats});
-
-//     return data;
-// };
-
 const getOneRecord = function(queryObject) {    
 
     let data;
@@ -280,53 +262,6 @@ const getOneRecord = function(queryObject) {
 
     return data;
 };
-
-// const foo = function(queryObject) {
-
-//     // these params are not used in the query
-//     const exclude = ['page', 'size'];
-
-//     // these are the coluns on which we can sort
-//     const sortable = ['journalYear'];
-
-//     // the default sort column and sortdir
-//     let sort = 'treatmentId';
-//     let sortdir = 'ASC';
-
-//     for (let param in queryObject) {
-//         if (param === 'sortBy') {
-//             [sort, sortdir] = queryObject[param].split(':');
-//             sortdir = sortdir.toUpperCase();
-
-//             if (!sortable.includes(sort)) {
-//                 sort = 'treatmentId';
-//             }
-
-//             if (sortdir !== 'ASC' && sortdir !== 'DESC') {
-//                 sortdir = 'ASC';
-//             }
-            
-//         }
-//         else {
-//             if (!exclude.includes(param)) {
-//                 return false;
-//                 break;
-//             }
-//         }
-//     }
-
-//     return {sort, sortdir, false};
-// };
-
-// const getNoParamQueries = function(stats, facets) {
-//     return {
-//         selcount: _queries.none.count,
-//         seldata: _queries.none.data.format(sort, sortdir),
-//         selrelated: '',
-//         selstats: stats ? _queries.none.stats : '',
-//         selfacets: facets ? _queries.none.facets : ''
-//     }
-// };
 
 const getManyRecords = function(queryObject) {
 
