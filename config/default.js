@@ -61,7 +61,11 @@ module.exports = {
         },
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v2', 'schema.js'),
-        'facets': ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCodes']
+
+        // 'rank' is a reserved word in FTS tables, so using it in an FTS query 
+        // throws an error. That is why we prefix the column 'rank' with the 
+        // table name
+        'facets': ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCode']
   
 
         // relatedMaterialCitations: {

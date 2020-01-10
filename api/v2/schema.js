@@ -517,6 +517,16 @@ module.exports = {
             sortBy: Joi.string()
                 .description('sort column and order')
                 .optional(),
+
+            facets: Joi.boolean()
+                .description('whether or not to get facets')
+                .optional()
+                .default(false),
+
+            stats: Joi.boolean()
+                .description('whether or not to get stats')
+                .optional()
+                .default(false),
         })
     },
 

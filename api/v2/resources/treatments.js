@@ -73,56 +73,51 @@ const _queries = {
 
         // related records: there are no related records since many treatments are being returned
         // related records are returned only for a single treatment
-        //related: {},
+        related: {},
 
         // stats over all the records
         stats: {
-            'treatments by numbers': {
-                                        treatments: 'SELECT Count(treatmentId) FROM treatments WHERE deleted = 0',
-                
-                                         specimens: `SELECT  Sum(specimenCount)  
-                                                     FROM    materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
-                                                     WHERE   m.deleted = 0 AND specimenCount != ""`,
-                
-                                  'male specimens': `SELECT  Sum(specimenCountMale) 
-                                                     FROM    materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
-                                                     WHERE   m.deleted = 0 AND specimenCountMale != ""`,
-                
-                                'female specimens': `SELECT Sum(specimenCountFemale) 
-                                                     FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
-                                                     WHERE  m.deleted = 0 AND specimenCountFemale != ""`,
-                
-                       'treatments with specimens': `SELECT Count(DISTINCT t.treatmentId) 
-                                                     FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId  
-                                                     WHERE  m.deleted = 0 AND specimenCount != ""`,
-                
-                  'treatments with male specimens': `SELECT Count(DISTINCT t.treatmentId) 
-                                                     FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
-                                                     WHERE  m.deleted = 0 AND specimenCountMale != ""`,
-                
-                'treatments with female specimens': `SELECT Count(DISTINCT t.treatmentId)  
-                                                     FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId 
-                                                     WHERE  m.deleted = 0 AND specimenCountFemale != ""`,
-                
-                                'figure citations': `SELECT Count(figureCitationId) 
-                                                     FROM   figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId
-                                                     WHERE  f.deleted = 0`
-            }
+            'treatments': 'SELECT Count(treatmentId) AS numOfRecords FROM treatments WHERE deleted = 0', 
+
+            'specimens': "SELECT  Sum(specimenCount) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND  m.deleted = 0 AND specimenCount != ''", 
+
+            'male specimens': "SELECT  Sum(specimenCountMale) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountMale != ''", 
+
+            'female specimens': "SELECT Sum(specimenCountFemale) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountFemale != ''", 
+
+            'treatments with specimens': "SELECT Count(DISTINCT t.treatmentId) FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId  WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCount != ''", 
+
+            'treatments with male specimens': "SELECT Count(DISTINCT t.treatmentId) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountMale != ''", 
+
+            'treatments with female specimens': "SELECT Count(DISTINCT t.treatmentId) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountFemale != ''", 
+
+            'figure citations': "SELECT Count(figureCitationId) FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId WHERE t.deleted = 0 AND f.deleted = 0"
         },
     
         facets: {
-           journalVolume: "SELECT journalVolume,  Count(journalVolume)  AS c FROM treatments WHERE deleted = 0 AND journalVolume != '' GROUP BY journalVolume",
-            journalTitle: "SELECT journalTitle,   Count(journalTitle)   AS c FROM treatments WHERE deleted = 0 AND journalTitle  != '' GROUP BY journalTitle",
-             journalYear: "SELECT journalYear,    Count(journalYear)    AS c FROM treatments WHERE deleted = 0 AND journalYear   != '' GROUP BY journalYear",
-                 kingdom: "SELECT kingdom,        Count(kingdom)        AS c FROM treatments WHERE deleted = 0 AND kingdom       != '' GROUP BY kingdom",
-                  phylum: "SELECT phylum,         Count(phylum)         AS c FROM treatments WHERE deleted = 0 AND phylum        != '' GROUP BY phylum",
-                   order: "SELECT \"order\",      Count(\"order\")      AS c FROM treatments WHERE deleted = 0 AND \"order\"     != '' GROUP BY \"order\"",
-                  family: "SELECT family,         Count(family)         AS c FROM treatments WHERE deleted = 0 AND family        != '' GROUP BY family",
-                   genus: "SELECT genus,          Count(genus)          AS c FROM treatments WHERE deleted = 0 AND genus         != '' GROUP BY genus",
-                  status: "SELECT status,         Count(status)         AS c FROM treatments WHERE deleted = 0 AND status        != '' GROUP BY status",
-                    rank: "SELECT rank,           Count(rank)           AS c FROM treatments WHERE deleted = 0 AND rank          != '' GROUP BY rank",
-                 species: "SELECT species,        Count(species)        AS c FROM treatments WHERE deleted = 0 AND species       != '' GROUP BY species",
-          collectionCode: "SELECT collectionCode, Count(collectionCode) AS c FROM materialsCitations m JOIN treatments t on m.treatmentId = t.treatmentId WHERE m.deleted = 0 AND t.deleted = 0 AND collectionCode != '' GROUP BY collectionCode"
+            journalVolume: "SELECT journalVolume, Count(journalVolume) AS c FROM treatments WHERE deleted = 0 AND journalVolume != '' GROUP BY journalVolume",
+
+            journalTitle: "SELECT journalTitle, Count(journalTitle) AS c FROM treatments WHERE deleted = 0 AND journalTitle != '' GROUP BY journalTitle",
+
+            journalYear: "SELECT journalYear, Count(journalYear) AS c FROM treatments WHERE deleted = 0 AND journalYear != '' GROUP BY journalYear",
+
+            kingdom: "SELECT kingdom, Count(kingdom) AS c FROM treatments WHERE deleted = 0 AND kingdom != '' GROUP BY kingdom",
+
+            phylum: "SELECT phylum, Count(phylum) AS c FROM treatments WHERE deleted = 0 AND phylum != '' GROUP BY phylum",
+
+            order: "SELECT \"order\", Count(\"order\") AS c FROM treatments WHERE deleted = 0 AND \"order\" != '' GROUP BY \"order\"",
+
+            family: "SELECT family, Count(family) AS c FROM treatments WHERE deleted = 0 AND family != '' GROUP BY family",
+
+            genus: "SELECT genus, Count(genus) AS c FROM treatments WHERE deleted = 0 AND genus != '' GROUP BY genus",
+
+            status: "SELECT status, Count(status) AS c FROM treatments WHERE deleted = 0 AND status != '' GROUP BY status",
+
+            rank: "SELECT rank, Count(rank) AS c FROM treatments WHERE deleted = 0 AND rank != '' GROUP BY rank",
+
+            species: "SELECT species, Count(species) AS c FROM treatments WHERE deleted = 0 AND species != '' GROUP BY species",
+
+            collectionCode: "SELECT collectionCode, Count(collectionCode) AS c FROM materialsCitations m JOIN treatments t on m.treatmentId = t.treatmentId WHERE m.deleted = 0 AND t.deleted = 0 AND collectionCode != '' GROUP BY collectionCode"
         }
     },
 
@@ -142,95 +137,12 @@ const _queries = {
             
             figureCitations: 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE deleted = 0 AND treatmentId = @treatmentId'
         },
+
         stats: {},
+
         facets: {}
-    },
+    }
 
-    // many: {
-    //     q: {
-    //         count: 'SELECT Count(treatmentId) AS numOfRecords FROM vtreatments WHERE vtreatments MATCH @q',
-            
-    //         //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q AND t.id > @id ORDER BY t.id ASC  LIMIT @limit',
-
-    //         data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context, f.httpUri, f.captionText FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId LEFT JOIN figureCitations f ON t.treatmentId = f.treatmentId WHERE vtreatments MATCH @q LIMIT @limit OFFSET @offset',
-            
-    //         stats: {
-    //             'treatments by numbers': [
-    //                 'SELECT Count(*) AS treatments FROM treatments t JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
-                    
-    //                 'SELECT Sum(specimenCount) AS specimens FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
-                    
-    //                 'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
-                    
-    //                 'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE vtreatments MATCH @q',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE specimenCount != "" AND vtreatments MATCH @q',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE specimenCountMale != "" AND vtreatments MATCH @q',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId JOIN vtreatments v ON t.treatmentId = v.treatmentId WHERE specimenCountFemale != "" AND vtreatments MATCH @q',
-                    
-    //                 'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN vtreatments v ON f.treatmentId = v.treatmentId WHERE vtreatments MATCH @q'
-    //             ]
-    //         }
-    //     },
-
-    //     location: {
-    //         count: 'SELECT Count(t.treatmentId) AS numOfRecords FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-
-    //         //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude AND t.id > @id ORDER BY t.id ASC LIMIT @limit',
-
-    //         data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude LIMIT @limit OFFSET @offset',
-
-    //         stats: {
-    //             'treatments by numbers': [
-    //                 'SELECT Count(*) AS treatments FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Sum(specimenCount) AS specimens FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Sum(specimenCountMale) AS "male specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Sum(specimenCountFemale) AS "female specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE specimenCount != "" AND latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE specimenCountMale != "" AND latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE specimenCountFemale != "" AND latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude',
-                    
-    //                 'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE latitude > @min_latitude AND latitude < @max_latitude AND longitude > @min_longitude AND longitude < @max_longitude'
-    //             ]
-    //         }
-    //     },
-
-    //     other: {
-    //         count: 'SELECT Count(*) AS numOfRecords FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0}',
-
-    //         //data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0} AND t.id > @id ORDER BY t.id ASC LIMIT @limit',
-
-    //         data: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0} LIMIT @limit OFFSET @offset',
-
-    //         stats: {
-    //             'treatments by numbers': [
-    //                 'SELECT Count(*) AS treatments FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Sum(specimenCount) AS specimens FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Sum(specimenCountMale) AS "male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Sum(specimenCountFemale) AS "female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with male specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Count(DISTINCT t.treatmentId) AS "treatments with female specimens" FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE {0}',
-                    
-    //                 'SELECT Count(*) AS "figure citations" FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId WHERE {0}'
-    //             ]
-    //         }
-    //     }
-    // }
 };
 
 module.exports = {
@@ -319,6 +231,7 @@ const getRecords = function(cacheKey) {
     }
 };
 
+
 // const getStatistics = function() {
 //     const data = {};
 
@@ -337,6 +250,7 @@ const getRecords = function(cacheKey) {
 // };
 
 const getOneRecord = function(queryObject) {    
+
     let data;
     try {
         debug(`sel.one.data: ${_queries.one.data}`);
@@ -367,19 +281,148 @@ const getOneRecord = function(queryObject) {
     return data;
 };
 
+// const foo = function(queryObject) {
+
+//     // these params are not used in the query
+//     const exclude = ['page', 'size'];
+
+//     // these are the coluns on which we can sort
+//     const sortable = ['journalYear'];
+
+//     // the default sort column and sortdir
+//     let sort = 'treatmentId';
+//     let sortdir = 'ASC';
+
+//     for (let param in queryObject) {
+//         if (param === 'sortBy') {
+//             [sort, sortdir] = queryObject[param].split(':');
+//             sortdir = sortdir.toUpperCase();
+
+//             if (!sortable.includes(sort)) {
+//                 sort = 'treatmentId';
+//             }
+
+//             if (sortdir !== 'ASC' && sortdir !== 'DESC') {
+//                 sortdir = 'ASC';
+//             }
+            
+//         }
+//         else {
+//             if (!exclude.includes(param)) {
+//                 return false;
+//                 break;
+//             }
+//         }
+//     }
+
+//     return {sort, sortdir, false};
+// };
+
+// const getNoParamQueries = function(stats, facets) {
+//     return {
+//         selcount: _queries.none.count,
+//         seldata: _queries.none.data.format(sort, sortdir),
+//         selrelated: '',
+//         selstats: stats ? _queries.none.stats : '',
+//         selfacets: facets ? _queries.none.facets : ''
+//     }
+// };
+
 const getManyRecords = function(queryObject) {
-    const data = {};
-    
+
+    // these params are not used in the query
     const exclude = ['page', 'size'];
+
+    // these are the coluns on which we can sort
     const sortable = ['journalYear'];
+
+    // the default sort column and sortdir
     let sort = 'treatmentId';
     let sortdir = 'ASC';
 
     let noParams = true;
+    let stats = false;
+    let facets = false;
+
+    const snippet = 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context';
+
+    const manyQueries = {
+
+        count: 'Count(treatments.treatmentId) AS numOfRecords',
+
+        columns: ['treatments.id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
+
+        from: ['treatments'],
+
+        where: ['treatments.deleted = 0'],
+
+        facets: config.get('v2.facets'),
+
+        stats: {
+            'treatments': {
+                column: 'Count(treatments.treatmentId)', 
+                from: ['treatments'],
+                where: ['treatments.deleted = 0'],
+                sel: ''
+            },
+
+            'specimens': {
+                column: 'Sum(specimenCount)', 
+                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
+                sel: ''
+            },
+
+            'male specimens': {
+                column: 'Sum(specimenCountMale)', 
+                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
+                sel: ''
+            },
+
+            'female specimens': {
+                column: 'Sum(specimenCountFemale)', 
+                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"],
+                sel: ''
+            },
+
+            'treatments with specimens': {
+                column: 'Count(DISTINCT treatments.treatmentId)', 
+                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
+                sel: ''
+            },
+
+            'treatments with male specimens': {
+                column: 'Count(DISTINCT treatments.treatmentId)', 
+                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
+                sel: ''
+            },
+
+            'treatments with female specimens': {
+                column: 'Count(DISTINCT treatments.treatmentId)', 
+                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"],
+                sel: ''
+            },
+
+            'figure citations': {
+                column: 'Count(figureCitationId)', 
+                from: ['figureCitations JOIN treatments ON figureCitations.treatmentId = treatments.treatmentId'],
+                where: ["treatments.deleted = 0 AND figureCitations.deleted = 0"],
+                sel: ''
+            }
+
+        }
+
+    }
 
     for (let param in queryObject) {
         if (param === 'sortBy') {
             [sort, sortdir] = queryObject[param].split(':');
+            sortdir = sortdir.toUpperCase();
 
             if (!sortable.includes(sort)) {
                 sort = 'treatmentId';
@@ -388,121 +431,131 @@ const getManyRecords = function(queryObject) {
             if (sortdir !== 'ASC' && sortdir !== 'DESC') {
                 sortdir = 'ASC';
             }
+            
+        }
+        else if (param === 'stats') {
+            if (queryObject.stats === 'true') {
+                stats = true;
+            } 
+        }
+        else if (param === 'facets') {
+            if (queryObject.facets === 'true') {
+                facets = true;
+            } 
         }
         else {
             if (!exclude.includes(param)) {
                 noParams = false;
+
+                debug(`adding WHERE for "${param} = ${queryObject[param]}"`);
+
+                if (param === 'q') {
+                    
+                    manyQueries.columns.push(snippet);
+
+                    manyQueries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId');
+
+                    manyQueries.where.push('vtreatments MATCH @q');
+
+                    if (sort === 'treatmentId') {
+                        sort = 'treatments.treatmentId';
+                    }
+
+                    for (let stat in manyQueries.stats) {
+
+                        manyQueries.stats[stat].from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId');
+
+                        manyQueries.stats[stat].where.push('vtreatments MATCH @q');
+                        
+                    }
+                    
+                }
+                else {
+                    
+                    if (param === 'order') {
+                        manyQueries.where.push('"order" = @order');
+                    }
+                    else {
+                        manyQueries.where.push(`${param} = @${param}`);
+                    }
+
+                    for (let stat in manyQueries.stats) {
+
+                        if (param === 'order') {
+                            manyQueries.stats[stat].where.push('"order" = @order');
+                        }
+                        else {
+                            manyQueries.stats[stat].where.push(`${param} = @${param}`);
+                        }
+                        
+                    }
+
+                }
             }
         }
     }
 
-    let selcount;
-    let seldata;
-    let selrelated;
-    let selstats;
-    let selfacets = {};
+    const data = {};
+    const queries = {
+        selcount: '',
+        seldata: '',
+        selrelated: '',
+        selstats: '',
+        selfacets: ''
+    }
 
     if (noParams) {
+        
+        queries.selcount = _queries.none.count;
+        queries.seldata = _queries.none.data.format(sort, sortdir);
 
-        // total number of matches
-        selcount = _queries.none.count;
-
-        // the a page of 30 records (LIMIT 30)
-        seldata = _queries.none.data.format(sort, sortdir);
-
-        // stats
-        selstats = _queries.none.stats;
-
-        // facets
-        selfacets = _queries.none.facets;
-
+        if (stats) {
+            queries.selstats = _queries.none.stats;
+        }
+        
+        if (facets) {
+            queries.selfacets = _queries.none.facets;
+        }
+        
     }
     else {
 
-        // create the queries
-        const snippet = 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context';
-        const queries = {
-            count: 'Count(treatments.treatmentId) AS numOfRecords',
-            columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
-            facets: config.get('v2.facets'),
-            from: ['treatments'],
-            where: []
+        queries.selcount = `SELECT ${manyQueries.count} FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')}`;
+
+        queries.seldata = `SELECT ${manyQueries.columns.join(', ')} FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')} ORDER BY ${sort} ${sortdir} LIMIT @limit OFFSET @offset`;
+
+        if (stats) {
+
+            queries.selstats = {};
+            for (let stat in manyQueries.stats) {
+                queries.selstats[stat] = `SELECT ${manyQueries.stats[stat].column} FROM ${manyQueries.stats[stat].from.join(' ')} AND ${manyQueries.stats[stat].where.join(' AND ')}`;
+            }
+            
         }
         
-        // We don't need 'page' and 'size' in the query params
-        //const exclude = ['page', 'size'];
+        if (facets) {
+            queries.selfacets = {};
 
-        for (let param in queryObject) {
+            manyQueries.facets.forEach(facet => {
 
-            if (param === 'sortBy') {
-                [sort, sortdir] = queryObject[param].split(':');
-    
-                if (!sortable.includes(sort)) {
-                    sort = 'treatmentId';
+                if (facet === 'collectionCode') {
+                    manyQueries.from.push('JOIN materialsCitations ON treatments.treatmentId = materialsCitations.treatmentId');
+
+                    queries.selfacets.collectionCode = `SELECT ${facet}, Count(${facet}) AS c FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')} AND materialsCitations.deleted = 0 AND ${facet} != '' GROUP BY ${facet}`;
                 }
-    
-                if (sortdir !== 'ASC' && sortdir !== 'DESC') {
-                    sortdir = 'ASC';
+                else {
+                    queries.selfacets[facet] = `SELECT ${facet}, Count(${facet}) AS c FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')} AND ${facet} != '' GROUP BY ${facet}`;
                 }
-            }
-            else {
-
-                if (!exclude.includes(param)) {
-                    if (param === 'q') {
-                        queries.columns.push(snippet);
-                        queries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId')
-                        queries.where.push('vtreatments MATCH @q');
-                    }
-                    else {
-                        if (param === 'order') {
-                            queries.where.push('"order" = @order');
-                        }
-                        else {
-                            queries.where.push(`${param} = @${param}`);
-                        }
-                    }
-                }
-
-            }
+        
+            });
         }
-
-        const fromwhere = `FROM ${queries.from.join(' ')} WHERE ${queries.where.join(' AND ')}`;
-
-        queries.facets.forEach(facet => {
-
-            // 'rank' is a reserved word in FTS tables, so using it in an FTS query 
-            // throws an error. That is why we prefix the column 'rank' with the 
-            // table name
-            let f = facet;
-            if (facet === 'treatments.rank') {
-                f = 'rank';
-            }
-
-            selfacets[facet] = `SELECT ${facet}, Count(${facet}) AS c ${fromwhere} AND ${facet} != '' GROUP BY ${facet}`;
-        });
-
-        // total number of matches
-        selcount = `SELECT ${queries.count} ${fromwhere}`;
-
-        // the first page (OFFSET 1) of 30 records (LIMIT 30)
-        seldata = `SELECT ${queries.columns.join(', ')} ${fromwhere} ORDER BY ${sort} ${sortdir} LIMIT @limit OFFSET @offset`;
-
-        // no related records
-        // selrelated
-
-        // stats
-        selstats = _queries.none.stats;
-
-        // facets
-        //selfacets = _queries.none.facets;
+        
     }
-
-    
 
     // first find total number of matches
     try {
-        debug(`selcount: ${selcount}`);
-        data['num-of-records'] = db.prepare(selcount)
+        debug(`selcount: ${queries.selcount}`);
+        data['num-of-records'] = db.prepare(queries.selcount)
             .get(queryObject)
             .numOfRecords;
     }
@@ -529,15 +582,31 @@ const getManyRecords = function(queryObject) {
 
     // first, do the facet queries
     data.facets = {};
-    for (let q in selfacets) {
-        try {
-            debug(`${q}: ${selfacets[q]}`);
-            data.facets[q] = db.prepare(selfacets[q]).all(queryObject);
-        }
-        catch (error) {
-            console.log(error);
+    if (queries.selfacets) {
+        for (let q in queries.selfacets) {
+            try {
+                debug(`${q}: ${queries.selfacets[q]}`);
+                data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+            }
+            catch (error) {
+                console.log(error);
+            }
         }
     }
+
+    data.stats = {};
+    if (queries.selstats) {
+        for (let q in queries.selstats) {
+            try {
+                debug(`${q}: ${queries.selstats[q]}`);
+                data.stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
+            }
+            catch (error) {
+                console.log(error);
+            }
+        }
+    }
+    
 
     // now, get the records
     const id = queryObject.id ? parseInt(queryObject.id) : 0;
@@ -549,8 +618,8 @@ const getManyRecords = function(queryObject) {
     try {
         queryObject.limit = limit;
         queryObject.offset = offset;
-        debug(`seldata: ${seldata}`);
-        data.records = db.prepare(seldata).all(queryObject) || [];
+        debug(`seldata: ${queries.seldata}`);
+        data.records = db.prepare(queries.seldata).all(queryObject) || [];
     }
     catch (error) {
         console.log(error);
@@ -588,6 +657,7 @@ const getManyRecords = function(queryObject) {
     data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
     
     return data;
+    
 };
 
 const getRelatedRecords = function(queryObject) {
