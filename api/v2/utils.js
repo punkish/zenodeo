@@ -27,8 +27,6 @@ const facets = {
     taxa: 'taxon'
 };
 
-
-
 module.exports = {
     // findjs: function(pattern, source) {
     //     const re = new RegExp(`^${pattern}`, 'i');

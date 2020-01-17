@@ -515,16 +515,17 @@ module.exports = {
                 .optional(),
 
             sortBy: Joi.string()
-                .description('sort column and order')
-                .optional(),
+                .description('sort column:sort order')
+                .optional()
+                .default('treatmentId:ASC'),
 
             facets: Joi.boolean()
-                .description('whether or not to get facets')
+                .description('whether or not to fetch facets')
                 .optional()
                 .default(false),
 
             stats: Joi.boolean()
-                .description('whether or not to get stats')
+                .description('whether or not to fetch stats')
                 .optional()
                 .default(false),
         })

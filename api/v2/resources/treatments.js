@@ -14,135 +14,13 @@ const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
 const treatmentStatus = require('../lib/treatmentsStatus');
 
+const queryMaker = require('../lib/query-maker');
+
 String.prototype.format = function() {
     const args = arguments;
     return this.replace(/{(\d+)}/g, function(match, number) { 
         return typeof args[number] != 'undefined' ? args[number] : match;
     });
-};
-
-const _queries = {
-
-    /*
-    The following columns are not part of the 'treatments' table. They are related records for every treatment
-    - treatmentAuthors
-    - materialsCitations
-    - figureCitations
-
-    I don't have 'treatmentCitations'.
-
-    That leaves only 'journalYear' from what you asked for.
-
-    Remember, I can only sort by the columns in my table. The columns are 
-    - treatmentTitle
-    - articleDoi
-    - zenodoDep
-    - zoobank
-    - articleTitle
-    - publicationDate
-    - journalTitle
-    - journalYear
-    - journalVolume
-    - journalIssue
-    - pages
-    - authorityName
-    - authorityYear
-    - kingdom
-    - phylum
-    - order
-    - family
-    - genus
-    - species
-    - status
-    - taxonomicNameLabel
-    - rank
-
-    Thought sorting by many of the above may not make sense.
-
-    The default sort is by 'treatmentId' with sort order ASC
-*/
-
-    // no parameters
-    none: {
-
-        // total number of records in the table
-        count: 'SELECT Count(treatmentId) AS numOfRecords FROM treatments WHERE deleted = 0',
-
-        // the first page (OFFSET 1) of 30 records (LIMIT 30)
-        data:  'SELECT id, treatmentId, treatmentTitle, doi AS articleDoi, zenodoDep, zoobank, articleTitle, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, pages, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, taxonomicNameLabel, rank FROM treatments WHERE deleted = 0 ORDER BY {0} {1} LIMIT @limit OFFSET @offset',
-
-        // related records: there are no related records since many treatments are being returned
-        // related records are returned only for a single treatment
-        related: {},
-
-        // stats over all the records
-        stats: {
-            'treatments': 'SELECT Count(treatmentId) AS numOfRecords FROM treatments WHERE deleted = 0', 
-
-            'specimens': "SELECT  Sum(specimenCount) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND  m.deleted = 0 AND specimenCount != ''", 
-
-            'male specimens': "SELECT  Sum(specimenCountMale) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountMale != ''", 
-
-            'female specimens': "SELECT Sum(specimenCountFemale) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountFemale != ''", 
-
-            'treatments with specimens': "SELECT Count(DISTINCT t.treatmentId) FROM   materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId  WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCount != ''", 
-
-            'treatments with male specimens': "SELECT Count(DISTINCT t.treatmentId) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountMale != ''", 
-
-            'treatments with female specimens': "SELECT Count(DISTINCT t.treatmentId) FROM materialsCitations m JOIN treatments t ON m.treatmentId = t.treatmentId WHERE t.deleted = 0 AND m.deleted = 0 AND specimenCountFemale != ''", 
-
-            'figure citations': "SELECT Count(figureCitationId) FROM figureCitations f JOIN treatments t ON f.treatmentId = t.treatmentId WHERE t.deleted = 0 AND f.deleted = 0"
-        },
-    
-        facets: {
-            journalVolume: "SELECT journalVolume, Count(journalVolume) AS c FROM treatments WHERE deleted = 0 AND journalVolume != '' GROUP BY journalVolume",
-
-            journalTitle: "SELECT journalTitle, Count(journalTitle) AS c FROM treatments WHERE deleted = 0 AND journalTitle != '' GROUP BY journalTitle",
-
-            journalYear: "SELECT journalYear, Count(journalYear) AS c FROM treatments WHERE deleted = 0 AND journalYear != '' GROUP BY journalYear",
-
-            kingdom: "SELECT kingdom, Count(kingdom) AS c FROM treatments WHERE deleted = 0 AND kingdom != '' GROUP BY kingdom",
-
-            phylum: "SELECT phylum, Count(phylum) AS c FROM treatments WHERE deleted = 0 AND phylum != '' GROUP BY phylum",
-
-            order: "SELECT \"order\", Count(\"order\") AS c FROM treatments WHERE deleted = 0 AND \"order\" != '' GROUP BY \"order\"",
-
-            family: "SELECT family, Count(family) AS c FROM treatments WHERE deleted = 0 AND family != '' GROUP BY family",
-
-            genus: "SELECT genus, Count(genus) AS c FROM treatments WHERE deleted = 0 AND genus != '' GROUP BY genus",
-
-            status: "SELECT status, Count(status) AS c FROM treatments WHERE deleted = 0 AND status != '' GROUP BY status",
-
-            rank: "SELECT rank, Count(rank) AS c FROM treatments WHERE deleted = 0 AND rank != '' GROUP BY rank",
-
-            species: "SELECT species, Count(species) AS c FROM treatments WHERE deleted = 0 AND species != '' GROUP BY species",
-
-            collectionCode: "SELECT collectionCode, Count(collectionCode) AS c FROM materialsCitations m JOIN treatments t on m.treatmentId = t.treatmentId WHERE m.deleted = 0 AND t.deleted = 0 AND collectionCode != '' GROUP BY collectionCode"
-        }
-    },
-
-    // treatmentId
-    one: {
-
-        count: 1,
-
-        data: 'SELECT treatmentId, treatmentTitle, pages, doi AS articleDoi, zenodoDep, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, rank, fullText FROM treatments WHERE deleted = 0 AND treatmentId = @treatmentId',
-        
-        related: {
-            treatmentAuthors: 'SELECT treatmentAuthorId, treatmentAuthor AS author FROM treatmentAuthors WHERE deleted = 0 AND treatmentId = @treatmentId',
-            
-            bibRefCitations: 'SELECT bibRefCitationId, refString AS citation FROM bibRefCitations WHERE deleted = 0 AND treatmentId = @treatmentId',
-            
-            materialsCitations: "SELECT materialsCitationId, treatmentId, typeStatus, latitude, longitude FROM materialsCitations WHERE deleted = 0 AND latitude != '' AND longitude != '' AND treatmentId = @treatmentId",
-            
-            figureCitations: 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE deleted = 0 AND treatmentId = @treatmentId'
-        },
-
-        stats: {},
-
-        facets: {}
-    }
-
 };
 
 module.exports = {
@@ -217,7 +95,6 @@ const handler = function(request, h) {
 
 const getRecords = function(cacheKey) {
     const queryObject = Utils.makeQueryObject(cacheKey);
-    debug(`queryObject: ${JSON.stringify(queryObject)}`);
 
     // A treatmentId is present. The query is for a specific
     // treatment. All other query params are ignored
@@ -234,9 +111,13 @@ const getRecords = function(cacheKey) {
 const getOneRecord = function(queryObject) {    
 
     let data;
+
+    const queries = queryMaker(queryObject);
+    debug(`ONE queryObject: ${JSON.stringify(queryObject)}`);
+
     try {
-        debug(`sel.one.data: ${_queries.one.data}`);
-        data = db.prepare(_queries.one.data).get(queryObject) || { 'num-of-records': 0 };
+        debug(`ONE seldata: ${queries.seldata}`);
+        data = db.prepare(queries.seldata).get(queryObject) || { 'num-of-records': 0 };
     } 
     catch (error) {
         console.log(error);
@@ -252,12 +133,13 @@ const getOneRecord = function(queryObject) {
             .join('&')
     });
 
-    if (data['num-of-records']) {
+    debug(`num-of-records: ${data['num-of-records']}`)
+    if (typeof data['num-of-records'] === 'undefined') {
 
         // more data from beyond the database
         data.xml = getXml(queryObject.treatmentId);
         data.taxonStats = getTaxonStats(data);
-        data['related-records'] = getRelatedRecords(queryObject);
+        data['related-records'] = getRelatedRecords(queries, queryObject);
     }
 
     return data;
@@ -265,231 +147,15 @@ const getOneRecord = function(queryObject) {
 
 const getManyRecords = function(queryObject) {
 
-    // these params are not used in the query
-    const exclude = ['page', 'size'];
-
-    // these are the coluns on which we can sort
-    const sortable = ['journalYear'];
-
-    // the default sort column and sortdir
-    let sort = 'treatmentId';
-    let sortdir = 'ASC';
-
-    let noParams = true;
-    let stats = false;
-    let facets = false;
-
-    const snippet = 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context';
-
-    const manyQueries = {
-
-        count: 'Count(treatments.treatmentId) AS numOfRecords',
-
-        columns: ['treatments.id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
-
-        from: ['treatments'],
-
-        where: ['treatments.deleted = 0'],
-
-        facets: config.get('v2.facets'),
-
-        stats: {
-            'treatments': {
-                column: 'Count(treatments.treatmentId)', 
-                from: ['treatments'],
-                where: ['treatments.deleted = 0'],
-                sel: ''
-            },
-
-            'specimens': {
-                column: 'Sum(specimenCount)', 
-                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
-                sel: ''
-            },
-
-            'male specimens': {
-                column: 'Sum(specimenCountMale)', 
-                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
-                sel: ''
-            },
-
-            'female specimens': {
-                column: 'Sum(specimenCountFemale)', 
-                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"],
-                sel: ''
-            },
-
-            'treatments with specimens': {
-                column: 'Count(DISTINCT treatments.treatmentId)', 
-                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
-                sel: ''
-            },
-
-            'treatments with male specimens': {
-                column: 'Count(DISTINCT treatments.treatmentId)', 
-                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
-                sel: ''
-            },
-
-            'treatments with female specimens': {
-                column: 'Count(DISTINCT treatments.treatmentId)', 
-                from: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"],
-                sel: ''
-            },
-
-            'figure citations': {
-                column: 'Count(figureCitationId)', 
-                from: ['figureCitations JOIN treatments ON figureCitations.treatmentId = treatments.treatmentId'],
-                where: ["treatments.deleted = 0 AND figureCitations.deleted = 0"],
-                sel: ''
-            }
-
-        }
-
-    }
-
-    for (let param in queryObject) {
-        if (param === 'sortBy') {
-            [sort, sortdir] = queryObject[param].split(':');
-            sortdir = sortdir.toUpperCase();
-
-            if (!sortable.includes(sort)) {
-                sort = 'treatmentId';
-            }
-
-            if (sortdir !== 'ASC' && sortdir !== 'DESC') {
-                sortdir = 'ASC';
-            }
-            
-        }
-        else if (param === 'stats') {
-            if (queryObject.stats === 'true') {
-                stats = true;
-            } 
-        }
-        else if (param === 'facets') {
-            if (queryObject.facets === 'true') {
-                facets = true;
-            } 
-        }
-        else {
-            if (!exclude.includes(param)) {
-                noParams = false;
-
-                debug(`adding WHERE for "${param} = ${queryObject[param]}"`);
-
-                if (param === 'q') {
-                    
-                    manyQueries.columns.push(snippet);
-
-                    manyQueries.from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId');
-
-                    manyQueries.where.push('vtreatments MATCH @q');
-
-                    if (sort === 'treatmentId') {
-                        sort = 'treatments.treatmentId';
-                    }
-
-                    for (let stat in manyQueries.stats) {
-
-                        manyQueries.stats[stat].from.push('JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId');
-
-                        manyQueries.stats[stat].where.push('vtreatments MATCH @q');
-                        
-                    }
-                    
-                }
-                else {
-                    
-                    if (param === 'order') {
-                        manyQueries.where.push('"order" = @order');
-                    }
-                    else {
-                        manyQueries.where.push(`${param} = @${param}`);
-                    }
-
-                    for (let stat in manyQueries.stats) {
-
-                        if (param === 'order') {
-                            manyQueries.stats[stat].where.push('"order" = @order');
-                        }
-                        else {
-                            manyQueries.stats[stat].where.push(`${param} = @${param}`);
-                        }
-                        
-                    }
-
-                }
-            }
-        }
-    }
+    const queries = queryMaker(queryObject);
+    debug(`MANY queryObject: ${JSON.stringify(queryObject)}`);
+    //debug(`MANY queries: ${JSON.stringify(queries)}`);
 
     const data = {};
-    const queries = {
-        selcount: '',
-        seldata: '',
-        selrelated: '',
-        selstats: '',
-        selfacets: ''
-    }
-
-    if (noParams) {
-        
-        queries.selcount = _queries.none.count;
-        queries.seldata = _queries.none.data.format(sort, sortdir);
-
-        if (stats) {
-            queries.selstats = _queries.none.stats;
-        }
-        
-        if (facets) {
-            queries.selfacets = _queries.none.facets;
-        }
-        
-    }
-    else {
-
-        queries.selcount = `SELECT ${manyQueries.count} FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')}`;
-
-        queries.seldata = `SELECT ${manyQueries.columns.join(', ')} FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')} ORDER BY ${sort} ${sortdir} LIMIT @limit OFFSET @offset`;
-
-        if (stats) {
-
-            queries.selstats = {};
-            for (let stat in manyQueries.stats) {
-                queries.selstats[stat] = `SELECT ${manyQueries.stats[stat].column} FROM ${manyQueries.stats[stat].from.join(' ')} AND ${manyQueries.stats[stat].where.join(' AND ')}`;
-            }
-            
-        }
-        
-        if (facets) {
-            queries.selfacets = {};
-
-            manyQueries.facets.forEach(facet => {
-
-                if (facet === 'collectionCode') {
-                    manyQueries.from.push('JOIN materialsCitations ON treatments.treatmentId = materialsCitations.treatmentId');
-
-                    queries.selfacets.collectionCode = `SELECT ${facet}, Count(${facet}) AS c FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')} AND materialsCitations.deleted = 0 AND ${facet} != '' GROUP BY ${facet}`;
-                }
-                else {
-                    queries.selfacets[facet] = `SELECT ${facet}, Count(${facet}) AS c FROM ${manyQueries.from.join(' ')} WHERE ${manyQueries.where.join(' AND ')} AND ${facet} != '' GROUP BY ${facet}`;
-                }
-        
-            });
-        }
-        
-    }
 
     // first find total number of matches
     try {
-        debug(`selcount: ${queries.selcount}`);
+        debug(`MANY selcount: ${queries.selcount}`);
         data['num-of-records'] = db.prepare(queries.selcount)
             .get(queryObject)
             .numOfRecords;
@@ -517,27 +183,33 @@ const getManyRecords = function(queryObject) {
 
     // first, do the facet queries
     data.facets = {};
-    if (queries.selfacets) {
-        for (let q in queries.selfacets) {
-            try {
-                debug(`${q}: ${queries.selfacets[q]}`);
-                data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
-            }
-            catch (error) {
-                console.log(error);
+
+    if ('facets' in queryObject && queryObject.facets === true) {
+        if (queries.selfacets) {
+            for (let q in queries.selfacets) {
+                try {
+                    debug(`MANY FACETS ${q}: ${queries.selfacets[q]}`);
+                    data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+                }
+                catch (error) {
+                    console.log(error);
+                }
             }
         }
     }
 
     data.stats = {};
-    if (queries.selstats) {
-        for (let q in queries.selstats) {
-            try {
-                debug(`${q}: ${queries.selstats[q]}`);
-                data.stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
-            }
-            catch (error) {
-                console.log(error);
+
+    if ('stats' in queryObject && queryObject.stats === true) {
+        if (queries.selstats) {
+            for (let q in queries.selstats) {
+                try {
+                    debug(`MANY STATS ${q}: ${queries.selstats[q]}`);
+                    data.stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
+                }
+                catch (error) {
+                    console.log(error);
+                }
             }
         }
     }
@@ -553,7 +225,7 @@ const getManyRecords = function(queryObject) {
     try {
         queryObject.limit = limit;
         queryObject.offset = offset;
-        debug(`seldata: ${queries.seldata}`);
+        debug(`MANY seldata: ${queries.seldata}`);
         data.records = db.prepare(queries.seldata).all(queryObject) || [];
     }
     catch (error) {
@@ -595,15 +267,18 @@ const getManyRecords = function(queryObject) {
     
 };
 
-const getRelatedRecords = function(queryObject) {
+const getRelatedRecords = function(queries, queryObject) {
     const rr = {};
 
-    const relatedRecords = _queries.one.related;
+    const relatedRecords = queries.selrelated;
+    debug(queries);
+
     for (let relatedResource in relatedRecords) {
+
 
         try {
             const select = relatedRecords[relatedResource];
-            debug(`${relatedResource}: ${select}`);
+            debug(`ONE RELATED ${relatedResource}: ${select}`);
             const data = db.prepare(select).all(queryObject);
 
             rr[relatedResource] = Utils.halify({
@@ -635,7 +310,7 @@ const getTaxonStats = function(data) {
         const select = `SELECT Count(treatmentId) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
 
         try {
-            debug(select);
+            debug(`ONE TAXONSTATS: ${select}`);
             taxonStats[index].num = db.prepare(select).get().num;
         } 
         catch (error) {
@@ -650,6 +325,8 @@ const getXml = function(treatmentId) {
     const one = treatmentId.substr(0, 1);
     const two = treatmentId.substr(0, 2);
     const thr = treatmentId.substr(0, 3);
+
+    debug(`getting the xml for ${treatmentId}`);
 
     return fs.readFileSync(
         `data/treatments/${one}/${two}/${thr}/${treatmentId}.xml`,
