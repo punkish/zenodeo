@@ -250,6 +250,7 @@ const queryMaker = function(queryObject) {
 
                 noParams = false;
 
+                
                 queryFragments.data.columns.push(q.column);
                 queryFragments.data.tables.push(q.table);
                 queryFragments.data.condition.push(q.condition);
@@ -260,15 +261,15 @@ const queryMaker = function(queryObject) {
 
                 for (let stat in queryFragments.stats) {
 
-                    queryFragments.stats[stat].tables.push(q.table);
-                    queryFragments.stats[stat].condition.push(q.condition);
+                    //queryFragments.stats[stat].tables.push(q.table);
+                    queryFragments.stats[stat].condition.push(`treatments.treatmentId IN (SELECT treatmentId FROM vtreatments WHERE ${q.condition})`);
                     
                 }
 
                 for (let facet in queryFragments.facets) {
 
-                    queryFragments.facets[facet].tables.push(q.table);
-                    queryFragments.facets[facet].condition.push(q.condition);
+                    //queryFragments.facets[facet].tables.push(q.table);
+                    queryFragments.facets[facet].condition.push(`treatments.treatmentId IN (SELECT treatmentId FROM vtreatments WHERE ${q.condition})`);
                     
                 }
 
