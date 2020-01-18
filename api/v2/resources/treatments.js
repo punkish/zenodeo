@@ -184,7 +184,7 @@ const getManyRecords = function(queryObject) {
     // first, do the facet queries
     data.facets = {};
 
-    if ('facets' in queryObject && queryObject.facets === true) {
+    if ('facets' in queryObject && queryObject.facets === 'true') {
         if (queries.selfacets) {
             for (let q in queries.selfacets) {
                 try {
@@ -200,7 +200,7 @@ const getManyRecords = function(queryObject) {
 
     data.stats = {};
 
-    if ('stats' in queryObject && queryObject.stats === true) {
+    if ('stats' in queryObject && queryObject.stats === 'true') {
         if (queries.selstats) {
             for (let q in queries.selstats) {
                 try {

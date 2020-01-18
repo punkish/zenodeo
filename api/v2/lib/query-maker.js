@@ -124,9 +124,9 @@ const qryFrags = {
         },
 
         rank: {
-            columns: ['rank', 'Count(rank) AS c'],
+            columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
             tables: ['treatments'],
-            condition: ["treatments.deleted = 0 AND rank != ''"]
+            condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
         },
 
         species: {
@@ -294,6 +294,9 @@ const queryMaker = function(queryObject) {
             let group = facet;
             if (facet === 'order') {
                 group = '"order"';
+            }
+            else if (facet === 'rank') {
+                group = 'treatments.rank';
             }
 
             queries.selfacets[facet] = `${select} ${queryFragments.facets[facet].columns.join(', ')} ${from} ${queryFragments.facets[facet].tables.join(' JOIN ')} ${where} ${queryFragments.facets[facet].condition.join(' AND ')} GROUP BY ${group}`;
