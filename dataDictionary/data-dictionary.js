@@ -78,7 +78,7 @@ module.exports = {
             "type": "TEXT",
             "element": "$('mods\\\\:relatedItem[type=host] mods\\\\:part mods\\\\:detail[type=volume] mods\\\\:number').text()",
             "definition": "Volume of the journal",
-            "queryable": false
+            "queryable": true
         },
         {
             "plazi": "journalIssue",

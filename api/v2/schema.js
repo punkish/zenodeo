@@ -462,6 +462,10 @@ module.exports = {
                 .description(descriptions.journalYear)
                 .optional(),
 
+            journalVolume: Joi.number()
+                .description(descriptions.journalVolume)
+                .optional(),
+
             authorityName: Joi.string()
                 .description(descriptions.authorityName)
                 .optional(),
