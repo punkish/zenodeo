@@ -24,6 +24,7 @@ const handler = function(plugins) {
         // to determine what kind of query to perform.
         const cacheKey = Utils.makeCacheKey(request);
         plog.info('cacheKey', cacheKey);
+        plog.info('plugins', plugins);
     
         if (cacheOn) {
             if (request.query.refreshCache === 'true') {
@@ -31,7 +32,7 @@ const handler = function(plugins) {
                 this.cache.drop(cacheKey);
             }
     
-            return this.cache.get(cacheKey);
+            return this.cache.get({cacheKey, plugins});
         }
         else {
             return getRecords({cacheKey, plugins});
