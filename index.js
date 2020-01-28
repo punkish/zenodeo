@@ -23,6 +23,7 @@ const cachePath = config.get('cache.v2.path');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
+
 const logger = require(config.get('logger'));
 
 /*

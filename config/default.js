@@ -100,6 +100,7 @@ module.exports = {
         {'col': 'query', 'type': 'TEXT'},
         {'col': 'message', 'type': 'TEXT'}
     ],
+    'plog': path.join(cwd, 'lib', 'plog.js'),
     'httpStatusCodes': path.join(cwd, 'lib', 'httpStatusCodes.js'),
     'data': {
         'logs': path.join(cwd, 'data', 'logs.sqlite'),

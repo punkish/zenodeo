@@ -182,9 +182,11 @@ const getManyRecords = function(queryObject) {
     // records are found, so we continue with the actual data selection
 
     // first, do the facet queries
-    data.facets = {};
+    
 
     if ('facets' in queryObject && queryObject.facets === 'true') {
+        data.facets = {};
+        
         if (queries.selfacets) {
             for (let q in queries.selfacets) {
                 try {
@@ -198,9 +200,11 @@ const getManyRecords = function(queryObject) {
         }
     }
 
-    data.stats = {};
+    
 
     if ('stats' in queryObject && queryObject.stats === 'true') {
+        data.stats = {};
+
         if (queries.selstats) {
             for (let q in queries.selstats) {
                 try {
