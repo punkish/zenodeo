@@ -1,3 +1,10 @@
+/**************************************
+ * abstracted logic for the handler and other functions 
+ * for resources that are fetched from Zenodo
+ * - images.js
+ * - publications.js
+ **************************************/
+
 'use strict';
 
 const config = require('config');
@@ -24,7 +31,6 @@ const handler = function(plugins) {
         // to determine what kind of query to perform.
         const cacheKey = Utils.makeCacheKey(request);
         plog.info('cacheKey', cacheKey);
-        plog.info('plugins', plugins);
     
         if (cacheOn) {
             if (request.query.refreshCache === 'true') {
@@ -62,17 +68,18 @@ const getRecords = function({cacheKey, plugins}) {
     }
 };
 
-const getOneRecord = async function({queryObject, plugins}) {    
+const getOneRecord = async function({queryObject, plugins}) {
+
     let data;
     const uriRemote = uriZenodo + queryObject.id;
 
     try {
-        plog.info(`querying ${uriRemote}`);
+        plog.info('remote URI (one)', uriRemote);
         const {res, payload} =  await Wreck.get(uriRemote);
         data = await JSON.parse(payload) || { 'num-of-records': 0 };
     }
-    catch(err) {
-        plog.error(err);
+    catch(error) {
+        plog.error(error);
     }
     
     data['search-criteria'] = queryObject;
@@ -116,7 +123,7 @@ const getManyRecords = async function({queryObject, plugins}) {
 
     }
 
-    plog.info(`searchtype: ${searchType}`);
+    plog.info('searchtype', searchType);
 
     let queryString = '';
 
@@ -149,7 +156,6 @@ const getManyRecords = async function({queryObject, plugins}) {
     // if queryObject contains other search params besides q then 
     // it is a fancysearch
     else if (searchType === 'fancy') {
-        plog.info(`searchtype: fancy`);
 
         const exclude = ['page', 'size', 'type', 'communities'];
         const zenodoSynonyms = {
@@ -197,50 +203,60 @@ const getManyRecords = async function({queryObject, plugins}) {
             }
         }
         
-        const qs = queryArray.join(' ');
-        //debug(`qs: ${qs}`);
-        //const queryString = `q=${encodeURIComponent(qs)}&${Object.keys(queryObject).map(e => e + '=' + queryObject[e]).join('&')}&communities=biosyslit&type=${plugins._resource}&access_right=open`;
-        queryString = `q=${encodeURIComponent(qs)}&type=${plugins._resource}&access_right=open&${others.join('&')}`;
+        queryString = `q=${encodeURIComponent(queryArray.join(' '))}&type=${plugins._resource}&access_right=open&${others.join('&')}`;
         
         plog.info('queryString', queryString);
 
     }
 
     const uriRemote = `${uriZenodo}?${queryString}`;
-    const limit = 30;
+    const limit = queryObject.size;
 
     try {
-        plog.info(`querying ${uriRemote}`);
+        plog.info('remote URI (many)', uriRemote);
         const {res, payload} =  await Wreck.get(uriRemote);
         const result = await JSON.parse(payload);
-        const total = result.hits.total;
-        const hits = result.hits.hits;
+        const hits = result.hits;
+
+        data['num-of-records'] = hits.total;
+        data.records = hits.hits;
         const num = hits.length;
 
         const page = queryObject.page ? parseInt(queryObject.page) : 1;
 
-        //const offset = page * 30;
+        data.from = ((page - 1) * limit) + 1;
+        data.to = num < limit ? data.from + num - 1 : data.from + limit - 1;
 
-        const from = ((page - 1) * 30) + 1;
-        const to = num < limit ? from + num - 1 : from + limit - 1;
+        plog.info(`found ${plugins._resources}`, data['num-of-records']);
+        plog.info(`retrieved ${plugins._resources}`, num);
 
-        //const records = [];
-
-        plog.info(`found ${total} records… now getting their ${plugins._resources}`);
-        plog.info(`number of ${plugins._resources}: ${hits.length}`);
-
-        data['num-of-records'] = total;
-        data.from = from;
-        data.to = to;
         data.prevpage = page >= 1 ? page - 1 : '';
         data.nextpage = num < limit ? '' : parseInt(page) + 1;
-        data.records = hits;
 
-        return data;
     }
-    catch(err) {
-        plog.error(JSON.stringify(err));
+    catch(error) {
+        plog.error(JSON.stringify(error));
     }
+
+    // finally, get facets and stats, if requested   
+    if ('facets' in queryObject && queryObject.facets === 'true') {
+        data.facets = getFacets();
+    }
+
+    if ('stats' in queryObject && queryObject.stats === 'true') {
+        data.stats = getStats();
+    }
+
+    // all done
+    return data;
+};
+
+const getStats = function() {
+
+};
+
+const getFacets = function() {
+
 };
 
 // const getStats = async function(query) {

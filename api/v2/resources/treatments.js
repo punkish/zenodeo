@@ -1,20 +1,29 @@
 'use strict';
 
+const config = require('config');
+const plog = require(config.get('plog'));
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
-const debug = require('debug')('v2:treatments');
-const config = require('config');
+//const debug = require('debug')('v2:treatments');
 const Utils = require('../utils');
+const Database = require('better-sqlite3');
+const db = new Database(config.get('data.treatments'));
+const fs = require('fs');
+//const treatmentStatus = require('../lib/treatmentsStatus');
 
 const uriZenodeo = config.get('uri.zenodeo') + '/v2';
 const cacheOn = config.get('cache.v2.on');
 
-const Database = require('better-sqlite3');
-const db = new Database(config.get('data.treatments'));
-const fs = require('fs');
-const treatmentStatus = require('../lib/treatmentsStatus');
-
 const queryMaker = require('../lib/query-maker');
+
+const plugins = {
+    _resource: 'treatment',
+    _resources: 'treatments',
+    _name: 'treatments2',
+    _segment: 'treatments2',
+    _path: '/treatments',
+    _order: 2
+};
 
 String.prototype.format = function() {
     const args = arguments;
@@ -25,14 +34,14 @@ String.prototype.format = function() {
 
 module.exports = {
     plugin: {
-        name: 'treatments2',
+        name: plugins._name,
         register: function(server, options) {
 
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
                 query: getRecords,  
-                segment: 'treatments2'
+                segment: plugins._segment
             });
 
             // binds the cache to every route registered  
@@ -40,22 +49,24 @@ module.exports = {
             server.bind({ cache });
 
             server.route([{ 
-                path: '/treatments', 
+                path: plugins._path, 
                 method: 'GET', 
+
                 config: {
-                    description: "Retrieve treatments",
-                    tags: ['treatments', 'api'],
+                    description: `Fetch ${plugins._resources} from Zenodeo`,
+                    tags: [plugins._resources, 'api'],
                     plugins: {
                         'hapi-swagger': {
-                            order: 2,
+                            order: plugins._order,
                             responseMessages: ResponseMessages
                         }
                     },
                     validate: Schema.treatments,
                     notes: [
-                        'This is the main route for retrieving taxonomic treatments from the database.',
+                        `This is the main route for fetching ${plugins._resources} from Zenodeo matching the provided query parameters.`,
                     ]
                 },
+
                 handler 
             }]);
         },
@@ -64,12 +75,15 @@ module.exports = {
 
 const handler = function(request, h) {
 
+    plog.info('request.query', request.query);
+
     // if xml is being requested, send it back and be done with it
     if (request.query.format && request.query.format === 'xml') {
-        const xml = getXml(request.query.treatmentId);
-        return h.response(xml)
+
+        return h.response(getXml(request.query.treatmentId))
             .type('text/xml')
             .header('Content-Type', 'application/xml');
+
     }
 
     // cacheKey is the URL query without the refreshCache param.
@@ -78,11 +92,11 @@ const handler = function(request, h) {
     // perform the query. However, the default params are not used 
     // to determine what kind of query to perform.
     const cacheKey = Utils.makeCacheKey(request);
-    debug(`cacheKey: ${cacheKey}`);
+    plog.info('cacheKey', cacheKey);
 
     if (cacheOn) {
         if (request.query.refreshCache === 'true') {
-            debug('forcing refreshCache')
+            plog.info('forcing refreshCache');
             this.cache.drop(cacheKey);
         }
 
@@ -94,7 +108,9 @@ const handler = function(request, h) {
 };
 
 const getRecords = function(cacheKey) {
+
     const queryObject = Utils.makeQueryObject(cacheKey);
+    plog.info('queryObject', queryObject);
 
     // A treatmentId is present. The query is for a specific
     // treatment. All other query params are ignored
@@ -113,28 +129,34 @@ const getOneRecord = function(queryObject) {
     let data;
 
     const queries = queryMaker(queryObject);
-    debug(`ONE queryObject: ${JSON.stringify(queryObject)}`);
 
     try {
-        debug(`ONE seldata: ${queries.seldata}`);
+        plog.info('ONE seldata', queries.seldata);
+
+        // if the query is unsuccessful, add 'num-of-records' = 0
         data = db.prepare(queries.seldata).get(queryObject) || { 'num-of-records': 0 };
     } 
     catch (error) {
-        console.log(error);
+        plog.log.error(error);
     }
     
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'treatments', 
+        resource: plugins._resources, 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
     });
 
-    debug(`num-of-records: ${data['num-of-records']}`)
+    plog.info('num-of-records', data['num-of-records']);
+
+    // if 'num-of-records' is undefined, that means the query 
+    // was successful and a match was found
     if (typeof data['num-of-records'] === 'undefined') {
+
+        data['num-of-records'] = 1;
 
         // more data from beyond the database
         data.xml = getXml(queryObject.treatmentId);
@@ -148,26 +170,25 @@ const getOneRecord = function(queryObject) {
 const getManyRecords = function(queryObject) {
 
     const queries = queryMaker(queryObject);
-    debug(`MANY queryObject: ${JSON.stringify(queryObject)}`);
-    //debug(`MANY queries: ${JSON.stringify(queries)}`);
+    plog.info('MANY queryObject', queryObject);
 
     const data = {};
 
     // first find total number of matches
     try {
-        debug(`MANY selcount: ${queries.selcount}`);
+        plog.info('MANY selcount', queries.selcount);
         data['num-of-records'] = db.prepare(queries.selcount)
             .get(queryObject)
             .numOfRecords;
     }
     catch (error) {
-        console.log(error);
+        plog.error(error);
     }
     
     data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: 'treatments', 
+        resource: plugins._resources, 
         queryString: Object.entries(queryObject)
             .map(e => e[0] + '=' + e[1])
             .sort()
@@ -179,46 +200,6 @@ const getManyRecords = function(queryObject) {
         return data;
     }
 
-    // records are found, so we continue with the actual data selection
-
-    // first, do the facet queries
-    
-
-    if ('facets' in queryObject && queryObject.facets === 'true') {
-        data.facets = {};
-        
-        if (queries.selfacets) {
-            for (let q in queries.selfacets) {
-                try {
-                    debug(`MANY FACETS ${q}: ${queries.selfacets[q]}`);
-                    data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
-                }
-                catch (error) {
-                    console.log(error);
-                }
-            }
-        }
-    }
-
-    
-
-    if ('stats' in queryObject && queryObject.stats === 'true') {
-        data.stats = {};
-
-        if (queries.selstats) {
-            for (let q in queries.selstats) {
-                try {
-                    debug(`MANY STATS ${q}: ${queries.selstats[q]}`);
-                    data.stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
-                }
-                catch (error) {
-                    console.log(error);
-                }
-            }
-        }
-    }
-    
-
     // now, get the records
     const id = queryObject.id ? parseInt(queryObject.id) : 0;
     const page = queryObject.page ? parseInt(queryObject.page) : 1;
@@ -229,18 +210,18 @@ const getManyRecords = function(queryObject) {
     try {
         queryObject.limit = limit;
         queryObject.offset = offset;
-        debug(`MANY seldata: ${queries.seldata}`);
+        plog.info('MANY seldata', queries.seldata);
         data.records = db.prepare(queries.seldata).all(queryObject) || [];
     }
     catch (error) {
-        console.log(error);
+        plog.error(error);
     }
 
     if (data.records.length > 0) {
         data.records.forEach(rec => {
             rec._links = Utils.makeSelfLink({
                 uri: uriZenodeo, 
-                resource: 'treatments', 
+                resource: plugins._resources, 
                 queryString: Object.entries({treatmentId: rec.treatmentId})
                     .map(e => e[0] + '=' + e[1])
                     .sort()
@@ -266,7 +247,41 @@ const getManyRecords = function(queryObject) {
 
     data.prevpage = page >= 1 ? page - 1 : '';
     data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
+
+    // finally, get facets and stats, if requested   
+    if ('facets' in queryObject && queryObject.facets === 'true') {
+        data.facets = {};
+        
+        if (queries.selfacets) {
+            for (let q in queries.selfacets) {
+                try {
+                    plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
+                    data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+                }
+                catch (error) {
+                    plog.error(error);
+                }
+            }
+        }
+    }
+
+    if ('stats' in queryObject && queryObject.stats === 'true') {
+        data.stats = {};
+
+        if (queries.selstats) {
+            for (let q in queries.selstats) {
+                try {
+                    plog.info(`MANY STATS ${q}`, queries.selstats[q]);
+                    data.stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
+                }
+                catch (error) {
+                    plog.error(error);
+                }
+            }
+        }
+    }
     
+    // all done
     return data;
     
 };
@@ -275,14 +290,14 @@ const getRelatedRecords = function(queries, queryObject) {
     const rr = {};
 
     const relatedRecords = queries.selrelated;
-    debug(queries);
+    plog.info(queries);
 
     for (let relatedResource in relatedRecords) {
 
 
         try {
             const select = relatedRecords[relatedResource];
-            debug(`ONE RELATED ${relatedResource}: ${select}`);
+            plog.info(`ONE RELATED ${relatedResource}`, select);
             const data = db.prepare(select).all(queryObject);
 
             rr[relatedResource] = Utils.halify({
@@ -293,7 +308,7 @@ const getRelatedRecords = function(queries, queryObject) {
             })
         }
         catch(error) {
-            console.log(error);
+            plog.info(error);
         }
     }
 
@@ -314,11 +329,11 @@ const getTaxonStats = function(data) {
         const select = `SELECT Count(treatmentId) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
 
         try {
-            debug(`ONE TAXONSTATS: ${select}`);
+            plog.info('ONE TAXONSTATS', select);
             taxonStats[index].num = db.prepare(select).get().num;
         } 
         catch (error) {
-            console.log(error);
+            plog.error(error);
         }
     })
 
@@ -330,7 +345,7 @@ const getXml = function(treatmentId) {
     const two = treatmentId.substr(0, 2);
     const thr = treatmentId.substr(0, 3);
 
-    debug(`getting the xml for ${treatmentId}`);
+    plog.info(`getting the xml for ${treatmentId}`);
 
     return fs.readFileSync(
         `data/treatments/${one}/${two}/${thr}/${treatmentId}.xml`,
