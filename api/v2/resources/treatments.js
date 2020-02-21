@@ -4,7 +4,6 @@ const config = require('config');
 const plog = require(config.get('plog'));
 const Schema = require('../schema.js');
 const ResponseMessages = require('../../responseMessages');
-//const debug = require('debug')('v2:treatments');
 const Utils = require('../utils');
 const Database = require('better-sqlite3');
 const db = new Database(config.get('data.treatments'));
@@ -250,40 +249,54 @@ const getManyRecords = function(queryObject) {
 
     // finally, get facets and stats, if requested   
     if ('facets' in queryObject && queryObject.facets === 'true') {
-        data.facets = {};
-        
-        if (queries.selfacets) {
-            for (let q in queries.selfacets) {
-                try {
-                    plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
-                    data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
-                }
-                catch (error) {
-                    plog.error(error);
-                }
-            }
-        }
+        data.facets = getFacets(queries, queryObject);
     }
 
     if ('stats' in queryObject && queryObject.stats === 'true') {
-        data.stats = {};
-
-        if (queries.selstats) {
-            for (let q in queries.selstats) {
-                try {
-                    plog.info(`MANY STATS ${q}`, queries.selstats[q]);
-                    data.stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
-                }
-                catch (error) {
-                    plog.error(error);
-                }
-            }
-        }
+        data.stats = getStats(queries, queryObject);
     }
     
     // all done
     return data;
     
+};
+
+const getFacets = function(queries, queryObject) {
+
+    const facets = {};
+
+    if (queries.selfacets) {
+        for (let q in queries.selfacets) {
+            try {
+                plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
+                data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+            }
+            catch (error) {
+                plog.error(error);
+            }
+        }
+    }
+
+    return facets;
+}
+
+const getStats = function(queries, queryObject) {
+
+    const stats = {};
+
+    if (queries.selstats) {
+        for (let q in queries.selstats) {
+            try {
+                plog.info(`MANY STATS ${q}`, queries.selstats[q]);
+                stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
+            }
+            catch (error) {
+                plog.error(error);
+            }
+        }
+    }
+
+    return stats;
 };
 
 const getRelatedRecords = function(queries, queryObject) {

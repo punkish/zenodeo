@@ -225,7 +225,7 @@ const getManyRecords = async function({queryObject, plugins}) {
         const page = queryObject.page ? parseInt(queryObject.page) : 1;
 
         data.from = ((page - 1) * limit) + 1;
-        data.to = num < limit ? data.from + num - 1 : data.from + limit - 1;
+        data.to = num < limit ? parseInt(data.from) + parseInt(num) - 1 : parseInt(data.from) + parseInt(limit) - 1;
 
         plog.info(`found ${plugins._resources}`, data['num-of-records']);
         plog.info(`retrieved ${plugins._resources}`, num);
