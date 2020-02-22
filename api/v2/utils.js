@@ -179,14 +179,18 @@ module.exports = {
             }
         }
     
+        let s = '';
+        if (arr.length) {
+            s = '?' + arr.sort().join('&');
+        }
         // now make the queryString into a standard form (all params 
         // sorted) and prefix it with the pathname
-        return request.url.pathname + '?' + arr.sort().join('&');
+        return request.url.pathname + s;
     },
 
     makeQueryObject: function(cacheKey) {
         const queryObject = {};
-        if (cacheKey) {
+        if (cacheKey.indexOf('?') > -1) {
             cacheKey.split('?')[1].split('&').forEach(pair => {
                 queryObject[pair.split('=')[0]] = pair.split('=')[1]
             })

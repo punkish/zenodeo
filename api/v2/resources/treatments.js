@@ -18,6 +18,7 @@ const queryMaker = require('../lib/query-maker');
 const plugins = {
     _resource: 'treatment',
     _resources: 'treatments',
+    _resouceId: 'treatmentId',
     _name: 'treatments2',
     _segment: 'treatments2',
     _path: '/treatments',
@@ -60,9 +61,9 @@ module.exports = {
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.treatments,
+                    validate: Schema[plugins._resources],
                     notes: [
-                        `This is the main route for fetching ${plugins._resources} from Zenodeo matching the provided query parameters.`,
+                        `This is the main route for fetching ${plugins._resources} from Zenodeo matching the provided query parameters.`
                     ]
                 },
 
@@ -109,11 +110,12 @@ const handler = function(request, h) {
 const getRecords = function(cacheKey) {
 
     const queryObject = Utils.makeQueryObject(cacheKey);
+    queryObject.resource = plugins._resources;
     plog.info('queryObject', queryObject);
 
-    // A treatmentId is present. The query is for a specific
-    // treatment. All other query params are ignored
-    if (queryObject.treatmentId) {
+    // A resourceId is present. The query is for a specific
+    // record. All other query params are ignored
+    if (queryObject[plugins._resouceId]) {
         return getOneRecord(queryObject);
     }
     
@@ -126,7 +128,6 @@ const getRecords = function(cacheKey) {
 const getOneRecord = function(queryObject) {    
 
     let data;
-
     const queries = queryMaker(queryObject);
 
     try {
@@ -221,7 +222,7 @@ const getManyRecords = function(queryObject) {
             rec._links = Utils.makeSelfLink({
                 uri: uriZenodeo, 
                 resource: plugins._resources, 
-                queryString: Object.entries({treatmentId: rec.treatmentId})
+                queryString: Object.entries({treatmentId: rec[plugins._resourceId]})
                     .map(e => e[0] + '=' + e[1])
                     .sort()
                     .join('&')

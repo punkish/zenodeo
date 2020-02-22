@@ -531,7 +531,7 @@ module.exports = {
             stats: Joi.boolean()
                 .description('whether or not to fetch stats')
                 .optional()
-                .default(false),
+                .default(false)
         })
     },
 
@@ -605,7 +605,22 @@ module.exports = {
 
             q: Joi.string()
                 .description(descriptions.fullText)
+                .optional(),
+
+            sortBy: Joi.string()
+                .description('sort column:sort order')
                 .optional()
+                .default('bibRefCitationId:ASC'),
+
+            facets: Joi.boolean()
+                .description('whether or not to fetch facets')
+                .optional()
+                .default(false),
+
+            stats: Joi.boolean()
+                .description('whether or not to fetch stats')
+                .optional()
+                .default(false)
         })
     },
 
