@@ -10,7 +10,7 @@ const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
 //const treatmentStatus = require('../lib/treatmentsStatus');
 
-const uriZenodeo = config.get('uri.zenodeo') + '/v2';
+const uriZenodeo = config.get('uri.zenodeo');
 const cacheOn = config.get('cache.v2.on');
 
 const queryMaker = require('../lib/query-maker');
@@ -270,7 +270,7 @@ const getFacets = function(queries, queryObject) {
         for (let q in queries.selfacets) {
             try {
                 plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
-                data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+                facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
             }
             catch (error) {
                 plog.error(error);

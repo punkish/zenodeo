@@ -251,13 +251,43 @@ const getManyRecords = async function({queryObject, plugins}) {
     return data;
 };
 
-const getStats = function() {
+const getStats = function(queries, queryObject) {
 
+    const stats = {};
+
+    if (queries.selstats) {
+        for (let q in queries.selstats) {
+            try {
+                plog.info(`MANY STATS ${q}`, queries.selstats[q]);
+                stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
+            }
+            catch (error) {
+                plog.error(error);
+            }
+        }
+    }
+
+    return stats;
 };
 
-const getFacets = function() {
+const getFacets = function(queries, queryObject) {
 
-};
+    const facets = {};
+
+    if (queries.selfacets) {
+        for (let q in queries.selfacets) {
+            try {
+                plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
+                data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+            }
+            catch (error) {
+                plog.error(error);
+            }
+        }
+    }
+
+    return facets;
+}
 
 // const getStats = async function(query) {
 
