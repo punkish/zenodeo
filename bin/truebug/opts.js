@@ -8,21 +8,10 @@ let opts = {
     parseAll: false
 }
 
-if (argv.download) {
-    opts.download = true;
-}
-
-if (argv.rearrange) {
-    opts.rearrange = true;
-}
-
-if (argv.database) {
-    opts.database = true;
-}
-
-if (argv.parse) {
-    opts.parse = argv.parse
-}
+if (argv.download) opts.download = true;
+if (argv.rearrange) opts.rearrange = true;
+if (argv.database) opts.database = true;
+if (argv.parse) opts.parse = argv.parse;
 
 const allParamsFalse = !opts.download && !opts.rearrange && !opts.database && !opts.parse;
 

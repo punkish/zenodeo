@@ -1,6 +1,18 @@
 const path = require('path');
 const cwd = process.cwd();
 
+/*
+http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&groupingFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
+
+
+
+http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
+
+
+tb.plazi.org/GgServer/dumps/plazi.zenodeo.zip
+tb.plazi.org/GgServer/dumps/plazi.xmlHistory.zip
+*/
+
 module.exports = {
     
     'info': { 
@@ -27,7 +39,7 @@ module.exports = {
         'v2': {
             'path': path.join(cwd, 'cache', 'catbox'),
             'name': 'catbox',
-            //'on': false
+            'on': false
         }
     },
     'uri': {
