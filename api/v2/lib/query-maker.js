@@ -93,55 +93,56 @@ const qryFrags = {
                 condition: ["treatments.deleted = 0 AND journalYear != ''"]
             },
 
-            kingdom: {
-                columns: ['kingdom', 'Count(kingdom) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND kingdom != ''"]
-            },
+            // BLR-Website Issue 11: removed from facets
+            // https://github.com/plazi/BLR-website/issues/11
+            // https://github.com/plazi/BLR-website/blob/master/facets.md#treatments
+            //
+            // kingdom: {
+            //     columns: ['kingdom', 'Count(kingdom) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND kingdom != ''"]
+            // },
 
-            phylum: {
-                columns: ['phylum', 'Count(phylum) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND phylum != ''"]
-            },
+            // phylum: {
+            //     columns: ['phylum', 'Count(phylum) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND phylum != ''"]
+            // },
 
-            order: {
-                columns: ['"order"', 'Count("order") AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND \"order\" != ''"]
-            },
+            // order: {
+            //     columns: ['"order"', 'Count("order") AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND \"order\" != ''"]
+            // },
 
-            family: {
-                columns: ['family', 'Count(family) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND family != ''"]
-            },
+            // family: {
+            //     columns: ['family', 'Count(family) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND family != ''"]
+            // },
 
-            genus: {
-                columns: ['genus', 'Count(genus) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND genus != ''"]
-            },
+            // genus: {
+            //     columns: ['genus', 'Count(genus) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND genus != ''"]
+            // },
+
+            // species: {
+            //     columns: ['species', 'Count(species) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND species != ''"]
+            // },
 
             status: {
                 columns: ['status', 'Count(status) AS c'],
                 tables: ['treatments'],
                 condition: ["treatments.deleted = 0 AND status != ''"]
             },
-
-            // BLR-Website Issue 11: removed from facets
-            // https://github.com/plazi/BLR-website/issues/11
-            //
-            // rank: {
-            //     columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
-            // },
-
-            species: {
-                columns: ['species', 'Count(species) AS c'],
+            
+            rank: {
+                columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
                 tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND species != ''"]
+                condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
             },
 
             collectionCode: {

@@ -60,7 +60,8 @@ module.exports = {
     'v1': {
         'cache': {
             'path': path.join(cwd, 'cache'),
-            'name': 'persistent'
+            'name': 'persistent',
+            'on': true
         },
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v1', 'schema.js')
@@ -69,7 +70,8 @@ module.exports = {
     'v2': {
         'cache': {
             'path': path.join(cwd, 'cache'),
-            'name': 'catbox'
+            'name': 'catbox',
+            'on': false
         },
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v2', 'schema.js'),

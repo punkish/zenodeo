@@ -11,7 +11,7 @@ const fs = require('fs');
 //const treatmentStatus = require('../lib/treatmentsStatus');
 
 const uriZenodeo = config.get('uri.zenodeo');
-const cacheOn = config.get('cache.v2.on');
+const cacheOn = config.get('v2.cache.on');
 
 const queryMaker = require('../lib/query-maker');
 
