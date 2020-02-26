@@ -18,7 +18,7 @@ const queryMaker = require('../lib/query-maker');
 const plugins = {
     _resource: 'treatment',
     _resources: 'treatments',
-    _resouceId: 'treatmentId',
+    _resourceId: 'treatmentId',
     _name: 'treatments2',
     _segment: 'treatments2',
     _path: '/treatments',
