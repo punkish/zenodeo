@@ -93,10 +93,21 @@ const handler = function(request, h) {
     // to determine what kind of query to perform.
     const cacheKey = Utils.makeCacheKey(request);
     //plog.info('cacheKey', cacheKey);
+<<<<<<< HEAD
     plog.log({header: 'WEB QUERY', messages: [
         {l: 'request.query', p: request.query},
         {l: 'cacheKey', p: cacheKey}
     ]});
+=======
+
+    plog.log({
+        header: 'WEB QUERY',
+        messages: [
+            {label: 'request.query', params: request.query},
+            {label: 'cacheKey', params: cacheKey}
+        ]
+    });
+>>>>>>> fix-plog
 
     if (cacheOn) {
         if (request.query.refreshCache === 'true') {
@@ -115,7 +126,7 @@ const getRecords = function(cacheKey) {
 
     const queryObject = Utils.makeQueryObject(cacheKey);
     queryObject.resource = plugins._resources;
-    plog.info('queryObject', queryObject);
+    //plog.info('queryObject', queryObject);
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
@@ -174,13 +185,13 @@ const getOneRecord = function(queryObject) {
 const getManyRecords = function(queryObject) {
 
     const queries = queryMaker(queryObject);
-    plog.info('MANY queryObject', queryObject);
-
+    const messages = [{label: 'queryObject', params: queryObject}];
+    
     const data = {};
 
     // first find total number of matches
     try {
-        plog.info('MANY selcount', queries.selcount);
+        messages.push({label: 'selcount', params: queries.selcount});
         data['num-of-records'] = db.prepare(queries.selcount)
             .get(queryObject)
             .numOfRecords;
@@ -214,12 +225,17 @@ const getManyRecords = function(queryObject) {
     try {
         queryObject.limit = limit;
         queryObject.offset = offset;
-        plog.info('MANY seldata', queries.seldata);
+        messages.push({label: 'seldata', params: queries.seldata});
         data.records = db.prepare(queries.seldata).all(queryObject) || [];
     }
     catch (error) {
         plog.error(error);
     }
+
+    plog.log({
+        header: 'MANY QUERIES',
+        messages: messages
+    });
 
     if (data.records.length > 0) {
         data.records.forEach(rec => {
@@ -269,11 +285,13 @@ const getManyRecords = function(queryObject) {
 const getFacets = function(queries, queryObject) {
 
     const facets = {};
+    const messages = [];
 
     if (queries.selfacets) {
         for (let q in queries.selfacets) {
             try {
-                plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
+                //plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
+                messages.push({label: q, params: queries.selfacets[q]});
                 facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
             }
             catch (error) {
@@ -282,17 +300,24 @@ const getFacets = function(queries, queryObject) {
         }
     }
 
+    plog.log({
+        header: 'MANY FACETS',
+        messages: messages
+    });
+
     return facets;
 }
 
 const getStats = function(queries, queryObject) {
 
     const stats = {};
+    const messages = [];
 
     if (queries.selstats) {
         for (let q in queries.selstats) {
             try {
-                plog.info(`MANY STATS ${q}`, queries.selstats[q]);
+                //plog.info(`MANY STATS ${q}`, queries.selstats[q]);
+                messages.push({label: q, params: queries.selstats[q]});
                 stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
             }
             catch (error) {
@@ -300,6 +325,11 @@ const getStats = function(queries, queryObject) {
             }
         }
     }
+
+    plog.log({
+        header: 'MANY STATS',
+        messages: messages
+    });
 
     return stats;
 };
