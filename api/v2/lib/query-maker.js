@@ -71,11 +71,15 @@ const qryFrags = {
         },
 
         facets: {
-            journalVolume: {
-                columns: ['journalVolume', 'Count(journalVolume) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND journalVolume != ''"]
-            },
+
+            // BLR-Website Issue 10: removed from facets
+            // https://github.com/plazi/BLR-website/issues/10
+            //
+            // journalVolume: {
+            //     columns: ['journalVolume', 'Count(journalVolume) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND journalVolume != ''"]
+            // },
 
             journalTitle: {
                 columns: ['journalTitle', 'Count(journalTitle) AS c'],
