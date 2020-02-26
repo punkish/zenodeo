@@ -19,7 +19,7 @@ module.exports = {
         'cache': {
             'on': true
         }
-    }
+    },
 
     "swaggered-scheme": ['https'],
     port: 3030
