@@ -9,6 +9,18 @@ module.exports = {
         }
     },
 
+    'v1': {
+        'cache': {
+            'on': true
+        }
+    },
+
+    'v2': {
+        'cache': {
+            'on': true
+        }
+    }
+
     "swaggered-scheme": ['https'],
     port: 3030
 }

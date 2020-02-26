@@ -75,7 +75,7 @@ module.exports = {
 
 const handler = function(request, h) {
 
-    plog.info('request.query', request.query);
+    //plog.info('request.query', request.query);
 
     // if xml is being requested, send it back and be done with it
     if (request.query.format && request.query.format === 'xml') {
@@ -92,7 +92,11 @@ const handler = function(request, h) {
     // perform the query. However, the default params are not used 
     // to determine what kind of query to perform.
     const cacheKey = Utils.makeCacheKey(request);
-    plog.info('cacheKey', cacheKey);
+    //plog.info('cacheKey', cacheKey);
+    plog.log({header: 'WEB QUERY', messages: [
+        {l: 'request.query', p: request.query},
+        {l: 'cacheKey', p: cacheKey}
+    ]});
 
     if (cacheOn) {
         if (request.query.refreshCache === 'true') {
