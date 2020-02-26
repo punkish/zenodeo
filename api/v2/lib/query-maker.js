@@ -129,11 +129,14 @@ const qryFrags = {
                 condition: ["treatments.deleted = 0 AND status != ''"]
             },
 
-            rank: {
-                columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
-            },
+            // BLR-Website Issue 11: removed from facets
+            // https://github.com/plazi/BLR-website/issues/11
+            //
+            // rank: {
+            //     columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
+            // },
 
             species: {
                 columns: ['species', 'Count(species) AS c'],
