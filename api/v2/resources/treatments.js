@@ -93,12 +93,6 @@ const handler = function(request, h) {
     // to determine what kind of query to perform.
     const cacheKey = Utils.makeCacheKey(request);
     //plog.info('cacheKey', cacheKey);
-<<<<<<< HEAD
-    plog.log({header: 'WEB QUERY', messages: [
-        {l: 'request.query', p: request.query},
-        {l: 'cacheKey', p: cacheKey}
-    ]});
-=======
 
     plog.log({
         header: 'WEB QUERY',
@@ -107,7 +101,6 @@ const handler = function(request, h) {
             {label: 'cacheKey', params: cacheKey}
         ]
     });
->>>>>>> fix-plog
 
     if (cacheOn) {
         if (request.query.refreshCache === 'true') {
