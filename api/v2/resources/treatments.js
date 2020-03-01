@@ -37,11 +37,12 @@ module.exports = {
         name: plugins._name,
         register: function(server, options) {
 
+            // create the cache
             const cache = Utils.makeCache({
                 server: server, 
                 options: options, 
-                query: getRecords,  
-                segment: plugins._segment
+                query: getRecords,
+                plugins: plugins
             });
 
             // binds the cache to every route registered  
@@ -67,70 +68,69 @@ module.exports = {
                     ]
                 },
 
-                handler 
+                handler: handler(plugins) 
             }]);
         },
     },
 };
 
-const handler = function(request, h) {
+const handler = function(plugins) {
 
-    //plog.info('request.query', request.query);
+    return function(request, h) {
 
-    // if xml is being requested, send it back and be done with it
-    if (request.query.format && request.query.format === 'xml') {
+        const queryObject = request.query;
+        queryObject.resources = plugins._resources;
 
-        return h.response(getXml(request.query.treatmentId))
-            .type('text/xml')
-            .header('Content-Type', 'application/xml');
-
-    }
-
-    // cacheKey is the URL query without the refreshCache param.
-    // The default params, if any, are used in making the cacheKey.
-    // The default params are also used in queryObject to actually 
-    // perform the query. However, the default params are not used 
-    // to determine what kind of query to perform.
-    const cacheKey = Utils.makeCacheKey(request);
-    //plog.info('cacheKey', cacheKey);
-<<<<<<< HEAD
-    plog.log({header: 'WEB QUERY', messages: [
-        {l: 'request.query', p: request.query},
-        {l: 'cacheKey', p: cacheKey}
-    ]});
-=======
-
-    plog.log({
-        header: 'WEB QUERY',
-        messages: [
-            {label: 'request.query', params: request.query},
-            {label: 'cacheKey', params: cacheKey}
-        ]
-    });
->>>>>>> fix-plog
-
-    if (cacheOn) {
-        if (request.query.refreshCache === 'true') {
-            plog.info('forcing refreshCache');
-            this.cache.drop(cacheKey);
+        // bunch up messages to print them to the log
+        const messages = [{label: 'queryObject', params: queryObject}];
+    
+        // if xml is being requested, send it back and be done with it
+        if (queryObject.format && queryObject.format === 'xml') {
+    
+            return h.response(getXml(queryObject.treatmentId))
+                .type('text/xml')
+                .header('Content-Type', 'application/xml');
+    
         }
+    
+        // cacheKey is the URL query without the refreshCache param.
+        const cacheKey = Utils.makeCacheKey(request);
+        messages.push({label: 'cacheKey', params: cacheKey});
+    
+        if (cacheOn) {
+            if (queryObject.refreshCache) {
+                messages.push({label: 'info', params: 'forcing refreshCache'});
+                this.cache.drop(cacheKey);
+            }
 
-        return this.cache.get(cacheKey);
-    }
-    else {
-        return getRecords(cacheKey);
-    }
+            messages.push({label: 'info', params: 'returning results from cache'});
+            plog.log({
+                header: 'WEB QUERY',
+                messages: messages
+            });
+
+            return this.cache.get(cacheKey);
+        }
+        else {
+
+            messages.push({label: 'info', params: 'querying for results'});
+            plog.log({
+                header: 'WEB QUERY',
+                messages: messages
+            });
+
+            return getRecords({cacheKey, plugins});
+        }
+    };
 };
 
-const getRecords = function(cacheKey) {
+const getRecords = function({cacheKey, plugins}) {
 
     const queryObject = Utils.makeQueryObject(cacheKey);
-    queryObject.resource = plugins._resources;
-    //plog.info('queryObject', queryObject);
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject[plugins._resouceId]) {
+    if (queryObject[plugins._resourceId]) {
         return getOneRecord(queryObject);
     }
     
@@ -142,20 +142,34 @@ const getRecords = function(cacheKey) {
 
 const getOneRecord = function(queryObject) {    
 
-    let data;
     const queries = queryMaker(queryObject);
+    const messages = [{label: 'queryObject', params: queryObject}];
+
+    // data will hold all the query results to be sent back
+    const data = {
+
+        // deep clone the queryObject
+        'search-criteria': JSON.parse(JSON.stringify(queryObject))
+    };
 
     try {
-        plog.info('ONE seldata', queries.seldata);
+        messages.push({label: 'seldata', params: queries.seldata});
 
-        // if the query is unsuccessful, add 'num-of-records' = 0
-        data = db.prepare(queries.seldata).get(queryObject) || { 'num-of-records': 0 };
+        // if the query is successful,  but no records are found
+        // add 'num-of-records' = 0
+        data.records = [db.prepare(queries.seldata).get(queryObject)] || [];
+        if (data.records) {
+            data['num-of-records'] = 1;
+        }
+        else {
+            data['num-of-records'] = 0;
+        }
     } 
     catch (error) {
-        plog.log.error(error);
+        plog.error(error);
     }
     
-    data['search-criteria'] = queryObject;
+    // add a self link to the data
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
         resource: plugins._resources, 
@@ -165,19 +179,21 @@ const getOneRecord = function(queryObject) {
             .join('&')
     });
 
-    plog.info('num-of-records', data['num-of-records']);
+    messages.push({label: 'num-of-records', params: data['num-of-records']});
+    plog.log({
+        header: 'ONE QUERY',
+        messages: messages
+    });
 
-    // if 'num-of-records' is undefined, that means the query 
-    // was successful and a match was found
-    if (typeof data['num-of-records'] === 'undefined') {
-
-        data['num-of-records'] = 1;
-
-        // more data from beyond the database
-        data.xml = getXml(queryObject.treatmentId);
-        data.taxonStats = getTaxonStats(data);
-        data['related-records'] = getRelatedRecords(queries, queryObject);
+    // We are done if no records found
+    if (!data['num-of-records']) {
+        return data;
     }
+
+    // more data from beyond the database
+    data.xml = getXml(queryObject.treatmentId);
+    data.taxonStats = getTaxonStats(data);
+    data['related-records'] = getRelatedRecords(queries, queryObject);
 
     return data;
 };
@@ -187,7 +203,12 @@ const getManyRecords = function(queryObject) {
     const queries = queryMaker(queryObject);
     const messages = [{label: 'queryObject', params: queryObject}];
     
-    const data = {};
+    // data will hold all the query results to be sent back
+    const data = {
+
+        // deep clone the queryObject
+        'search-criteria': JSON.parse(JSON.stringify(queryObject))
+    };
 
     // first find total number of matches
     try {
@@ -197,10 +218,10 @@ const getManyRecords = function(queryObject) {
             .numOfRecords;
     }
     catch (error) {
-        plog.error(error);
+        plog.error(JSON.stringify(error));
     }
     
-    data['search-criteria'] = queryObject;
+    // add a self link to the data
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
         resource: plugins._resources, 
@@ -218,7 +239,7 @@ const getManyRecords = function(queryObject) {
     // now, get the records
     const id = queryObject.id ? parseInt(queryObject.id) : 0;
     const page = queryObject.page ? parseInt(queryObject.page) : 1;
-    const offset = (page - 1) * 30;
+    const offset = (page - 1) * Schema.defaults.size;
     const limit = 30;
 
     // get the records
@@ -335,17 +356,17 @@ const getStats = function(queries, queryObject) {
 };
 
 const getRelatedRecords = function(queries, queryObject) {
-    const rr = {};
 
+    const rr = {};
     const relatedRecords = queries.selrelated;
-    plog.info(queries);
+    const messages = [];
 
     for (let relatedResource in relatedRecords) {
 
-
         try {
             const select = relatedRecords[relatedResource];
-            plog.info(`ONE RELATED ${relatedResource}`, select);
+            messages.push({label: relatedResource, params: select});
+
             const data = db.prepare(select).all(queryObject);
 
             rr[relatedResource] = Utils.halify({
@@ -353,37 +374,51 @@ const getRelatedRecords = function(queries, queryObject) {
                 uri: uriZenodeo, 
                 resource: relatedResource,
                 id: `${relatedResource.substr(0, relatedResource.length - 1)}Id`
-            })
+            });
         }
         catch(error) {
             plog.info(error);
         }
+
+        
     }
+
+    plog.log({
+        header: 'ONE RELATED',
+        messages: messages
+    });
 
     return rr;
 };
 
 const getTaxonStats = function(data) {
+    const rec = data.records[0];
     const taxonStats = [
-        { name: 'kingdom', value: data.kingdom, num: 0 }, 
-        { name: 'phylum',  value: data.phylum,  num: 0 }, 
-        { name: '"order"', value: data.order,   num: 0 }, 
-        { name: 'family',  value: data.family,  num: 0 }, 
-        { name: 'genus',   value: data.genus,   num: 0 }, 
-        { name: 'species', value: data.species, num: 0 }
+        { name: 'kingdom', value: rec.kingdom, num: 0 }, 
+        { name: 'phylum',  value: rec.phylum,  num: 0 }, 
+        { name: '"order"', value: rec.order,   num: 0 }, 
+        { name: 'family',  value: rec.family,  num: 0 }, 
+        { name: 'genus',   value: rec.genus,   num: 0 }, 
+        { name: 'species', value: rec.species, num: 0 }
     ];
+
+    const messages = [];
 
     taxonStats.forEach((taxon, index) => {
         const select = `SELECT Count(treatmentId) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
-
+        messages.push({label: taxon.name, params: select});
         try {
-            plog.info('ONE TAXONSTATS', select);
             taxonStats[index].num = db.prepare(select).get().num;
         } 
         catch (error) {
             plog.error(error);
         }
     })
+
+    plog.log({
+        header: 'ONE TAXONSTATS',
+        messages: messages
+    });
 
     return taxonStats;
 };

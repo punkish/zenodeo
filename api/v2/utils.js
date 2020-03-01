@@ -4,10 +4,7 @@ const Wreck = require('@hapi/wreck');
 // const debug = require('debug')('v2:utils');
 
 const config = require('config');
-// const authors = config.get('data.authors');
-// const keywords = config.get('data.keywords');
-// const taxa = config.get('data.taxa');
-// const families = config.get('data.families');
+const plog = require(config.get('plog'));
 
 const Database = require('better-sqlite3');
 const dbFacets = new Database(config.get('data.facets'));
@@ -149,14 +146,14 @@ module.exports = {
         return records;
     },
 
-    makeCache: function({server, options, query, segment}) {
+    makeCache: function({server, options, query, plugins}) {
         return server.cache({
             cache: options.cacheName,
             expiresIn: options.expiresIn,
             generateTimeout: options.generateTimeout,
-            segment: segment, 
+            segment: plugins._segment, 
             generateFunc: async (cacheKey) => { 
-                return await query(cacheKey) 
+                return await query({cacheKey, plugins}) 
             },
             getDecoratedValue: options.getDecoratedValue
         });
@@ -172,7 +169,7 @@ module.exports = {
         // debug(`url.searchParams: ${request.url.searchParams}`);
 
         // remove 'refreshCache' from the query params
-        let arr = [];
+        const arr = [];
         for (let k in request.query) {
             if (k !== 'refreshCache') {
                 arr.push(k + '=' + request.query[k]);
@@ -181,11 +178,11 @@ module.exports = {
     
         let s = '';
         if (arr.length) {
-            s = '?' + arr.sort().join('&');
+            s = arr.sort().join('&');
         }
         // now make the queryString into a standard form (all params 
         // sorted) and prefix it with the pathname
-        return request.url.pathname + s;
+        return request.url.pathname + '?' + s;
     },
 
     makeQueryObject: function(cacheKey) {

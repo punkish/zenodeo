@@ -10,8 +10,10 @@
 const config = require('config');
 const plog = require(config.get('plog'));
 
+const Schema = require('../schema.js');
+
 const uriZenodeo = config.get('uri.zenodeo') + '/v2';
-const cacheOn = config.get('cache.v2.on');
+const cacheOn = config.get('v2.cache.on');
 
 const Wreck = require('@hapi/wreck');
 const uriZenodo = config.get('uri.remote') + '/records/';
@@ -20,9 +22,11 @@ const Utils = require('../utils');
 
 const handler = function(plugins) {
 
-    const handler2 = async function(request, h) {
+    return async function(request, h) {
 
-        plog.info('request.query', request.query);
+        const queryObject = request.query;
+        queryObject.resources = plugins._resources;
+        plog.info('queryObject', queryObject);
     
         // cacheKey is the URL query without the refreshCache param.
         // The default params, if any, are used in making the cacheKey.
@@ -30,35 +34,29 @@ const handler = function(plugins) {
         // perform the query. However, the default params are not used 
         // to determine what kind of query to perform.
         const cacheKey = Utils.makeCacheKey(request);
-        plog.info('cacheKey', cacheKey);
     
         if (cacheOn) {
-            if (request.query.refreshCache === 'true') {
+            if (queryObject.refreshCache === 'true') {
                 plog.info('forcing refreshCache');
                 this.cache.drop(cacheKey);
             }
     
-            return this.cache.get({cacheKey, plugins});
+            plog.info('returning results from cache');
+            return this.cache.get({cacheKey, queryObject, plugins});
         }
         else {
-            return getRecords({cacheKey, plugins});
+            return getRecords({cacheKey, queryObject, plugins});
         }
         
     };
 
-    return handler2;
 };
 
-
-
-const getRecords = function({cacheKey, plugins}) {
-
-    const queryObject = Utils.makeQueryObject(cacheKey);
-    plog.info('queryObject', queryObject);
+const getRecords = function({cacheKey, queryObject, plugins}) {
 
     // An id is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject.id) {
+    if (queryObject[plugins._resourceId]) {
         return getOneRecord({queryObject, plugins});
     }
     
@@ -72,9 +70,9 @@ const getOneRecord = async function({queryObject, plugins}) {
 
     let data;
     const uriRemote = uriZenodo + queryObject.id;
+    plog.info('remote URI (one)', uriRemote);
 
     try {
-        plog.info('remote URI (one)', uriRemote);
         const {res, payload} =  await Wreck.get(uriRemote);
         data = await JSON.parse(payload) || { 'num-of-records': 0 };
     }
@@ -104,111 +102,49 @@ const getManyRecords = async function({queryObject, plugins}) {
         'search-criteria': JSON.parse(JSON.stringify(queryObject))
     };
 
-
-    // first we determine whether the searchtype is 'simple' or 'fancy'
-    // as the way the query is constructed is different for the two
-    const basicParams = ['page', 'size', 'communities', 'q', 'type'];
-
-    // default search
-    let searchType = 'simple';
-
-    for (let k in queryObject) {
-
-        // if there are any query params other than the basic params
-        // then the searchtype is 'fancy' 
-        if (basicParams.includes(k) == false) {
-            searchType = 'fancy';
-            break;
-        }
-
-    }
-
-    plog.info('searchtype', searchType);
-
     let queryString = '';
 
-    if (searchType === 'simple') {
-        
-        const otherParams = [];
-
-        for (let k in queryObject) {
-
-            if (k === 'communities') {
-                queryObject['communities']
-                    .split(',')
-                    .forEach(community => otherParams.push(
-                        `communities=${community}`
-                    ));
-            }
-            else if (k === 'type' && plugins._resource === 'publication') {
-                otherParams.push(`subtype=${queryObject[k]}`);
+    const params = [];
+    for (let k in queryObject) {
+        if (k !== 'refreshCache') {
+            const param = queryObject[k];
+            if (Array.isArray(param)) {
+                if (k === 'type') k = 'subtype';
+                param.forEach(p => params.push(`${k}=${p}`));
             }
             else {
-                otherParams.push(`${k}=${queryObject[k]}`);
-            }
-
-        }
-
-        queryString = `${otherParams.join('&')}&type=${plugins._resource}&access_right=open`;
-        plog.info('queryString', queryString);
-    }
-
-    // if queryObject contains other search params besides q then 
-    // it is a fancysearch
-    else if (searchType === 'fancy') {
-
-        const exclude = ['page', 'size', 'type', 'communities'];
-        const zenodoSynonyms = {
-            author: 'creators.name',
-            text: 'q'
-        };
-
-        // the following params are searched for exact pattern
-        const exact = ['doi'];
-
-        const queryArray = [];
-        const others = [];
-
-        for (let k in queryObject) {
-            if (!exclude.includes(k)) {
-                if (k === 'q') {
-                    queryArray.push(`+${queryObject.q}`);
-                }
-                else {
-
-                    if (k in zenodoSynonyms) {
-                        if (exact.includes(k)) {
-                            queryArray.push(`+${zenodoSynonyms[k]}:"${queryObject[k]}"`);
+                if (k === 'type') {
+                    if (param.toLowerCase() === 'all') {
+                        const resources = ['publications', 'images'];
+                        if (resources.includes(plugins._resources)) {
+                            let v = Schema.defaults[plugins._resources];
+                            v = v.filter(i => i !== 'all');
+                            v.forEach(t => params.push(`subtype=${t}`));
                         }
-                        else {
-                            queryArray.push(`+${zenodoSynonyms[k]}:${queryObject[k]}`);
-                        }
-                        
                     }
                     else {
-                        if (exact.includes(k)) {
-                            queryArray.push(`+${k}:"${queryObject[k]}"`);
-                        }
-                        else {
-                            queryArray.push(`+${k}:${queryObject[k]}`);
-                        }
+                        params.push(`subtype=${param}`);
                     }
-                    
                 }
-
-                delete(queryObject[k]);
-            }
-            else {
-                others.push(`${k}=${queryObject[k]}`);
+                else if (k === 'communities') {
+                    if (param.toLowerCase() === 'all') {
+                        let v = Schema.defaults.communities;
+                        v = v.filter(i => i !== 'all');
+                        v.forEach(t => params.push(`communities=${t}`));
+                    }
+                    else {
+                        params.push(`communities=${param}`);
+                    }
+                }
+                else {
+                    params.push(`${k}=${param}`);
+                }
             }
         }
-        
-        queryString = `q=${encodeURIComponent(queryArray.join(' '))}&type=${plugins._resource}&access_right=open&${others.join('&')}`;
-        
-        plog.info('queryString', queryString);
-
     }
 
+    queryString = `${params.join('&')}&type=${plugins._resource}&access_right=open`;
+    plog.info('queryString', queryString);
     const uriRemote = `${uriZenodo}?${queryString}`;
     const limit = queryObject.size;
 
@@ -238,13 +174,24 @@ const getManyRecords = async function({queryObject, plugins}) {
         plog.error(JSON.stringify(error));
     }
 
+    data._links = Utils.makeSelfLink({
+        uri: uriZenodeo, 
+        resource: plugins._resources, 
+        queryString: Object.entries(queryObject)
+            .map(e => e[0] + '=' + e[1])
+            .sort()
+            .join('&')
+    });
+
     // finally, get facets and stats, if requested   
     if ('facets' in queryObject && queryObject.facets === 'true') {
-        data.facets = getFacets();
+        //data.facets = getFacets();
+        data.facets = {};
     }
 
     if ('stats' in queryObject && queryObject.stats === 'true') {
-        data.stats = getStats();
+        //data.stats = getStats();
+        data.stats = {};
     }
 
     // all done

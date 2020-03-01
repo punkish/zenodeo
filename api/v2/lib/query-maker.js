@@ -213,7 +213,7 @@ const qryFrags = {
 
 const queryMaker = function(queryObject) {
 
-    const resource = queryObject.resource;
+    const resources = queryObject.resources;
 
     const queries = {
         selcount: '',
@@ -233,7 +233,7 @@ const queryMaker = function(queryObject) {
         where = chalk.red.bold(where);
     }
 
-    const queryFragments = JSON.parse(JSON.stringify(qryFrags[resource]));
+    const queryFragments = JSON.parse(JSON.stringify(qryFrags[resources]));
 
     if (queryObject.treatmentId) {
         queries.selcount = 1;

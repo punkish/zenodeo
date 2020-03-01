@@ -69,9 +69,14 @@ module.exports = {
 
     'v2': {
         'cache': {
-            'path': path.join(cwd, 'cache'),
-            'name': 'catbox',
-            'on': false
+            on: true,
+            path: path.join(cwd, 'cache'),
+            cacheName: 'catbox',
+
+            // expires in 1440 mins, or one day
+            expiresIn: 60 * 1000 * 1440,
+            generateTimeout: false,
+            getDecoratedValue: true
         },
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v2', 'schema.js'),
