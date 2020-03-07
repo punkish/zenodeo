@@ -290,6 +290,10 @@ module.exports = {
 
     makeSelfLink: function({uri, resource, queryString}) {
         return { self: { href: `${uri}/${resource}?${queryString}` } }
+    },
+
+    makeLink: function({uri, resource, queryString}) {
+        return { href: `${uri}/${resource}?${queryString}` };
     }
 }
 

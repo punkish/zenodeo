@@ -12,11 +12,11 @@ const plog = require(config.get('plog'));
 
 const Schema = require('../schema.js');
 
-const uriZenodeo = config.get('uri.zenodeo') + '/v2';
+const uriZenodeo = config.get('v2.uri.zenodeo');
 const cacheOn = config.get('v2.cache.on');
 
 const Wreck = require('@hapi/wreck');
-const uriZenodo = config.get('uri.remote') + '/records/';
+const uriZenodo = config.get('v2.uri.zenodo') + '/records/';
 
 const Utils = require('../utils');
 
@@ -26,33 +26,46 @@ const handler = function(plugins) {
 
         const queryObject = request.query;
         queryObject.resources = plugins._resources;
-        plog.info('queryObject', queryObject);
+        
+        // bunch up messages to print them to the log
+        const messages = [{label: 'queryObject', params: queryObject}];
     
         // cacheKey is the URL query without the refreshCache param.
-        // The default params, if any, are used in making the cacheKey.
-        // The default params are also used in queryObject to actually 
-        // perform the query. However, the default params are not used 
-        // to determine what kind of query to perform.
         const cacheKey = Utils.makeCacheKey(request);
+        messages.push({label: 'cacheKey', params: cacheKey});
     
         if (cacheOn) {
             if (queryObject.refreshCache === 'true') {
-                plog.info('forcing refreshCache');
+                messages.push({label: 'info', params: 'forcing refreshCache'});
                 this.cache.drop(cacheKey);
             }
     
-            plog.info('returning results from cache');
-            return this.cache.get({cacheKey, queryObject, plugins});
+            messages.push({label: 'info', params: 'returning results from cache'});
+            plog.log({
+                header: 'WEB QUERY',
+                messages: messages
+            });
+
+            return this.cache.get(cacheKey);
         }
         else {
-            return getRecords({cacheKey, queryObject, plugins});
+
+            messages.push({label: 'info', params: 'querying for results'});
+            plog.log({
+                header: 'WEB QUERY',
+                messages: messages
+            });
+
+            return getRecords({cacheKey, plugins});
         }
         
     };
 
 };
 
-const getRecords = function({cacheKey, queryObject, plugins}) {
+const getRecords = function({cacheKey, plugins}) {
+
+    const queryObject = Utils.makeQueryObject(cacheKey);
 
     // An id is present. The query is for a specific
     // record. All other query params are ignored
@@ -68,8 +81,10 @@ const getRecords = function({cacheKey, queryObject, plugins}) {
 
 const getOneRecord = async function({queryObject, plugins}) {
 
+    //const messages = [{label: 'queryObject', params: queryObject}];
+
     let data;
-    const uriRemote = uriZenodo + queryObject.id;
+    const uriRemote = uriZenodo + queryObject[plugins._resourceId];
     plog.info('remote URI (one)', uriRemote);
 
     try {
@@ -106,7 +121,7 @@ const getManyRecords = async function({queryObject, plugins}) {
 
     const params = [];
     for (let k in queryObject) {
-        if (k !== 'refreshCache') {
+        if (k !== 'refreshCache' && k !== 'resources') {
             const param = queryObject[k];
             if (Array.isArray(param)) {
                 if (k === 'type') k = 'subtype';

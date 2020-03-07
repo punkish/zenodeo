@@ -344,7 +344,7 @@ const schema = {
         })
     },
 
-    bibRefCitations: {
+    citations: {
         query: Joi.object({
             bibRefCitationId: Joi.string()
                 .description(descriptions.bibRefCitationId)
@@ -355,20 +355,20 @@ const schema = {
             q: schemaDefaults.q,
             refreshCache: schemaDefaults.refreshCache,
 
-            sortBy: Joi.string()
-                .description('sort column:sort order')
-                .optional()
-                .default('bibRefCitationId:ASC'),
+            // sortBy: Joi.string()
+            //     .description('sort column:sort order')
+            //     .optional()
+            //     .default('bibRefCitationId:ASC'),
 
-            facets: Joi.boolean()
-                .description('whether or not to fetch facets')
-                .optional()
-                .default(false),
+            // facets: Joi.boolean()
+            //     .description('whether or not to fetch facets')
+            //     .optional()
+            //     .default(false),
 
-            stats: Joi.boolean()
-                .description('whether or not to fetch stats')
-                .optional()
-                .default(false)
+            // stats: Joi.boolean()
+            //     .description('whether or not to fetch stats')
+            //     .optional()
+            //     .default(false)
         })
     },
 

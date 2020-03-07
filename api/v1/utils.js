@@ -3,9 +3,9 @@ const Joi = require('@hapi/joi');
 const ResponseMessages = require('../responseMessages');
 
 const config = require('config');
-const cachePath = config.get('cache.path');
-const cacheName = config.get('cache.v1.name')
-const uriRemote = config.get('uri.remote');
+const cachePath = config.get('v1.cache.path');
+const cacheName = config.get('v1.cache.name')
+const uriRemote = config.get('v1.uri.zenodo');
 const authors = config.get('data.authors');
 const keywords = config.get('data.keywords');
 const taxa = config.get('data.taxa');
