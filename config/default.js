@@ -18,7 +18,7 @@ module.exports = {
     'info': {
         'title': 'Zenodeo API documentation for BLR',
         'description': '`nodejs` interface to the Zenodo/BLR community collection',
-        'version': '2.0.0',
+        'version': '2.5.0',
         'termsOfService': '/tos',
         'contact': { 
             'name': 'Puneet Kishor',

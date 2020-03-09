@@ -69,7 +69,7 @@ const schemaDefaults = {
         }),
 
     communities: Joi.string()
-        .description(`The community on Zenodo; defaults to <b>${defaults.communities[0]}</b>`)
+        .description(`The community on Zenodo; defaults to <b>${defaults.communities[1]}</b>`)
         .valid('all', 'biosyslit', 'belgiumherbarium')
         .default(defaults.communities[1]),
         
