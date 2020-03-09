@@ -18,8 +18,8 @@ const Blipp = require('blipp');
 
 //const debug = require('debug')('v2: index');
 const config = require('config');
-const cacheName = config.get('cache.v2.name');
-const cachePath = config.get('cache.v2.path');
+const cacheName = config.get('v2.cache.name');
+const cachePath = config.get('v2.cache.path');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');

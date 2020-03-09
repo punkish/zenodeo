@@ -1,416 +1,739 @@
 'use strict';
 
-const debug = false;
-const chalk = require('chalk');
+// const config = require('config');
+// const plog = require(config.get('plog'));
 
-const qryFrags = {
-
+const qryParts = {
     treatments: {
 
-        q: {
-            column: 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context',
-            table: 'vtreatments ON treatments.treatmentId = vtreatments.treatmentId',
-            condition: 'vtreatments MATCH @q'
-        },
+        one: {
 
-        data: {
-            columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
-            tables: ['treatments'],
-            condition: ['treatments.deleted = 0']
-        },
-
-        stats: {
-
-            specimens: {
-                columns: ['Sum(specimenCount)'], 
-                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
+            // data query
+            data: {
+                pk: 'treatmentId',
+                sql: 'SELECT id, treatments.treatmentId, treatmentTitle, doi AS articleDoi, zenodoDep, zoobank, articleTitle, publicationDate, journalTitle, journalYear, journalVolume, journalIssue, pages, authorityName, authorityYear, kingdom, phylum, "order", family, genus, species, status, taxonomicNameLabel, treatments.rank FROM treatments WHERE deleted = 0 AND treatmentId = '
             },
 
-            'male specimens': {
-                columns: ['Sum(specimenCountMale)'], 
-                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
-            },
-
-            'female specimens': {
-                columns: ['Sum(specimenCountFemale)'], 
-                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
-            },
-
-            'treatments with specimens': {
-                columns: ['Count(DISTINCT treatments.treatmentId)'], 
-                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"]
-            },
-
-            'treatments with male specimens': {
-                columns: ['Count(DISTINCT treatments.treatmentId)'], 
-                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"]
-            },
-
-            'treatments with female specimens': {
-                columns: ['Count(DISTINCT treatments.treatmentId)'], 
-                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
-            },
-
-            'figure citations': {
-                columns: ['Count(figureCitationId)'], 
-                tables: ['figureCitations JOIN treatments ON figureCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND figureCitations.deleted = 0"]
-            }
-        },
-
-        count: {
-            columns: ['Count(treatments.treatmentId) AS numOfRecords'],
-            tables: ['treatments'],
-            condition: ['treatments.deleted = 0']
-        },
-
-        facets: {
-
-            // BLR-Website Issue 10: removed from facets
-            // https://github.com/plazi/BLR-website/issues/10
-            //
-            // journalVolume: {
-            //     columns: ['journalVolume', 'Count(journalVolume) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND journalVolume != ''"]
-            // },
-
-            journalTitle: {
-                columns: ['journalTitle', 'Count(journalTitle) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND journalTitle != ''"]
-            },
-
-            journalYear: {
-                columns: ['journalYear', 'Count(journalYear) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND journalYear != ''"]
-            },
-
-            // BLR-Website Issue 11: removed from facets
-            // https://github.com/plazi/BLR-website/issues/11
-            // https://github.com/plazi/BLR-website/blob/master/facets.md#treatments
-            //
-            // kingdom: {
-            //     columns: ['kingdom', 'Count(kingdom) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND kingdom != ''"]
-            // },
-
-            // phylum: {
-            //     columns: ['phylum', 'Count(phylum) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND phylum != ''"]
-            // },
-
-            // order: {
-            //     columns: ['"order"', 'Count("order") AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND \"order\" != ''"]
-            // },
-
-            // family: {
-            //     columns: ['family', 'Count(family) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND family != ''"]
-            // },
-
-            // genus: {
-            //     columns: ['genus', 'Count(genus) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND genus != ''"]
-            // },
-
-            // species: {
-            //     columns: ['species', 'Count(species) AS c'],
-            //     tables: ['treatments'],
-            //     condition: ["treatments.deleted = 0 AND species != ''"]
-            // },
-
-            status: {
-                columns: ['status', 'Count(status) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND status != ''"]
-            },
+            related: {
+                treatmentAuthors: {
+                    pk: 'treatmentAuthorId',
+                    sql: 'SELECT treatmentAuthorId, treatmentAuthor AS author FROM treatmentAuthors WHERE deleted = 0 AND treatmentId = '
+                },
             
-            rank: {
-                columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
-                tables: ['treatments'],
-                condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
-            },
-
-            collectionCode: {
-                columns: ['collectionCode', 'Count(collectionCode) AS c'],
-                tables: ['materialsCitations JOIN treatments on materialsCitations.treatmentId = treatments.treatmentId'],
-                condition: ["treatments.deleted = 0 AND collectionCode != ''"]
+                bibRefCitations: {
+                    pk: 'bibRefCitationId',
+                    sql: 'SELECT bibRefCitationId, refString AS citation FROM bibRefCitations WHERE deleted = 0 AND treatmentId = '
+                },
+                
+                materialsCitations: {
+                    pk: 'materialsCitationId',
+                    sql: 'SELECT materialsCitationId, treatmentId, typeStatus, latitude, longitude FROM materialsCitations WHERE deleted = 0 AND latitude != "" AND longitude != "" AND treatmentId = '
+                },
+                
+                figureCitations: {
+                    pk: 'figureCitationId',
+                    sql: 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE deleted = 0 AND treatmentId = '
+                }
             }
 
         },
 
-        sortable: ['journalYear'],
-        sortcol: 'treatments.treatmentId',
-        sortdir: 'ASC'
-    
+        many: {
+
+            // data queries
+            data: {
+                pk: 'treatmentId',
+                columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
+                tables: ['treatments'],
+                where: ['treatments.deleted = 0'],
+                sortBy: {
+                    columns: ['journalYear'],
+                    defaultSort: {
+                        col: 'journalYear',
+                        dir: 'ASC'
+                    }
+                }
+            },
+
+            // count query
+            count: {
+                columns: ['Count(*) as numOfRecords'],
+                tables: ['treatments'],
+                where: ['treatments.deleted = 0']
+            },
+
+            stats: {
+
+                specimens: {
+                    columns: ['Sum(specimenCount)'], 
+                    tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
+                },
+
+                'male specimens': {
+                    columns: ['Sum(specimenCountMale)'], 
+                    tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
+                },
+
+                'female specimens': {
+                    columns: ['Sum(specimenCountFemale)'], 
+                    tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
+                },
+
+                'treatments with specimens': {
+                    columns: ['Count(DISTINCT treatments.treatmentId)'], 
+                    tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"]
+                },
+
+                'treatments with male specimens': {
+                    columns: ['Count(DISTINCT treatments.treatmentId)'], 
+                    tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"]
+                },
+
+                'treatments with female specimens': {
+                    columns: ['Count(DISTINCT treatments.treatmentId)'], 
+                    tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
+                },
+
+                // 'figure citations': {
+                //     columns: ['Count(figureCitationId)'], 
+                //     tables: ['figureCitations JOIN treatments ON figureCitations.treatmentId = treatments.treatmentId'],
+                //     where: ["treatments.deleted = 0 AND figureCitations.deleted = 0"]
+                // }
+            },
+
+            facets: {
+
+                journalTitle: {
+                    columns: ['journalTitle', 'Count(journalTitle) AS c'],
+                    tables: ['treatments'],
+                    where: ["treatments.deleted = 0 AND journalTitle != ''"],
+                    group: ['journalTitle']
+                },
+
+                journalYear: {
+                    columns: ['journalYear', 'Count(journalYear) AS c'],
+                    tables: ['treatments'],
+                    where: ["treatments.deleted = 0 AND journalYear != ''"],
+                    group: ['journalYear']
+                },
+
+                status: {
+                    columns: ['status', 'Count(status) AS c'],
+                    tables: ['treatments'],
+                    where: ["treatments.deleted = 0 AND status != ''"],
+                    group: ['status']
+                },
+                
+                rank: {
+                    columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
+                    tables: ['treatments'],
+                    where: ['treatments.deleted = 0', 'treatments.rank != ""'],
+                    group: ['treatments.rank']
+                },
+
+                collectionCode: {
+                    columns: ['collectionCode', 'Count(collectionCode) AS c'],
+                    tables: ['materialsCitations', 'treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                    where: [
+                        'collectionCode != ""',
+                        'materialsCitations.deleted = 0',
+                        'treatments.deleted = 0'
+                    ],
+                    group: ['collectionCode']
+                }
+
+            }
+        }
+
+        
+
+    },
+
+    treatmentAuthors: {
+
+        one: {
+
+            // data query
+            data: {
+                pk: 'treatmentAuthorId',
+                sql: 'SELECT treatmentAuthorId, treatmentId, treatmentAuthor FROM treatmentAuthors WHERE treatmentAuthorId = '
+            },
+
+            related: {
+                treatments: {
+                    pk: 'treatmentId',
+                    sql: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN treatmentAuthors a ON t.treatmentId = a.treatmentId WHERE a.treatmentAuthorId = '
+                }
+            }
+
+        },
+
+        many: {
+
+            // data queries
+            data: {
+                pk: 'treatmentId',
+                columns: ['treatmentAuthorId', 'treatmentId', 'treatmentAuthor'],
+                tables: ['treatmentAuthors'],
+                where: ['treatmentAuthor LIKE @q'],
+                sortBy: {
+                    columns: [],
+                    defaultSort: { col: '', dir: '' }
+                }
+            },
+
+            // count query
+            count: {
+                columns: ['Count(*) as numOfRecords'],
+                tables: ['treatmentAuthors'],
+                where: ['treatmentAuthor LIKE @q']
+            },
+
+            stats: {},
+            facets: {}
+        }
+    },
+
+    figureCitations: {
+
+        one: {
+
+            // data query
+            data: {
+                pk: 'figureCitationId',
+                sql: 'SELECT figureCitationId, treatmentId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE figureCitationId = '
+            },
+
+            related: {
+                treatments: {
+                    pk: 'treatmentId',
+                    sql: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN figureCitations f ON t.treatmentId = f.treatmentId WHERE f.figureCitationId = '
+                }
+            }
+
+        },
+
+        many: {
+
+            // data queries
+            data: {
+                pk: 'figureCitationId',
+                columns: ['id', 'f.figureCitationId', 'f.treatmentId', 'f.captionText AS context', 'httpUri', 'thumbnailUri'],
+                tables: ['figureCitations f', 'vfigureCitations v ON f.figureCitationId = v.figureCitationId'],
+                where: ['vfigurecitations MATCH @q'],
+                sortBy: {
+                    columns: [],
+                    defaultSort: { col: '', dir: '' }
+                }
+            },
+
+            // count query
+            count: {
+                columns: ['Count(*) as numOfRecords'],
+                tables: ['vfigureCitations'],
+                where: ['vfigurecitations MATCH @q']
+            },
+
+            stats: {},
+            facets: {}
+        }
     },
 
     citations: {
 
-        q: {
-            column: 1,
-            table: 'vbibrefcitations ON bibRefCitations.bibRefCitationId = vbibrefcitations.bibRefCitationId',
-            condition: 'vbibrefcitations MATCH @q'
-        },
+        one: {
 
-        data: {
-            columns: ['id', 'bibRefCitations.bibRefCitationId', 'bibRefCitations.treatmentId', 'bibRefCitations.refString', 'type', 'year'],
-            tables: ['bibRefCitations'],
-            condition: ['bibRefCitations.deleted = 0']
-        },
-
-        stats: {
-
-            'count by year': {
-                columns: ['DISTINCT(year) y', 'COUNT(year) c'], 
-                tables: ['bibRefCitations JOIN vbibrefcitations ON bibRefCitations.bibRefCitationId = vbibrefcitations.bibRefCitationId'],
-                condition: ["bibRefCitations.delete = 0 AND year != ''"],
-            }
-
-        },
-
-        count: {
-            columns: ['Count(*) AS numOfRecords'],
-            tables: ['bibRefCitations'],
-            condition: ['bibRefCitations.deleted = 0']
-        },
-
-        facets: {
-            'count by year': {
-                columns: ['DISTINCT(year) y', 'COUNT(year) c'],
-                tables: ['bibRefCitations'],
-                condition: ["bibRefCitations.deleted = 0 AND year != ''"]
+            // data query
+            data: {
+                pk: 'bibRefCitationId',
+                sql: 'SELECT bibRefCitationId, treatmentId, refString, type, year FROM bibRefCitations WHERE bibRefCitationId = '
             },
 
-            'type of citation': {
-                columns: ['DISTINCT(type) t', 'COUNT(type) c'],
-                tables: ['bibRefCitations'],
-                condition: ["bibRefCitations.deleted = 0 AND year != ''"]
+            related: {
+                treatments: {
+                    pk: 'treatmentId',
+                    sql: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN bibRefCitations b ON t.treatmentId = b.treatmentId WHERE b.bibRefCitationId = '
+                }
             }
 
         },
 
-        sortable: [],
-        sortcol: 'bibRefCitations.bibRefCitationId',
-        sortdir: 'ASC'
-    }
+        many: {
 
+            // data queries
+            data: {
+                pk: 'bibRefCitationId',
+                columns: ['id', 'b.bibRefCitationId', 'b.treatmentId', 'b.refString AS context', 'type', 'year'],
+                tables: ['bibRefCitations b', 'vbibRefCitations v ON b.bibRefCitationId = v.bibRefCitationId'],
+                where: ['vbibRefCitations MATCH @q'],
+                sortBy: {
+                    columns: [],
+                    defaultSort: { col: '', dir: '' }
+                }
+            },
+
+            // count query
+            count: {
+                columns: ['Count(*) as numOfRecords'],
+                tables: ['vbibRefCitations'],
+                where: ['vbibRefCitations MATCH @q']
+            },
+
+            stats: {},
+            facets: {}
+        }
+    },
+
+    materialsCitations: {
+
+        one: {
+
+            // data query
+            data: {
+                pk: 'materialsCitationId',
+                sql: 'SELECT materialsCitationId, treatmentId, collectionCode, specimenCountFemale, specimenCountMale, specimenCount, specimenCode, typeStatus, collectingCountry, collectingRegion, collectingMunicipality, collectingCounty, location, locationDeviation, determinerName, collectorName, collectingDate, collectedFrom, collectingMethod, latitude, longitude, elevation, httpUri FROM materialsCitations WHERE materialsCitationId = '
+            },
+
+            related: {
+                treatments: {
+                    pk: 'treatmentId',
+                    sql: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN materialsCitations m ON t.treatmentId = m.treatmentId WHERE m.materialsCitationId = '
+                }
+            }
+
+        },
+
+        many: {
+
+            // data queries
+            data: {
+                pk: 'materialsCitationId',
+                columns: ['id', 'materialsCitationId', 'treatmentId', 'collectionCode', 'specimenCountFemale', 'specimenCountMale', 'specimenCount', 'specimenCode', 'typeStatus', 'collectingCountry', 'collectingRegion', 'collectingMunicipality', 'collectingCounty', 'location', 'locationDeviation', 'determinerName', 'collectorName', 'collectingDate', 'collectedFrom', 'collectingMethod', 'latitude', 'longitude', 'elevation', 'httpUri'],
+                tables: ['materialsCitations'],
+                where: ['0=0'],
+                sortBy: {
+                    columns: [],
+                    defaultSort: { col: '', dir: '' }
+                }
+            },
+
+            // count query
+            count: {
+                columns: ['Count(*) as numOfRecords'],
+                tables: ['materialsCitations'],
+                where: ['vbibRefCitations MATCH @q']
+            },
+
+            stats: {
+                'collection codes': {
+                    columns: ['Count(DISTINCT collectionCode) AS "collection codes"'], 
+                    tables: ['materialsCitations'],
+                    where: ['0=0'],
+                },
+
+                'collecting countries': {
+                    columns: ['Count(DISTINCT collectingCountry) AS "collecting countries"'], 
+                    tables: ['materialsCitations'],
+                    where: ['0=0'],
+                },
+
+                'female specimens': {
+                    columns: ['Sum(specimenCountFemale) AS "female specimens"'], 
+                    tables: ['materialsCitations'],
+                    where: ['0=0'],
+                },
+
+                'male specimens': {
+                    columns: ['Sum(specimenCountMale) AS "male specimens"'], 
+                    tables: ['materialsCitations'],
+                    where: ['0=0'],
+                },
+
+                specimens: {
+                    columns: ['Sum(specimenCount) AS specimens'], 
+                    tables: ['materialsCitations'],
+                    where: ['0=0'],
+                }
+            },
+
+            facets: {}
+        }
+    }
 };
 
-const queryMaker = function(queryObject) {
+// We need sort params only for the data query.
+// Here we figure out the sortcol and sortdir
+const calcSortParams = function(qrySource, queryObject) {
+    const sortBy = qrySource.sortBy;
 
-    const resource = queryObject.resource;
+    const columns = sortBy.columns;
+    const defaultSortCol = sortBy.defaultSort.col;
+    const defaultSortDir = sortBy.defaultSort.dir;
 
-    const queries = {
-        selcount: '',
-        seldata: '',
-        selrelated: {},
-        selstats: {},
-        selfacets: {}
+    let [sortcol, sortdir] = queryObject.sortBy.split(':');
+    if (! columns.includes(sortcol)) {
+        sortcol = defaultSortCol;
     }
 
-    let select = 'SELECT';
-    let from = 'FROM';
-    let where = 'WHERE';
-
-    if (debug) {
-        select = chalk.red.bold(select);
-        from = chalk.red.bold(from);
-        where = chalk.red.bold(where);
+    sortdir = sortdir.toUpperCase();
+    if (sortdir !== 'ASC' || sortdir !== 'DESC') {
+        sortdir = defaultSortDir
     }
 
-    const queryFragments = JSON.parse(JSON.stringify(qryFrags[resource]));
+    return [sortcol, sortdir];
+};
 
-    if (queryObject.treatmentId) {
-        queries.selcount = 1;
-        queries.seldata = `${select} ${queryFragments.data.columns.join(', ')} ${from} treatments ${where} deleted = 0 AND treatmentId = @treatmentId`;
-        queries.selrelated = {
+const makeQueries = function({qryType, qrySource, queryObject, plugins}) {
 
-            treatmentAuthors: 'SELECT treatmentAuthorId, treatmentAuthor AS author FROM treatmentAuthors WHERE deleted = 0 AND treatmentId = @treatmentId',
-            
-            bibRefCitations: 'SELECT bibRefCitationId, refString AS citation FROM bibRefCitations WHERE deleted = 0 AND treatmentId = @treatmentId',
-            
-            materialsCitations: "SELECT materialsCitationId, treatmentId, typeStatus, latitude, longitude FROM materialsCitations WHERE deleted = 0 AND latitude != '' AND longitude != '' AND treatmentId = @treatmentId",
-            
-            figureCitations: 'SELECT figureCitationId, captionText, httpUri, thumbnailUri FROM figureCitations WHERE deleted = 0 AND treatmentId = @treatmentId'
-        }
+    const resources = plugins._resources;
+    const columns = JSON.parse(JSON.stringify(qrySource.columns));
+    const tables = JSON.parse(JSON.stringify(qrySource.tables));
+    const where = JSON.parse(JSON.stringify(qrySource.where));
+    const whereLog = JSON.parse(JSON.stringify(qrySource.where));
 
-    }
-    if (queryObject.bibrefcitationid) {
-        queries.selcount = 1;
-        queries.seldata = `${select} ${queryFragments.data.columns.join(', ')} ${from} bibRefCitations ${where} deleted = 0 AND bibRefCitationId = @bibrefcitationid`;
-        queries.selrelated = {
+    let sortcol = '';
+    let sortdir = '';
 
-            treatmentAuthors: 'SELECT treatmentAuthorId, treatmentAuthor AS author FROM treatmentAuthors WHERE deleted = 0 AND treatmentId = @treatmentId',
-            
-            treatments: 'SELECT treatmentId.* FROM treatments WHERE deleted = 0 AND treatmentId = @treatmentId'
-        }
+    // the following params are valid in the URL but are not used 
+    // for actually constructing the SQL query
+    const invalidParams = ['resources', 'communities', 'facets', 'page', 'size', 'stats', 'xml', 'limit', 'offset'];
 
-    }
-    else {
+    for (let key in queryObject) {
+        if (! invalidParams.includes(key)) {
+            if (key === 'sortBy') {
 
-        // the following are the only valid columns for sorting
-        const sortable = queryFragments.sortable;
-        let sortcol = queryFragments.sortcol;
-        let sortdir = queryFragments.sortdir;
-
-        let noParams = true;
-
-        for (let param in queryObject) {
-            if (param.toLowerCase() === 'sortby') {
-
-                [sortcol, sortdir] = queryObject[param].split(':');
-                sortdir = sortdir.toLowerCase();
-
-                if (!sortable.includes(sortcol)) {
-
-                    // default 'sortcol'
-                    sortcol = queryFragments.sortcol;
-                }
-
-                if (sortdir !== 'asc' && sortdir !== 'desc') {
-
-                    // default 'sortdir'
-                    sortdir = queryFragments.sortdir;
+                // sortby is *only* applicable when the query is for data
+                if (qryType === 'data') {
+                    [sortcol, sortdir] = calcSortParams(qrySource, queryObject);
                 }
             }
+            else if (key === 'q') {
 
-            else if (queryFragments.data.columns.includes(param)) {
+                if (resources === 'treatments') {
 
-                noParams = false;
-
-                // special syntax for dealing with a column called 'order'
-                const o = '"order" = @order';
-
-                if (param === 'order') {
-                    queryFragments.data.condition.push(o);
-                }
-                else {
-                    queryFragments.data.condition.push(`${param} = @${param}`);
-                }
-
-                for (let stat in queryFragments.stats) {
-
-                    if (param === 'order') {
-                        queryFragments.stats[stat].condition.push(o);
-                    }
-                    else {
-                        queryFragments.stats[stat].condition.push(`${param} = @${param}`);
+                    // when the key is 'q', the fulltext column is returned 
+                    // only for the data query. For all other queries, only 
+                    // the tables and the where constraint are applied 
+                    if (qryType === 'data') {
+                        columns.push('snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context');
                     }
                     
+                    tables.push('vtreatments ON treatments.treatmentId = vtreatments.treatmentId');
+                    where.push('vtreatments MATCH @q');
+                    whereLog.push(`vtreatments MATCH "${queryObject.q}"`);
                 }
-
-                for (let facet in queryFragments.facets) {
-
-                    if (param === 'order') {
-                        queryFragments.facets[facet].condition.push(o);
-                    }
-                    else {
-                        queryFragments.facets[facet].condition.push(`${param} = @${param}`);
-                    }
-                    
-                }
-
-                queryFragments.count.condition.push(`${param} = @${param}`);
 
             }
-
-            else if (param === 'q') {
-
-                noParams = false;
-
-                const q = queryFragments.q;
-                queryFragments.data.columns.push(q.column);
-                queryFragments.data.tables.push(q.table);
-                queryFragments.data.condition.push(q.condition);
-
-                if (sortcol === 'treatmentId') {
-                    sortcol = 'treatments.treatmentId';
-                }
-                else if (sortcol === 'bibRefCitationId') {
-                    sortcol = 'bibRefCitations.bibRefCitationId';
-                }
-
-                for (let stat in queryFragments.stats) {
-
-                    //queryFragments.stats[stat].tables.push(q.table);
-                    queryFragments.stats[stat].condition.push(`treatments.treatmentId IN (SELECT treatmentId FROM vtreatments WHERE ${q.condition})`);
-                    
-                }
-
-                for (let facet in queryFragments.facets) {
-
-                    //queryFragments.facets[facet].tables.push(q.table);
-                    queryFragments.facets[facet].condition.push(`treatments.treatmentId IN (SELECT treatmentId FROM vtreatments WHERE ${q.condition})`);
-                    
-                }
-
-                queryFragments.count.tables.push(q.table);
-                queryFragments.count.condition.push(q.condition);
-            }
-        }
-
-        //const id = queryObject.id ? parseInt(queryObject.id) : 0;
-        const page = queryObject.page ? parseInt(queryObject.page) : 1;
-        const limit = queryObject.size ? parseInt(queryObject.size) : 30;
-        const offset = (page - 1) * limit;
-
-        queries.selcount = `${select} ${queryFragments.count.columns.join(', ')} ${from} ${queryFragments.count.tables.join(' JOIN ')} ${where} ${queryFragments.count.condition.join(' AND ')}`;
-
-        queries.seldata = `${select} ${queryFragments.data.columns.join(', ')} ${from} ${queryFragments.data.tables.join(' JOIN ')} ${where} ${queryFragments.data.condition.join(' AND ')} ORDER BY ${sortcol} ${sortdir} LIMIT ${limit} OFFSET ${offset}`;
-        
-        for (let stat in queryFragments.stats) {
-            queries.selstats[stat] = `${select} ${queryFragments.stats[stat].columns.join(', ')} ${from} ${queryFragments.stats[stat].tables.join(' JOIN ')} ${where} ${queryFragments.stats[stat].condition.join(' AND ')}`;
-        }
-
-        for (let facet in queryFragments.facets) {
-            let group = facet;
-            if (facet === 'order') {
-                group = '"order"';
-            }
-            else if (facet === 'rank') {
-                group = 'treatments.rank';
-            }
-
-            queries.selfacets[facet] = `${select} ${queryFragments.facets[facet].columns.join(', ')} ${from} ${queryFragments.facets[facet].tables.join(' JOIN ')} ${where} ${queryFragments.facets[facet].condition.join(' AND ')} GROUP BY ${group}`;
-        }
-    }
-    
-    if (debug) {
-        for (let q in queries) {
-            if (typeof queries[q] === 'object') {
-                
-                let subq = queries[q];
-                for (let s in subq) {
-                    console.log(`${chalk.blue(s)}: ${subq[s]}`, '\n');
-                    console.log('-'.repeat(40), '\n');
-                }
-    
+            else if (key === 'order') {
+                where.push(`"${key}" = @${key}`)
+                whereLog.push(`"${key}" = "${queryObject[key]}"`);
             }
             else {
-                
-                console.log(`${chalk.blue(q)}: ${queries[q]}`);
-                console.log('-'.repeat(40), '\n');
-
+                where.push(`${key} = @${key}`)
+                whereLog.push(`${key} = "${queryObject[key]}"`);
             }
         }
     }
 
-    return queries;
+    let query = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${where.join(' AND ')}`;
+    let queryLog = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${whereLog.join(' AND ')}`;
+
+    // if ('order' in queryObject) {
+    //     console.log('sql :' + query);
+    //     console.log('sqlLog :' + queryLog);
+    // }
+
+    if (qryType === 'data') {
+        if (queryObject.sortby) {
+            query += ` ORDER BY ${sortcol} ${sortdir}`;
+            queryLog += ` ORDER BY ${sortcol} ${sortdir}`;
+        }
+
+        query += ` LIMIT @limit OFFSET @offset`;
+        queryLog += ` LIMIT ${queryObject.limit} OFFSET ${queryObject.offset}`;
+    }
+
+    // facet queries need GROUP BY clause. For example,
+    //
+    // SELECT 
+    //     collectionCode, 
+    //     Count(collectionCode) AS c 
+    // FROM 
+    //     materialsCitations JOIN 
+    //     treatments ON materialsCitations.treatmentId = treatments.treatmentId JOIN 
+    //     vtreatments ON treatments.treatmentId = vtreatments.treatmentId 
+    // WHERE 
+    //     treatments.deleted = 0 AND 
+    //     materialsCitations.deleted = 0 AND 
+    //     collectionCode != '' AND 
+    //     vtreatments MATCH "Agosti" 
+    // GROUP BY collectionCode;
+    if (qryType === 'facets') {
+        const group = qrySource.group;
+
+        query += ` GROUP BY ${group.join(' AND ')}`;
+        queryLog += ` GROUP BY ${group.join(' AND ')}`;
+    }
+
+    return [query, queryLog];
 };
 
-module.exports = queryMaker;
+const qm = function(queryObject, plugins) {
+
+    // queries{} holds the SQL with bind @params that is actually
+    // used by the databse. queriesLog{} is the same query but 
+    // with the actual params, and is used only to write out the logs
+    const queries = {};
+    const queriesLog = {};
+
+    // resources: treatments, treatmentAuthors
+    const resources = plugins._resources;
+
+    let qryNum = 'many';
+
+    // check if the PK exists in the queryObject. If there is a PK
+    // then the query is for a specific record
+    if (queryObject[plugins._resourceId]) {
+        qryNum = 'one';
+    }
+
+    // validQryTypes: data, count, stats, facets, related
+    const validQryTypes = Object.keys(qryParts[resources][qryNum]);
+
+    let i = 0;
+    const j = validQryTypes.length;
+
+    for (; i < j; i++) {
+
+        // the current qryType: data OR count OR stats, etc.
+        const qryType = validQryTypes[i];
+
+        if (qryType === 'related' || qryType === 'stats' || qryType === 'facets') {
+
+            // because these queries are really a bunch of queries,
+            // they are grouped into a hash in queries{} and queriesLog()
+            queries[qryType] = {};
+            queriesLog[qryType] = {};
+
+            // the actual queries from 'related'
+            const qryGroup = qryParts[resources][qryNum][qryType];
+            
+            for (let qry in qryGroup) {
+
+                if (qryNum === 'one') {
+                    queries[qryType][qry] = {
+                        pk: qryGroup[qry].pk,
+                        sql: qryGroup[qry].sql + `@${plugins._resourceId}`
+                    };
+    
+                    queriesLog[qryType][qry] = {
+                        pk: qryGroup[qry].pk,
+                        sql: qryGroup[qry].sql + `"${queryObject[plugins._resourceId]}"`
+                    };
+                }
+                else {
+
+                    // none or more parameters have been submitted for the query, but 
+                    // not the PK. So we have to construct the queries to be run.
+                    //
+                    // A query is made up of six parts
+                    //
+                    // mandatory parts
+                    // -----------------------------
+                    // SELECT <columns> 
+                    // FROM <tables> 
+                    // WHERE <WHERE> 
+                    //
+                    // optional parts
+                    // -----------------------------
+                    // GROUP BY <group>
+                    // ORDER BY <sortcol> <sortdir> 
+                    // LIMIT <limit> 
+                    // OFFSET <offset>
+
+                    // qrySource is the set of columns, tables, where, and 
+                    // optionally group used to construct the query
+                    const qrySource = qryGroup[qry];
+
+                    const [query, queryLog] = makeQueries({qryType, qrySource,  queryObject, plugins});
+                    queries[qryType][qry] = query;
+                    queriesLog[qryType][qry] = queryLog;
+                }
+                
+            }
+            
+
+        }
+        else {
+
+            const qryGroup = qryParts[resources][qryNum][qryType];
+
+            if (qryNum === 'one') {
+                queries[qryType] = {
+                    pk: qryGroup.pk,
+                    sql: qryGroup.sql + `@${plugins._resourceId}`
+                };
+                queriesLog[qryType] = {
+                    pk: qryGroup.pk,
+                    sql: qryGroup.sql + `"${queryObject[plugins._resourceId]}"`
+                };
+            }
+            else {
+                const qrySource = qryParts[resources].many[qryType];
+
+                const [query, queryLog] = makeQueries({qryType, qrySource, queryObject, plugins});
+                queries[qryType] = query;
+                queriesLog[qryType] = queryLog;
+            }
+            
+        }
+    }
+
+    return [queries, queriesLog];
+
+};
+
+// const qm2 = function(queryObject, plugins) {
+
+//     // queries{} holds the SQL with bind @params that is actually
+//     // used by the databse. queriesLog{} is the same query but 
+//     // with the actual params, and is used only to write out the logs
+//     const queries = {};
+//     const queriesLog = {};
+
+//     // resources: treatments, treatmentAuthors
+//     const resources = plugins._resources;
+
+//     // check if the PK exists in the queryObject. If there is a PK
+//     // then the query is for a specific record
+//     if (queryObject[plugins._resourceId]) {
+
+//         // validQryTypes: data, count, stats, facets
+//         const validQryTypes = Object.keys(qryParts[resources].one);
+
+//         let i = 0;
+//         const j = validQryTypes.length;
+
+//         for (; i < j; i++) {
+
+//             // the current qryType: data OR count OR stats, etc.
+//             const qryType = validQryTypes[i];
+    
+//             if (qryType === 'related') {
+
+//                 // because 'related' queries are really a bunch of queries,
+//                 // they are grouped into a hash in queries{} and queriesLog()
+//                 queries[qryType] = {};
+//                 queriesLog[qryType] = {};
+
+//                 // the actual queries from 'related'
+//                 const qryGroup = qryParts[resources].one[qryType];
+                
+//                 for (let qry in qryGroup) {
+//                     queries[qryType][qry] = {
+//                         pk: qryGroup[qry].pk,
+//                         sql: qryGroup[qry].sql + `@${plugins._resourceId}`
+//                     };
+
+//                     queriesLog[qryType][qry] = {
+//                         pk: qryGroup[qry].pk,
+//                         sql: qryGroup[qry].sql + `"${queryObject[plugins._resourceId]}"`
+//                     };
+//                 }
+                
+
+//             }
+//             else {
+
+//                 const qryGroup = qryParts[resources].one[qryType];
+
+//                 queries[qryType] = {
+//                     pk: qryGroup.pk,
+//                     sql: qryGroup.sql + `@${plugins._resourceId}`
+//                 };
+//                 queriesLog[qryType] = {
+//                     pk: qryGroup.pk,
+//                     sql: qryGroup.sql + `"${queryObject[plugins._resourceId]}"`
+//                 };
+                
+//             }
+//         }
+
+//         return [queries, queriesLog];
+//     }
+
+//     // none or more parameters have been submitted for the query, but 
+//     // not the PK. So we have to construct the queries to be run.
+//     //
+//     // A query is made up of six parts
+//     //
+//     // mandatory parts
+//     // -----------------------------
+//     // SELECT <columns> 
+//     // FROM <tables> 
+//     // WHERE <WHERE> 
+//     //
+//     // optional parts
+//     // -----------------------------
+//     // GROUP BY <group>
+//     // ORDER BY <sortcol> <sortdir> 
+//     // LIMIT <limit> 
+//     // OFFSET <offset>
+//     else {
+
+//         // validQryTypes: data, count, stats, facets
+//         const validQryTypes = Object.keys(qryParts[resources].many);
+
+//         let i = 0;
+//         const j = validQryTypes.length;
+
+//         for (; i < j; i++) {
+
+//             // the current qryType: data OR count OR stats, etc.
+//             const qryType = validQryTypes[i];
+    
+//             if (qryType === 'stats' || qryType === 'facets') {
+
+//                 // because 'facets' and 'stats' are really a bunch of queries,
+//                 // they are grouped into a hash in queries{} and queriesLog()
+//                 queries[qryType] = {};
+//                 queriesLog[qryType] = {};
+
+//                 // the actual queries from 'facets' and 'stats'
+//                 const qryGroup = qryParts[resources].many[qryType];
+
+//                 for (let qry in qryGroup) {
+
+//                     // qrySource is the set of columns, tables, where, and 
+//                     // optionally group used to construct the query
+//                     const qrySource = qryGroup[qry];
+
+//                     const [query, queryLog] = makeQueries({qryType, qrySource,  queryObject, plugins});
+//                     queries[qryType][qry] = query;
+//                     queriesLog[qryType][qry] = queryLog;
+//                 }
+
+
+//             }
+//             else {
+//                 const qrySource = qryParts[resources].many[qryType];
+
+//                 const [query, queryLog] = makeQueries({qryType, qrySource, queryObject, plugins});
+//                 queries[qryType] = query;
+//                 queriesLog[qryType] = queryLog;
+//             }
+            
+//         }
+
+//         return [queries, queriesLog];
+//     }
+
+// };
+
+module.exports = qm;

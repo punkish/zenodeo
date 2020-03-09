@@ -15,7 +15,7 @@ tb.plazi.org/GgServer/dumps/plazi.xmlHistory.zip
 
 module.exports = {
     
-    'info': { 
+    'info': {
         'title': 'Zenodeo API documentation for BLR',
         'description': '`nodejs` interface to the Zenodo/BLR community collection',
         'version': '2.0.0',
@@ -30,24 +30,24 @@ module.exports = {
             'url': 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
         } 
     },
-    'cache': {
-        'path': path.join(cwd, 'cache'),
-        'v1': {
-            'path': path.join(cwd, 'cache'),
-            'name': 'persistent',
-        },
-        'v2': {
-            'path': path.join(cwd, 'cache', 'catbox'),
-            'name': 'catbox',
-            'on': false
-        }
-    },
-    'uri': {
-        'local': 'http://localhost:3000',
-        'remote': 'https://zenodo.org/api',
-        'zenodeo': 'http://localhost:3030',
-        'zenodo': 'https://zenodo.org/api'
-    },
+    // 'cache': {
+    //     'path': path.join(cwd, 'cache'),
+    //     'v1': {
+    //         'path': path.join(cwd, 'cache'),
+    //         'name': 'persistent',
+    //     },
+        // 'v2': {
+        //     'path': path.join(cwd, 'cache', 'catbox'),
+        //     'name': 'catbox',
+        //     'on': false
+        // }
+    //},
+    // 'uri': {
+    //     'local': 'http://localhost:3000',
+    //     'remote': 'https://zenodo.org/api',
+    //     'zenodeo': 'http://localhost:3030',
+    //     'zenodo': 'https://zenodo.org/api'
+    // },
     'download-program': {
         "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
         "treatmentsListDir": path.join(cwd, 'data'),
@@ -57,22 +57,41 @@ module.exports = {
     },
     'swaggered-scheme': ['http'],
     'port': 3030,
-    'v1': {
-        'cache': {
-            'path': path.join(cwd, 'cache'),
-            'name': 'persistent',
-            'on': true
+
+    v1: {
+        cache: {
+            path: path.join(cwd, 'cache'),
+            name: 'persistent',
+            on: true
         },
+
+        uri: {
+            zenodeo: 'http://localhost:3030',
+            zenodo: 'https://zenodo.org/api'
+        },
+        
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v1', 'schema.js')
     },
 
-    'v2': {
-        'cache': {
-            'path': path.join(cwd, 'cache'),
-            'name': 'catbox',
-            'on': false
+    v2: {
+        cache: {
+            path: path.join(cwd, 'cache'),
+            name: 'catbox',
+            on: false,
+
+            // expires in 1440 mins, or one day
+            expiresIn: 60 * 1000 * 1440,
+            generateTimeout: false,
+            getDecoratedValue: true
         },
+
+        uri: {
+            zenodeo: 'http://localhost:3030',
+            zenodo: 'https://zenodo.org/api'
+        },
+        
+
         'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         'schema': path.join(cwd, 'api', 'v2', 'schema.js'),
 
