@@ -392,8 +392,8 @@ const calcSortParams = function(qrySource, queryObject) {
 const makeQueries = function({qryType, qrySource, queryObject, plugins}) {
 
     const resources = plugins._resources;
-    const columns = qrySource.columns;
-    const tables = qrySource.tables;
+    const columns = JSON.parse(JSON.stringify(qrySource.columns));
+    const tables = JSON.parse(JSON.stringify(qrySource.tables));
     const where = JSON.parse(JSON.stringify(qrySource.where));
     const whereLog = JSON.parse(JSON.stringify(qrySource.where));
 
