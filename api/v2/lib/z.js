@@ -118,18 +118,36 @@ const getManyRecords = async function({queryObject, plugins}) {
     };
 
     let queryString = '';
+    const qArr = [];
 
+    const seen = {
+        creator: false,
+        title: false
+    };
+
+    // this is where we store all the query params so we can 
+    // create a query from them
     const params = [];
+
     for (let k in queryObject) {
+
+        // 'resources' and 'refreshCache' are not sent to Zenodo
         if (k !== 'refreshCache' && k !== 'resources') {
+
             const param = queryObject[k];
+
             if (Array.isArray(param)) {
+
+                // convert 'type' into 'subtype' and join all of them into the query like so
+                // subtype=value1&subtype=value2&subtype=value3
                 if (k === 'type') k = 'subtype';
                 param.forEach(p => params.push(`${k}=${p}`));
+
             }
             else {
                 if (k === 'type') {
                     if (param.toLowerCase() === 'all') {
+
                         const resources = ['publications', 'images'];
                         if (resources.includes(plugins._resources)) {
                             let v = Schema.defaults[plugins._resources];
@@ -151,6 +169,106 @@ const getManyRecords = async function({queryObject, plugins}) {
                         params.push(`communities=${param}`);
                     }
                 }
+
+                else if (k === 'creator') {
+
+                    if (! seen.creator) {
+                        let c = queryObject.creator;
+
+                        if (c.indexOf(' AND ') > -1) {
+                            c = `(${c})`;
+                        }
+                        else if (/".+"/.test(c)) {
+                            c = c;
+                        }
+                        else {
+                            c = `/${c}.*/`;
+                        }
+    
+                        qArr.push('+creators.name:' + c);
+    
+                        // remove 'creator' from queryObject as its job is done
+                        delete(queryObject.creator);
+                        seen.creator = true;
+                    }
+                    
+                }
+
+                else if (k === 'title') {
+
+                    if (! seen.title) {
+                        let c = queryObject.title;
+
+                        if (c.indexOf(' AND ') > -1) {
+                            c = `(${c})`;
+                        }
+                        else if (/".+"/.test(c)) {
+                            c = c;
+                        }
+                        else {
+                            c = `/${c}.*/`;
+                        }
+    
+                        qArr.push('+title:' + c);
+    
+                        // remove 'title' from queryObject as its job is done
+                        delete(queryObject.title);
+                        seen.title = true;
+                    }
+                    
+                }
+
+                else if (k === 'q') {
+
+                    qArr.push(queryObject.q);
+
+                    if (queryObject.creator) {
+                        if (! seen.creator) {
+                            let c = queryObject.creator;
+
+                            if (c.indexOf(' AND ') > -1) {
+                                c = `(${c})`;
+                            }
+                            else if (/".+"/.test(c)) {
+                                c = c;
+                            }
+                            else {
+                                c = `/${c}.*/`;
+                            }
+        
+                            qArr.push('+creators.name:' + c);
+        
+                            // remove 'creator' from queryObject as its job is done
+                            delete(queryObject.creator);
+                            seen.creator = true;
+                        }
+                    }
+                    else if (queryObject.title) {
+                        if (! seen.title) {
+                            let c = queryObject.title;
+
+                            if (c.indexOf(' AND ') > -1) {
+                                c = `(${c})`;
+                            }
+                            else if (/".+"/.test(c)) {
+                                c = c;
+                            }
+                            else {
+                                c = `/${c}.*/`;
+                            }
+        
+                            qArr.push('+title:' + c);
+        
+                            // remove 'title' from queryObject as its job is done
+                            delete(queryObject.title);
+                            seen.title = true;
+                        }
+                    }
+                    else {
+                        params.push(`${k}=${param}`);
+                    }
+                }
+
                 else {
                     params.push(`${k}=${param}`);
                 }
@@ -158,7 +276,11 @@ const getManyRecords = async function({queryObject, plugins}) {
         }
     }
 
-    queryString = `${params.join('&')}&type=${plugins._resource}&access_right=open`;
+    let q = qArr.join(' ');
+    plog.info('q', q);
+    q = encodeURIComponent(q);
+
+    queryString = `q=${q}&${params.join('&')}&type=${plugins._resource}&access_right=open`;
     plog.info('queryString', queryString);
     const uriRemote = `${uriZenodo}?${queryString}`;
     const limit = queryObject.size;
@@ -274,5 +396,41 @@ const getFacets = function(queries, queryObject) {
 //         plog.error(err);
 //     }
 // };
+
+// const creator = function(c) {
+
+//         // if the user wants to use boolean AND, we need to wrap the 
+//         // search terms in parens
+
+//         // AND
+//         // creators.name:(Agosti AND Donat) 
+//         //// creator = 'Agosti AND Donat';
+//         if (c.indexOf(' AND ') > -1) {
+//             queryArray.push(`+creators.name:(${c})`);
+//         }
+//         else {
+
+//             // for all other cases
+
+//             // starts with
+//             // creators.name:/Agosti.*/
+//             //// creator = /Agosti.*/;
+
+//             // single token
+//             // creators.name:Agosti
+//             //// creator = 'Agosti';
+
+//             // exact phrase
+//             // creators.name:”Agosti, Donat”
+//             //// creator = '"Agosti, Donat"';
+
+//             // OR
+//             // creators.name:(Agosti Donat)
+//             //// creator = 'Agosti Donat';
+//             queryArray.push(`+creators.name:${c}.*/`);
+//         }
+
+        
+// }
 
 module.exports = {handler, getRecords};

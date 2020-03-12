@@ -125,21 +125,67 @@ const schemaDefaults = {
     // creators.name:(Agosti AND Donat) 
     //// creator = 'Agosti AND Donat';
     creator: Joi.string()
-        .description(`Usually author. Use the following syntax:
-        - starts with « Agosti » → /Agosti.*/, 
-        - contains « Agosti » → Agosti,
-        - is exactly « Agosti, Donat » → "Agosti, Donat",
-        - either « Agosti » or « Donat » → Agosti Donat,
-        - both « Agosti » and « Donat » → Agosti AND Donat`)
+        .description(`Usually the author. Use the following syntax:
+
+Starts with « Ago » 
+*This will find all Ago; Agosti; Agostini and so on.*
+
+        ┌─────────────┐
+        │     Ago     │
+        └─────────────┘
+
+Is exactly « Agosti, Donat »
+*Keep in mind, this will *not* find « Donat Agosti »*
+
+        ┌─────────────────┐
+        │ "Agosti, Donat" │
+        └─────────────────┘
+
+Either « Agosti » OR « Donat »
+*This will find Agostini, Carlos; Donat; Donat Agosti and so on.*
+
+        ┌──────────────┐
+        │ Agosti Donat │
+        └──────────────┘
+
+Both « Agosti » AND « Donat »
+*This will find Agosti, Donat; Donat Agosti; and other variations with these two words*
+
+        ┌──────────────────┐
+        │ Agosti AND Donat │
+        └──────────────────┘`)
         .optional(),
 
     title: Joi.string()
         .description(`Title of the record. Use the following syntax:
-        - starts with « peacock » → /peacock.*/, 
-        - contains « peacock » → peacock,
-        - is exactly « spider, peacock » → "spider, peacock",
-        - either « spider » or « peacock » → spider peacock,
-        - both « spider » and « peacock" » → spider AND peacock`)
+
+Starts with « pea » 
+*This will find all pea; peacock; peabody and so on.*
+
+        ┌─────────────┐
+        │     pea     │
+        └─────────────┘
+
+Is exactly « spider, peacock »
+*Keep in mind, this will *not* find « peacock spider »*
+
+        ┌───────────────────┐
+        │ "spider, peacock" │
+        └───────────────────┘
+
+Either « spider » OR « peacock »
+*This will find spider, peacock; Donat; Donat Agosti and so on.*
+
+        ┌────────────────┐
+        │ spider peacock │
+        └────────────────┘
+
+Both « spider » AND « peacock »
+*This will find spider, peacock; peacock spider; and other variations with these two words*
+
+        ┌────────────────────┐
+        │ spider AND peacock │
+        └────────────────────┘`)
         .optional(),
 
     keywords: Joi.array()
