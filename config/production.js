@@ -9,15 +9,19 @@ module.exports = {
         }
     },
 
-    'v1': {
-        'cache': {
-            'on': true
+    v1: {
+        uri: {
+            zenodeo: 'https://zenodeo.punkish.org'
         }
     },
 
     'v2': {
         'cache': {
             'on': true
+        },
+
+        uri: {
+            zenodeo: 'https://zenodeo.punkish.org'
         }
     },
 
