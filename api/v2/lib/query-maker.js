@@ -408,6 +408,7 @@ const calcSortParams2 = function(sortBy, queryObject) {
 };
 
 const calcQuery = function(columns, constraint, tables, queryObject) {
+
     for (let k in queryObject) {
         if (! exclude.includes(k)) {
             
@@ -667,42 +668,64 @@ const exclude = ['resources', 'communities', 'facets', 'page', 'size', 'stats', 
 const qParts = {
     treatments: {
         pk: 'treatmentId',
-        queryableColumns: {
-            none: ['id', 'doi AS articleDoi','zenodoDep', 'zoobank', 'publicationDate'],
-            equal: ['treatmentId', 'journalYear', 'journalVolume', 'journalIssue'],
-            like: ['treatmentTitle', 'articleTitle', 'journalTitle', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank']
+        queryable: {
+            equal: {
+                publicationDate: '', 
+                journalYear: '', 
+                journalVolume: '', 
+                journalIssue: '', 
+                authorityYear: '', 
+                kingdom: '', 
+                phylum: '', 
+                '"order"': '', 
+                family: '', 
+                genus: '', 
+                species: '', 
+                status: '', 
+                'treatments.rank': ''
+            },
+            like: {
+                treatmentTitle: '', 
+                articleTitle: '', 
+                journalTitle: '', 
+                authorityName: '', 
+                taxonomicNameLabel: ''
+            },
+            match: {
+                q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+            }
         },
         queries: {
             count: {
                 columns: {
                     toReturn: ['count(*) as num'],
-                    queryable: {
-                        equal: {
-                            publicationDate: '', 
-                            journalYear: '', 
-                            journalVolume: '', 
-                            journalIssue: '', 
-                            authorityYear: '', 
-                            kingdom: '', 
-                            phylum: '', 
-                            '"order"': '', 
-                            family: '', 
-                            genus: '', 
-                            species: '', 
-                            status: '', 
-                            'treatments.rank': ''
-                        },
-                        like: {
-                            treatmentTitle: '', 
-                            articleTitle: '', 
-                            journalTitle: '', 
-                            authorityName: '', 
-                            taxonomicNameLabel: ''
-                        },
-                        match: {
-                            q: 'vtreatments'
-                        }
-                    }
+                    // queryable: {
+                    //     equal: {
+                    //         publicationDate: '', 
+                    //         journalYear: '', 
+                    //         journalVolume: '', 
+                    //         journalIssue: '', 
+                    //         authorityYear: '', 
+                    //         kingdom: '', 
+                    //         phylum: '', 
+                    //         '"order"': '', 
+                    //         family: '', 
+                    //         genus: '', 
+                    //         species: '', 
+                    //         status: '', 
+                    //         'treatments.rank': ''
+                    //     },
+                    //     like: {
+                    //         treatmentTitle: '', 
+                    //         articleTitle: '', 
+                    //         journalTitle: '', 
+                    //         authorityName: '', 
+                    //         taxonomicNameLabel: ''
+                    //     },
+                    //     match: {
+                    //         q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+                    //     }
+                    // }
                 },
                 tables: ['treatments'],
                 constraint: ['treatments.deleted = 0'],
@@ -713,40 +736,39 @@ const qParts = {
                     calcQuery(this.columns, this.constraint, this.tables, queryObject);
 
                     return `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')}`;
-                    //plog.info('query', q);
                 }
             },
 
             data: {
                 columns: {
                     toReturn: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
-                    queryable: {
-                        equal: {
-                            publicationDate: '', 
-                            journalYear: '', 
-                            journalVolume: '', 
-                            journalIssue: '', 
-                            authorityYear: '', 
-                            kingdom: '', 
-                            phylum: '', 
-                            '"order"': '', 
-                            family: '', 
-                            genus: '', 
-                            species: '', 
-                            status: '', 
-                            'treatments.rank': ''
-                        },
-                        like: {
-                            treatmentTitle: '', 
-                            articleTitle: '', 
-                            journalTitle: '', 
-                            authorityName: '', 
-                            taxonomicNameLabel: ''
-                        },
-                        match: {
-                            q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
-                        }
-                    }
+                    // queryable: {
+                    //     equal: {
+                    //         publicationDate: '', 
+                    //         journalYear: '', 
+                    //         journalVolume: '', 
+                    //         journalIssue: '', 
+                    //         authorityYear: '', 
+                    //         kingdom: '', 
+                    //         phylum: '', 
+                    //         '"order"': '', 
+                    //         family: '', 
+                    //         genus: '', 
+                    //         species: '', 
+                    //         status: '', 
+                    //         'treatments.rank': ''
+                    //     },
+                    //     like: {
+                    //         treatmentTitle: '', 
+                    //         articleTitle: '', 
+                    //         journalTitle: '', 
+                    //         authorityName: '', 
+                    //         taxonomicNameLabel: ''
+                    //     },
+                    //     match: {
+                    //         q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+                    //     }
+                    // }
                 },
                 tables: ['treatments'],
                 constraint: ['treatments.deleted = 0'],
@@ -766,7 +788,6 @@ const qParts = {
                     const [sortcol, sortdir] = calcSortParams2(this.sortBy, queryObject)
 
                     return `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')} ORDER BY ${sortcol} ${sortdir}`;
-                    //plog.info('query', q);
                 }
             },
             related: {},
@@ -775,34 +796,34 @@ const qParts = {
 
                 journalTitle: {
                     columns: {
-                        toReturn: ['journalTitle', 'Count(journalTitle) AS c']
-                    },
-                    queryable: {
-                        equal: {
-                            publicationDate: '', 
-                            journalYear: '', 
-                            journalVolume: '', 
-                            journalIssue: '', 
-                            authorityYear: '', 
-                            kingdom: '', 
-                            phylum: '', 
-                            '"order"': '', 
-                            family: '', 
-                            genus: '', 
-                            species: '', 
-                            status: '', 
-                            'treatments.rank': ''
-                        },
-                        like: {
-                            treatmentTitle: '', 
-                            articleTitle: '', 
-                            journalTitle: '', 
-                            authorityName: '', 
-                            taxonomicNameLabel: ''
-                        },
-                        match: {
-                            q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
-                        }
+                        toReturn: ['journalTitle', 'Count(journalTitle) AS c'],
+                        // queryable: {
+                        //     equal: {
+                        //         publicationDate: '', 
+                        //         journalYear: '', 
+                        //         journalVolume: '', 
+                        //         journalIssue: '', 
+                        //         authorityYear: '', 
+                        //         kingdom: '', 
+                        //         phylum: '', 
+                        //         '"order"': '', 
+                        //         family: '', 
+                        //         genus: '', 
+                        //         species: '', 
+                        //         status: '', 
+                        //         'treatments.rank': ''
+                        //     },
+                        //     like: {
+                        //         treatmentTitle: '', 
+                        //         articleTitle: '', 
+                        //         journalTitle: '', 
+                        //         authorityName: '', 
+                        //         taxonomicNameLabel: ''
+                        //     },
+                        //     match: {
+                        //         q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+                        //     }
+                        // }
                     },
                     tables: ['treatments'],
                     constraint: ["treatments.deleted = 0 AND journalTitle != ''"],
@@ -811,12 +832,8 @@ const qParts = {
 
                     fn: function(queryObject) {
                         calcQuery(this.columns, this.constraint, this.tables, queryObject);
-    
-                        // now, figure out the sort params
-                        const [sortcol, sortdir] = calcSortParams(this.sortBy, queryObject)
-    
-                        const q = `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')} GROUP BY ${this.group.join(' ')}`;
-                        plog.info('query', q);
+
+                        return `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')}`;
                     }
                 },
 
@@ -872,58 +889,52 @@ const qParts = {
 // OFFSET <offset>
 const make = function(queryObject) {
 
-    const resources = queryObject.resources;
-    const qrySource = {};
+    const resource = qParts[queryObject.resources];
 
-    const resourceQueries = qParts[resources];
-    for (let key in resourceQueries) {
-        qrySource[key] = resourceQueries[key];
+    // make a copy of the respource specific queries so it
+    // is easier to work with them
+    const queries = {};
+    for (let q in resource.queries) {
+        queries[q] = resource.queries[q];
     }
 
-    const queries = Object.keys(qrySource.queries);
+    plog.info('resource', queryObject.resources);
 
-    for (let i = 0, j = queries.length; i < j; i++) {
-        const query = queries[i];
+    for (let queryName in queries) {
 
-        if (query === 'facets' || query === 'stats' || query === 'related') {
-            // const qries = Object.keys(qrySource[query]);
-            const qrySource = {};
-            const q = Object.keys(resourceQueries.queries[query]);
-            for (let key in q) {
-                qrySource[key] = q[key];
+        if (queryName === 'facets' || queryName === 'stats' || queryName === 'related') {
+            const queries = {};
+            for (let q in resource.queries[queryName]) {
+                queries[q] = resource.queries[queryName][q];
             }
 
-            console.log(qrySource);
-            // const qry = qrySource.queries[query].fn(queryObject);
-            // plog.info(`QUERY ${query}: ${qry}`);
-
-            // for (let i = 0, j = qries.length; i < j; i++) {
-                
-            //     plog.info(`${query} query`, qry[i]);
-            //     qrySource[query].qries[ qries[i] ].fn(queryObject);
-            // }
+            const queryGroup = queryName;
+            for (let queryName in queries) {
+                const query = queries[queryName].fn(queryObject);
+                plog.info(`QUERY ${queryGroup.toUpperCase()} ${queryName}`, query);
+            }
         }
         else {
-            const qry = qrySource.queries[query].fn(queryObject);
-            //plog.info(`QUERY ${query}`, qry);
+            const query = queries[queryName].fn(queryObject);
+            plog.info(`QUERY ${queryName}`, query);
         }
         
     }
 };
 
-// make({
-//     communities: ['biosyslit', 'belgiumherbarium'],
-//     refreshCache: false,
-//     page: 1,
-//     size: 30,
-//     resources: 'treatments',
-//     facets: true,
-//     stats: false,
-//     xml: false,
-//     sortBy: 'journalYear:ASC',
-//     q: 'carabus',
-//     // creator: 'Agosti',
-//     // treatmentId: 'sfwesdfs'
-// })
+make({
+    communities: ['biosyslit', 'belgiumherbarium'],
+    refreshCache: false,
+    page: 1,
+    size: 30,
+    resources: 'treatments',
+    facets: true,
+    stats: false,
+    xml: false,
+    sortBy: 'journalYear:ASC',
+    q: 'carabus',
+    // creator: 'Agosti',
+    // treatmentId: 'sfwesdfs'
+})
 
 module.exports = qm;
