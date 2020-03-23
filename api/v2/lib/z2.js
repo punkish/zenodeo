@@ -175,21 +175,17 @@ const getOneRecord = function(queryObject) {
     return data;
 };
 
-const getManyRecords = async function(queryObject) {
-
-    // calc limit and offset and add them to the queryObject
+// calc limit and offset and add them to the queryObject
+// as we will need them for the SQL query
+const calcLimitAndOffset = function(queryObject) {
     const page = queryObject.page ? parseInt(queryObject.page) : 1;
     const limit = Schema.defaults.size;
     const offset = (page - 1) * limit;
     queryObject.limit = limit;
     queryObject.offset = offset;
+};
 
-    getAllLikes(queryObject);
-
-    const id = queryObject.id ? parseInt(queryObject.id) : 0;
-
-    const q = getSql(queryObject);
-    const messages = [{label: 'queryObject', params: queryObject}];
+const getManyRecords = async function(queryObject) {
 
     // data will hold all the query results to be sent back
     const data = { 'search-criteria': {} };
@@ -197,7 +193,7 @@ const getManyRecords = async function(queryObject) {
     // The following params may get added to the queryObject but they 
     // are not used when making the _self, _prev, _next links, or  
     // the search-criteria 
-    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
+    const exclude = ['refreshCache', 'resources', 'resourceId'];
 
     for (let key in queryObject) {
         if (! exclude.includes(key)) {
@@ -205,6 +201,19 @@ const getManyRecords = async function(queryObject) {
         }
     }
 
+    calcLimitAndOffset(queryObject);
+
+    const id = queryObject.id ? parseInt(queryObject.id) : 0;
+
+    // procees all the query params that are used in LIKE searches
+    // and add a '%' suffix to them
+    getAllLikes(queryObject);
+
+    // print out the queryObject
+    const messages = [{label: 'queryObject', params: queryObject}];
+
+    const q = getSql(queryObject);
+    
     let t = process.hrtime();
 
     // first find total number of matches
@@ -221,10 +230,7 @@ const getManyRecords = async function(queryObject) {
     }
 
     t = process.hrtime(t);
-    messages.push({
-        label: 'count', 
-        params: { sql: countSqlLog, took: t }
-    });
+    messages.push({ label: 'count', params: { sql: countSqlLog, took: t } });
 
     // add a self link to the data
     data._links = {};
@@ -254,10 +260,7 @@ const getManyRecords = async function(queryObject) {
     }
 
     t = process.hrtime(t);
-    messages.push({
-        label: 'data', 
-        params: { sql: dataSqlLog, took: t }
-    });
+    messages.push({ label: 'data', params: { sql: dataSqlLog, took: t } });
 
     plog.log({ header: 'MANY QUERIES', messages: messages });
 
@@ -284,15 +287,15 @@ const getManyRecords = async function(queryObject) {
 
     // set some records-specific from and to for the formatted
     // search criteria string
-    data.from = ((page - 1) * limit) + 1;
-    data.to = data.records.length < limit ? 
+    data.from = ((queryObject.page - 1) * queryObject.limit) + 1;
+    data.to = data.records.length < queryObject.limit ? 
         data.from + data.records.length - 1 : 
-        data.from + limit - 1;
+        data.from + queryObject.limit - 1;
 
     data.previd = id;
 
-    data.prevpage = page >= 1 ? page - 1 : '';
-    data.nextpage = data.records.length < limit ? '' : parseInt(page) + 1;
+    data.prevpage = queryObject.page >= 1 ? queryObject.page - 1 : '';
+    data.nextpage = data.records.length < queryObject.limit ? '' : parseInt(queryObject.page) + 1;
 
     data._links.prev = Utils.makeLink({
         uri: uriZenodeo, 
@@ -321,7 +324,22 @@ const getManyRecords = async function(queryObject) {
     });
 
     // all done
-    return data;
+    const [s, ns] = t;
+    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
+
+    // all done
+    if (cacheOn) {
+        return data;
+    }
+    else {
+        return {
+            value: data,
+            cached: null,
+            report: {
+                msec: ms
+            }
+        }
+    }
 };
 
 const getStatsFacets = function(type, q, queryObject) {

@@ -25,7 +25,14 @@ const handler = function(plugins) {
     return async function(request, h) {
 
         const queryObject = request.query;
+
+        // Add names of the resource and the resource's PK
+        // Note, these are *not* values, but just keys. For
+        // example, 'treatments' and 'treatmentId', not 
+        // '000343DSDHSK923HHC9SKKS' (value of 'treatmentId')
+        queryObject.resource = plugins._resource;
         queryObject.resources = plugins._resources;
+        queryObject.resourceId = plugins._resourceId;
         
         // bunch up messages to print them to the log
         const messages = [{label: 'queryObject', params: queryObject}];
@@ -34,90 +41,100 @@ const handler = function(plugins) {
         const cacheKey = Utils.makeCacheKey(request);
         messages.push({label: 'cacheKey', params: cacheKey});
     
+        let result;
         if (cacheOn) {
-            if (queryObject.refreshCache === 'true') {
-                messages.push({label: 'info', params: 'forcing refreshCache'});
+            if (queryObject.refreshCache || queryObject.refreshCache === 'true') {
+                messages.push({label: 'info', params: 'force emptying the cache'});
                 this.cache.drop(cacheKey);
+                messages.push({label: 'info', params: 'refilling the cache'});
             }
     
-            messages.push({label: 'info', params: 'returning results from cache'});
-            plog.log({
-                header: 'WEB QUERY',
-                messages: messages
-            });
-
-            return this.cache.get(cacheKey);
+            messages.push({label: 'info', params: 'getting results from  the cache'});
+            plog.log({ header: 'WEB QUERY', messages: messages });
+            result = this.cache.get(cacheKey);
         }
         else {
-
-            messages.push({label: 'info', params: 'querying for results'});
-            plog.log({
-                header: 'WEB QUERY',
-                messages: messages
-            });
-
-            return getRecords({cacheKey, plugins});
+            messages.push({label: 'info', params: 'querying for fresh results'});
+            plog.log({ header: 'WEB QUERY', messages: messages });
+            result = getRecords(cacheKey);
         }
         
+        return result;
+
     };
 
 };
 
-const getRecords = function({cacheKey, plugins}) {
+const getRecords = function(cacheKey) {
 
     const queryObject = Utils.makeQueryObject(cacheKey);
 
     // An id is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject[plugins._resourceId]) {
-        return getOneRecord({queryObject, plugins});
+    if (queryObject[queryObject.resourceId]) {
+        return getOneRecord(queryObject);
     }
     
     // More complicated queries with search parameters
     else {
-        return getManyRecords({queryObject, plugins})
+        return getManyRecords(queryObject)
     }
 };
 
-const getOneRecord = async function({queryObject, plugins}) {
+const getOneRecord = async function(queryObject) {
 
-    //const messages = [{label: 'queryObject', params: queryObject}];
+    const uriRemote = uriZenodo + queryObject[queryObject.resourceId];
 
-    let data;
-    const uriRemote = uriZenodo + queryObject[plugins._resourceId];
-    plog.info('remote URI (one)', uriRemote);
+    const messages = [ {label: 'queryObject', params: queryObject} ];
+    //plog.info('remote URI (one)', uriRemote);
+
+    // data will hold all the query results to be sent back
+    const data = { 'search-criteria': {} };
+
+    // The following params may get added to the queryObject but they 
+    // are not used when making the _self, _prev, _next links, or  
+    // the search-criteria 
+    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId', 'page', 'size', 'sortBy', 'facets', 'stats'];
+
+    for (let key in queryObject) {
+        if (! exclude.includes(key)) {
+            data['search-criteria'][key] = queryObject[key];
+        }
+    }
 
     try {
         const {res, payload} =  await Wreck.get(uriRemote);
-        data = await JSON.parse(payload) || { 'num-of-records': 0 };
+        //data = await JSON.parse(payload) || { 'num-of-records': 0 };
+
+        // add query results to data.records. If no results are found,
+        // add an empty array to data.records
+        data.records = await JSON.parse(payload) || [];
     }
     catch(error) {
         plog.error(error);
     }
+
+    // if the query is successful, but no records are found
+    // add 'num-of-records' = 0
+    data['num-of-records'] = data.records ? 1 : 0;
     
-    data['search-criteria'] = queryObject;
+    //data['search-criteria'] = queryObject;
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: plugins._resources, 
-        queryString: Object.entries(queryObject)
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
     });
 
+    messages.push({label: 'num-of-records', params: data['num-of-records']});
+    plog.log({ header: 'ONE QUERY', messages: messages });
+
     return data;
 };
 
-const getManyRecords = async function({queryObject, plugins}) {
-
-    // data will hold all the query results to be sent back
-    const data = {
-
-        // deep clone the queryObject
-        'search-criteria': JSON.parse(JSON.stringify(queryObject))
-    };
-
-    let queryString = '';
+const calcQ = function(queryObject) {
     const qArr = [];
 
     const seen = {
@@ -149,8 +166,8 @@ const getManyRecords = async function({queryObject, plugins}) {
                     if (param.toLowerCase() === 'all') {
 
                         const resources = ['publications', 'images'];
-                        if (resources.includes(plugins._resources)) {
-                            let v = Schema.defaults[plugins._resources];
+                        if (resources.includes(queryObject.resources)) {
+                            let v = Schema.defaults[queryObject.resources];
                             v = v.filter(i => i !== 'all');
                             v.forEach(t => params.push(`subtype=${t}`));
                         }
@@ -278,78 +295,133 @@ const getManyRecords = async function({queryObject, plugins}) {
 
     let q = qArr.join(' ');
     plog.info('q', q);
-    q = encodeURIComponent(q);
+    return [encodeURIComponent(q), params]
+};
 
-    queryString = `q=${q}&${params.join('&')}&type=${plugins._resource}&access_right=open`;
+const getManyRecords = async function(queryObject) {
+
+    // data will hold all the query results to be sent back
+    const data = { 'search-criteria': {} };
+
+    // The following params may get added to the queryObject but they 
+    // are not used when making the _self, _prev, _next links, or  
+    // the search-criteria 
+    const exclude = ['refreshCache', 'resource', 'resources', 'resourceId'];
+
+    for (let key in queryObject) {
+        if (! exclude.includes(key)) {
+            data['search-criteria'][key] = queryObject[key];
+        }
+    }
+
+    // print out the queryObject
+    const messages = [{label: 'queryObject', params: queryObject}];
+
+    const [q, params] = calcQ(queryObject);
+    const queryString = `q=${q}&${params.join('&')}&type=${queryObject.resource}&access_right=open`;
     plog.info('queryString', queryString);
     const uriRemote = `${uriZenodo}?${queryString}`;
-    const limit = queryObject.size;
+    messages.push({ label: 'remote URI', params: uriRemote });
 
+    let t = process.hrtime();
     try {
-        plog.info('remote URI (many)', uriRemote);
         const {res, payload} =  await Wreck.get(uriRemote);
         const result = await JSON.parse(payload);
         const hits = result.hits;
 
         data['num-of-records'] = hits.total;
         data.records = hits.hits;
-        const num = hits.length;
-
-        const page = queryObject.page ? parseInt(queryObject.page) : 1;
-
-        data.from = ((page - 1) * limit) + 1;
-        data.to = num < limit ? parseInt(data.from) + parseInt(num) - 1 : parseInt(data.from) + parseInt(limit) - 1;
-
-        plog.info(`found ${plugins._resources}`, data['num-of-records']);
-        plog.info(`retrieved ${plugins._resources}`, num);
-
-        data.prevpage = page >= 1 ? page - 1 : '';
-        data.nextpage = num < limit ? '' : parseInt(page) + 1;
-
     }
     catch(error) {
-        plog.error(JSON.stringify(error));
+        plog.error(error);
     }
 
-    data._links = Utils.makeSelfLink({
+    messages.push({ label: 'count', params: data['num-of-records'] });
+
+    // add a self link to the data
+    data._links = {};
+    data._links.self = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: plugins._resources, 
-        queryString: Object.entries(queryObject)
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
     });
 
+    data._links.prev = Utils.makeLink({
+        uri: uriZenodeo, 
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
+            .map(e => e[0] + '=' + (e[0] === 'page' ? data.prevpage : e[1]))
+            .sort()
+            .join('&')
+    });
+
+    data._links.next = Utils.makeLink({
+        uri: uriZenodeo, 
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
+            .map(e => e[0] + '=' + (e[0] === 'page' ? data.nextpage : e[1]))
+            .sort()
+            .join('&')
+    });
+
+    const page = queryObject.page ? parseInt(queryObject.page) : 1;
+
+    const limit = queryObject.size;
+    const num = data.records.length;
+    data.from = ((page - 1) * limit) + 1;
+    data.to = num < limit ? parseInt(data.from) + parseInt(num) - 1 : parseInt(data.from) + parseInt(limit) - 1;
+
+    plog.info(`found ${queryObject.resources}`, data['num-of-records']);
+    plog.info(`retrieved ${queryObject.resources}`, num);
+
+    data.prevpage = page >= 1 ? page - 1 : '';
+    data.nextpage = num < limit ? '' : parseInt(page) + 1;
+
     // finally, get facets and stats, if requested   
     if ('facets' in queryObject && queryObject.facets === 'true') {
-        //data.facets = getFacets();
-        data.facets = {};
+        data.facets = getFacets(queryObject);
     }
 
     if ('stats' in queryObject && queryObject.stats === 'true') {
-        //data.stats = getStats();
-        data.stats = {};
+        data.stats = getStats(queryObject);
     }
 
     // all done
-    return data;
+    const [s, ns] = process.hrtime(t);
+    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
+    
+    if (cacheOn) {
+        return data;
+    }
+    else {
+        return {
+            value: data,
+            cached: null,
+            report: {
+                msec: ms
+            }
+        }
+    }
 };
 
 const getStats = function(queries, queryObject) {
 
     const stats = {};
 
-    if (queries.selstats) {
-        for (let q in queries.selstats) {
-            try {
-                plog.info(`MANY STATS ${q}`, queries.selstats[q]);
-                stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
-            }
-            catch (error) {
-                plog.error(error);
-            }
-        }
-    }
+    // if (queries.selstats) {
+    //     for (let q in queries.selstats) {
+    //         try {
+    //             plog.info(`MANY STATS ${q}`, queries.selstats[q]);
+    //             stats[q] = db.prepare(queries.selstats[q]).all(queryObject);
+    //         }
+    //         catch (error) {
+    //             plog.error(error);
+    //         }
+    //     }
+    // }
 
     return stats;
 };
@@ -358,17 +430,17 @@ const getFacets = function(queries, queryObject) {
 
     const facets = {};
 
-    if (queries.selfacets) {
-        for (let q in queries.selfacets) {
-            try {
-                plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
-                data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
-            }
-            catch (error) {
-                plog.error(error);
-            }
-        }
-    }
+    // if (queries.selfacets) {
+    //     for (let q in queries.selfacets) {
+    //         try {
+    //             plog.info(`MANY FACETS ${q}`, queries.selfacets[q]);
+    //             data.facets[q] = db.prepare(queries.selfacets[q]).all(queryObject);
+    //         }
+    //         catch (error) {
+    //             plog.error(error);
+    //         }
+    //     }
+    // }
 
     return facets;
 }

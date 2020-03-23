@@ -153,7 +153,7 @@ module.exports = {
             generateTimeout: options.generateTimeout,
             segment: plugins._segment, 
             generateFunc: async (cacheKey) => { 
-                return await query({cacheKey, plugins}) 
+                return await query(cacheKey) 
             },
             getDecoratedValue: options.getDecoratedValue
         });
@@ -162,11 +162,6 @@ module.exports = {
     // cacheKey is the URL query without the refreshCache param.
     // The default params, if any, are used in making the cacheKey.
     makeCacheKey: function(request) {
-
-        // debug(`url.href: ${request.url.href}`);
-        // debug(`url.pathname: ${request.url.pathname}`);
-        // debug(`url.search: ${request.url.search}`);
-        // debug(`url.searchParams: ${request.url.searchParams}`);
 
         // remove 'refreshCache' from the query params
         const arr = [];
@@ -186,6 +181,7 @@ module.exports = {
     },
 
     makeQueryObject: function(cacheKey) {
+
         const queryObject = {};
         if (cacheKey.indexOf('?') > -1) {
             cacheKey.split('?')[1].split('&').forEach(pair => {
