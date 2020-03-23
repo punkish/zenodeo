@@ -12,22 +12,30 @@ const plog = require(config.get('plog'));
 const Schema = require('../schema.js');
 const cacheOn = config.get('v2.cache.on');
 const uriZenodeo = config.get('v2.uri.zenodeo');
-const queryMaker = require('../lib/query-maker');
+const getSql = require('../lib/qm').getSql;
 const Utils = require('../utils');
 const Database = require('better-sqlite3');
 const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
+const qParts = require('./qparts');
 
 const handler = function(plugins) {
 
     return async function(request, h) {
 
         const queryObject = request.query;
+
+        // Add names of the resource and the resource's PK
+        // Note, these are *not* values, but just keys. For
+        // example, 'treatments' and 'treatmentId', not 
+        // '000343DSDHSK923HHC9SKKS' (value of 'treatmentId')
+        queryObject.resources = plugins._resources;
+        queryObject.resourceId = plugins._resourceId;
         
         // bunch up messages to print them to the log
         const messages = [{label: 'queryObject', params: queryObject}];
 
-        if (plugins._resources === 'treatments') {
+        if (queryObject.resources === 'treatments') {
 
             // if xml is being requested, send it back and be done with it
             if (queryObject.format && queryObject.format === 'xml') {
@@ -36,7 +44,7 @@ const handler = function(plugins) {
                 return h.response(getXml(queryObject.treatmentId))
                     .type('text/xml')
                     .header('Content-Type', 'application/xml');
-        
+                
             }
         }
     
@@ -59,7 +67,7 @@ const handler = function(plugins) {
         else {
             messages.push({label: 'info', params: 'querying for fresh results'});
             plog.log({ header: 'WEB QUERY', messages: messages });
-            result = getRecords({cacheKey, plugins});
+            result = getRecords(cacheKey);
         }
 
         return result;
@@ -68,36 +76,53 @@ const handler = function(plugins) {
 
 };
 
-const getRecords = function({cacheKey, plugins}) {
+const getAllLikes = function(queryObject) {
+
+    const resourceLike = qParts[queryObject.resources].queryable.like;
+    for (let key in queryObject) {
+        if (key in resourceLike) {
+            queryObject[key] =queryObject[key] + '%';
+        }
+    }
+};
+
+const getRecords = function(cacheKey) {
 
     const queryObject = Utils.makeQueryObject(cacheKey);
 
     // A resourceId is present. The query is for a specific
     // record. All other query params are ignored
-    if (queryObject[plugins._resourceId]) {
-        return getOneRecord(queryObject, plugins);
+    if (queryObject[queryObject.resourceId]) {
+        return getOneRecord(queryObject);
     }
     
     // More complicated queries with search parameters
     else {
-        return getManyRecords(queryObject, plugins)
+        return getManyRecords(queryObject)
     }
 };
 
-const getOneRecord = function(queryObject, plugins) {
+const getOneRecord = function(queryObject) {
 
-    const [queries, queriesLog] = queryMaker(queryObject, plugins);
-    const sqlLog = queriesLog.data.sql;
-    const sql = queries.data.sql;
+    const q = getSql(queryObject);
+    const sqlLog = q.queriesLog.essential.data.sql;
+    const sql = q.queriesLog.essential.data.sql;
 
     const messages = [ {label: 'queryObject', params: queryObject} ];
 
     // data will hold all the query results to be sent back
-    const data = {
+    const data = { 'search-criteria': {} };
 
-        // deep clone the queryObject
-        'search-criteria': JSON.parse(JSON.stringify(queryObject))
-    };
+    // The following params may get added to the queryObject but they 
+    // are not used when making the _self, _prev, _next links, or  
+    // the search-criteria 
+    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId', 'page', 'size', 'sortBy', 'facets', 'stats'];
+
+    for (let key in queryObject) {
+        if (! exclude.includes(key)) {
+            data['search-criteria'][key] = queryObject[key];
+        }
+    }
 
     let t = process.hrtime();
 
@@ -108,12 +133,14 @@ const getOneRecord = function(queryObject, plugins) {
         data.records = [db.prepare(sql).get(queryObject)] || [];        
     } 
     catch (error) {
-        plog.error(error);
+        plog.error(error, sqlLog);
     }
 
     t = process.hrtime(t);
-    messages.push({label: 'data', params: sqlLog});
-    messages.push({label: 'took', params: t});
+    messages.push({
+        label: 'data', 
+        params: { sql: sqlLog, took: t }
+    });
 
     // if the query is successful, but no records are found
     // add 'num-of-records' = 0
@@ -122,8 +149,8 @@ const getOneRecord = function(queryObject, plugins) {
     // add a self link to the data
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: plugins._resources, 
-        queryString: Object.entries(queryObject)
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
@@ -136,20 +163,19 @@ const getOneRecord = function(queryObject, plugins) {
     if (! data['num-of-records']) return data;
 
     // more data from beyond the database
-    if (plugins._resources === 'treatments') {
-        data.xml = getXml(queryObject.treatmentId);
+    if (queryObject.resources === 'treatments') {
+        if (queryObject.xml) {
+            data.xml = getXml(queryObject.treatmentId);
+        }
+        
         data.taxonStats = getTaxonStats(data);
     }
 
-    data['related-records'] = getRelatedRecords(queries, queriesLog, queryObject);
+    data['related-records'] = getRelatedRecords(q, queryObject);
     return data;
 };
 
-const getManyRecords = async function(queryObject, plugins) {
-
-    // create a deep copy of the queryObject to be used later for 
-    // making _links
-    const origQueryObject = JSON.parse(JSON.stringify(queryObject));
+const getManyRecords = async function(queryObject) {
 
     // calc limit and offset and add them to the queryObject
     const page = queryObject.page ? parseInt(queryObject.page) : 1;
@@ -158,40 +184,54 @@ const getManyRecords = async function(queryObject, plugins) {
     queryObject.limit = limit;
     queryObject.offset = offset;
 
+    getAllLikes(queryObject);
+
     const id = queryObject.id ? parseInt(queryObject.id) : 0;
 
-    const [queries, queriesLog] = queryMaker(queryObject, plugins);
+    const q = getSql(queryObject);
     const messages = [{label: 'queryObject', params: queryObject}];
 
     // data will hold all the query results to be sent back
-    const data = {
+    const data = { 'search-criteria': {} };
 
-        // deep clone the queryObject
-        'search-criteria': JSON.parse(JSON.stringify(queryObject))
-    };
+    // The following params may get added to the queryObject but they 
+    // are not used when making the _self, _prev, _next links, or  
+    // the search-criteria 
+    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
+
+    for (let key in queryObject) {
+        if (! exclude.includes(key)) {
+            data['search-criteria'][key] = queryObject[key];
+        }
+    }
 
     let t = process.hrtime();
 
     // first find total number of matches
+    const countSql = q.queries.essential.count.sql;
+    const countSqlLog = q.queriesLog.essential.count.sql;
+
     try {
-        data['num-of-records'] = db.prepare(queries.count)
+        data['num-of-records'] = db.prepare(countSql)
             .get(queryObject)
             .numOfRecords;
     }
     catch (error) {
-        plog.error(error, queriesLog.count);
+        plog.error(error, countSqlLog);
     }
 
     t = process.hrtime(t);
-    messages.push({label: 'count', params: queriesLog.count});
-    messages.push({label: 'took', params: t});    
+    messages.push({
+        label: 'count', 
+        params: { sql: countSqlLog, took: t }
+    });
 
     // add a self link to the data
     data._links = {};
     data._links.self = Utils.makeLink({
         uri: uriZenodeo, 
-        resource: plugins._resources, 
-        queryString: Object.entries(origQueryObject)
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
@@ -203,16 +243,21 @@ const getManyRecords = async function(queryObject, plugins) {
     t = process.hrtime();
 
     // get the records
+    const dataSql = q.queries.essential.data.sql;
+    const dataSqlLog = q.queriesLog.essential.data.sql;
+
     try {
-        data.records = db.prepare(queries.data).all(queryObject) || [];
+        data.records = db.prepare(dataSql).all(queryObject) || [];
     }
     catch (error) {
-        plog.error(error);
+        plog.error(error, dataSqlLog);
     }
 
     t = process.hrtime(t);
-    messages.push({label: 'data', params: queriesLog.data});
-    messages.push({label: 'took', params: t});
+    messages.push({
+        label: 'data', 
+        params: { sql: dataSqlLog, took: t }
+    });
 
     plog.log({ header: 'MANY QUERIES', messages: messages });
 
@@ -220,8 +265,10 @@ const getManyRecords = async function(queryObject, plugins) {
         data.records.forEach(rec => {
             rec._links = Utils.makeSelfLink({
                 uri: uriZenodeo, 
-                resource: plugins._resources, 
-                queryString: Object.entries({treatmentId: rec[plugins._resourceId]})
+                resource: queryObject.resources, 
+                queryString: Object.entries({
+                    treatmentId: rec[queryObject.resourceId]
+                })
                     .map(e => e[0] + '=' + e[1])
                     .sort()
                     .join('&')
@@ -249,8 +296,8 @@ const getManyRecords = async function(queryObject, plugins) {
 
     data._links.prev = Utils.makeLink({
         uri: uriZenodeo, 
-        resource: plugins._resources, 
-        queryString: Object.entries(origQueryObject)
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + (e[0] === 'page' ? data.prevpage : e[1]))
             .sort()
             .join('&')
@@ -258,8 +305,8 @@ const getManyRecords = async function(queryObject, plugins) {
 
     data._links.next = Utils.makeLink({
         uri: uriZenodeo, 
-        resource: plugins._resources, 
-        queryString: Object.entries(origQueryObject)
+        resource: queryObject.resources, 
+        queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + (e[0] === 'page' ? data.nextpage : e[1]))
             .sort()
             .join('&')
@@ -269,7 +316,7 @@ const getManyRecords = async function(queryObject, plugins) {
     const groupedQueries = ['facets', 'stats'];
     groupedQueries.forEach(g => {
         if (g in queryObject && queryObject[g] === 'true') {
-            data[g] = getStatsFacets(g, queries, queriesLog, queryObject);
+            data[g] = getStatsFacets(g, q, queryObject);
         }
     });
 
@@ -277,62 +324,68 @@ const getManyRecords = async function(queryObject, plugins) {
     return data;
 };
 
-const getStatsFacets = function(type, queries, queriesLog, queryObject) {
+const getStatsFacets = function(type, q, queryObject) {
     const result = {};
     const messages = [];
 
-    if (queries[type]) {
-        for (let q in queries[type]) {
+    for (let query in q.queries[type]) {
 
-            let t = process.hrtime();
+        let t = process.hrtime();
 
-            try {
-                result[q] = db.prepare(queries[type][q]).all(queryObject);
-            }
-            catch (error) {
-                plog.error(error);
-            }
+        const sql = q.queries[type][query].sql;
+        const sqlLog = q.queriesLog[type][query].sql;
 
-            t = process.hrtime(t);
-            messages.push({label: q, params: queriesLog[type][q]});
-            messages.push({label: 'took', params: t});
+        try {
+            result[query] = db.prepare(sql).all(queryObject);
         }
+        catch (error) {
+            plog.error(error, sqlLog);
+        }
+
+        t = process.hrtime(t);
+        messages.push({
+            label: query, 
+            params: { sql: sqlLog, took: t }
+        });
+        
     }
 
-    plog.log({ header: `MANY ${type.toUpperCase()}`, messages: messages });
+    plog.log({ header: `${type.toUpperCase()} QUERIES`, messages: messages });
+
     return result;
 };
 
-const getRelatedRecords = function(queries, queriesLog, queryObject) {
+const getRelatedRecords = function(q, queryObject) {
 
     const related = {};
     const messages = [];
 
-    if (queries.related) {
-        for (let relatedResource in queries.related) {
+    for (let query in q.queries.related) {
 
-            const pk = queries.related[relatedResource].pk;
-            const sqlLog = queriesLog.related[relatedResource].sql;
-            const sql = queries.related[relatedResource].sql;
+        const pk = q.queries.related[query].pk;
+        const sqlLog = q.queriesLog.related[query].sql;
+        const sql = q.queries.related[query].sql;
 
-            let t = process.hrtime();
+        let t = process.hrtime();
 
-            try {
-                related[relatedResource] = Utils.halify({
-                    records: db.prepare(sql).all(queryObject), 
-                    uri: uriZenodeo, 
-                    resource: relatedResource,
-                    id: pk
-                });
-            }
-            catch (error) {
-                plog.error(error);
-            }
-
-            t = process.hrtime(t);
-            messages.push({label: relatedResource, params: sqlLog});
-            messages.push({label: 'took', params: t});
+        try {
+            related[query] = Utils.halify({
+                records: db.prepare(sql).all(queryObject), 
+                uri: uriZenodeo, 
+                resource: query,
+                id: pk
+            });
         }
+        catch (error) {
+            plog.error(error, sqlLog);
+        }
+
+        t = process.hrtime(t);
+        messages.push({
+            label: query, 
+            params: { sql: sqlLog, took: t }
+        });
+
     }
 
     plog.log({ header: 'ONE RELATED', messages: messages });
@@ -353,21 +406,22 @@ const getTaxonStats = function(data) {
     const messages = [];
 
     taxonStats.forEach((taxon, index) => {
-        const select = `SELECT Count(*) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
-          
+        const sql = `SELECT Count(*) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
 
         let t = process.hrtime();
 
         try {
-            taxonStats[index].num = db.prepare(select).get().num;
+            taxonStats[index].num = db.prepare(sql).get().num;
         } 
         catch (error) {
-            plog.error(error);
+            plog.error(error, sql);
         }
 
         t = process.hrtime(t);
-        messages.push({label: taxon.name, params: select});
-        messages.push({label: 'took', params: t});
+        messages.push({
+            label: taxon.name, 
+            params: { sql: sql, took: t }
+        });
     })
 
     plog.log({ header: 'ONE TAXONSTATS', messages: messages });

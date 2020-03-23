@@ -45,7 +45,7 @@ module.exports = {
             "zenodo": "",
             "type": "TEXT",
             "element": "$('document').attr('masterDocTitle')",
-            "definition": "The date of the publication of the article. If a complete date is not available (for example, if only the year is available), then the last day of the year is used.",
+            "definition": "The title of the article in which the treatment occured.",
             "queryable": true
         },
         {
@@ -129,7 +129,7 @@ module.exports = {
             "queryable": true
         },
         {
-            "plazi": '"order"',
+            "plazi": "order",
             "zenodo": "subjects",
             "type": "TEXT",
             "element": "$('subSubSection[type=nomenclature] taxonomicName').attr('order')",
