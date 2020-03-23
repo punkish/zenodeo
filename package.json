@@ -1,6 +1,6 @@
 {
   "name": "zenodeo",
-  "version": "2.1.0",
+  "version": "2.5.0",
   "description": "`nodejs` interface to the Zenodo/BLR community collection",
   "main": "index.js",
   "repository": "https://github.com/punkish/zenodeo",
@@ -37,5 +37,11 @@
     "progress": "^2.0.3",
     "wikijs": "^5.5.1"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.1.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  }
 }

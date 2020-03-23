@@ -1,7 +1,7 @@
 'use strict';
 
-// const config = require('config');
-// const plog = require(config.get('plog'));
+const config = require('config');
+const plog = require(config.get('plog'));
 
 const qryParts = {
     treatments: {
@@ -389,6 +389,81 @@ const calcSortParams = function(qrySource, queryObject) {
     return [sortcol, sortdir];
 };
 
+const calcSortParams2 = function(sortBy, queryObject) {
+    const columns = sortBy.columns;
+    const defaultSortCol = sortBy.defaultSort.col;
+    const defaultSortDir = sortBy.defaultSort.dir;
+
+    let [sortcol, sortdir] = queryObject.sortBy.split(':');
+    if (! columns.includes(sortcol)) {
+        sortcol = defaultSortCol;
+    }
+
+    sortdir = sortdir.toUpperCase();
+    if (sortdir !== 'ASC' || sortdir !== 'DESC') {
+        sortdir = defaultSortDir
+    }
+
+    return [sortcol, sortdir];
+};
+
+
+//const calcQuery2 = function(columns, constraint, tables, queryObject) {
+const calcQuery = function(query, resource, queryObject) {
+
+    const pk = resource.pk;
+    const queryable = resource.queryable;
+
+    const equal = queryable.equal;
+    const equalKeys = Object.keys(equal);
+
+    const like = queryable.like;
+    const likeKeys = Object.keys(like);
+
+    const match = queryable.match;
+    const matchKeys = Object.keys(match);
+    
+    const columns = resource.queries[query].columns;
+    const tables = resource.queries[query].tables;
+    const constraint = resource.queries[query].constraint;
+    const sortBy = resource.queries[query].sortBy;
+    const group = resource.queries[query].group;
+
+    for (let k in queryObject) {
+        if (! exclude.includes(k)) {
+            
+            if (equalKeys.includes(k)) {
+                if (equal[k]) {
+                    constraint.push(`${equal[k]} = ${queryObject[k]}`);
+                }
+                else {
+                    constraint.push(`${k} = ${queryObject[k]}`);
+                }
+            }
+            else if (likeKeys.includes(k)) {
+                if (like[k]) {
+                    constraint.push(`${Lower(like[k])} LIKE ${queryObject[k].toLowerCase()}`);
+                }
+                else {
+                    constraint.push(`Lower(${k}) LIKE ${queryObject[k].toLowerCase()}`);
+                }
+            }
+            else if (matchKeys.includes(k)) {
+                tables.push(match[k].table);
+
+                if (match[k]) {
+                    constraint.push(`${match[k].column} MATCH ${queryObject[k]}`);
+                }
+                else {
+                    constraint.push(`${k} MATCH ${queryObject[k]}`);
+                }
+            }
+        }
+    }
+
+    return `SELECT ${columns.join(' ')} FROM ${tables.join(' ')} WHERE ${constraint.join(' AND ')}`;
+};
+
 const makeQueries = function({qryType, qrySource, queryObject, plugins}) {
 
     const resources = plugins._resources;
@@ -599,141 +674,256 @@ const qm = function(queryObject, plugins) {
 
 };
 
-// const qm2 = function(queryObject, plugins) {
+const exclude = ['resources', 'communities', 'facets', 'page', 'size', 'stats', 'xml', 'limit', 'offset', 'refreshCache'];
 
-//     // queries{} holds the SQL with bind @params that is actually
-//     // used by the databse. queriesLog{} is the same query but 
-//     // with the actual params, and is used only to write out the logs
-//     const queries = {};
-//     const queriesLog = {};
+const qParts = {
+    treatments: {
+        pk: 'treatmentId',
+        queryable: {
+            equal: {
+                publicationDate: '', 
+                journalYear: '', 
+                journalVolume: '', 
+                journalIssue: '', 
+                authorityYear: '', 
+                kingdom: '', 
+                phylum: '', 
+                '"order"': '', 
+                family: '', 
+                genus: '', 
+                species: '', 
+                status: '', 
+                'treatments.rank': ''
+            },
+            like: {
+                treatmentTitle: '', 
+                articleTitle: '', 
+                journalTitle: '', 
+                authorityName: '', 
+                taxonomicNameLabel: ''
+            },
+            match: {
+                q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+            }
+        },
+        queries: {
+            count: {
+                columns: ['count(*) as num'],
+                tables: ['treatments'],
+                constraint: ['treatments.deleted = 0'],
+                sortBy: {},
+                group: [],
 
-//     // resources: treatments, treatmentAuthors
-//     const resources = plugins._resources;
+                fn: function(resource, queryObject) {
 
-//     // check if the PK exists in the queryObject. If there is a PK
-//     // then the query is for a specific record
-//     if (queryObject[plugins._resourceId]) {
+                    
+                    //calcQuery(this.columns, this.constraint, this.tables, queryObject);
+                    const query = calcQuery('count', resource, queryObject);
+                    return query;
+                    //return `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')}`;
+                }
+            },
 
-//         // validQryTypes: data, count, stats, facets
-//         const validQryTypes = Object.keys(qryParts[resources].one);
+            // data: {
+            //     columns: {
+            //         toReturn: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
+            //         // queryable: {
+            //         //     equal: {
+            //         //         publicationDate: '', 
+            //         //         journalYear: '', 
+            //         //         journalVolume: '', 
+            //         //         journalIssue: '', 
+            //         //         authorityYear: '', 
+            //         //         kingdom: '', 
+            //         //         phylum: '', 
+            //         //         '"order"': '', 
+            //         //         family: '', 
+            //         //         genus: '', 
+            //         //         species: '', 
+            //         //         status: '', 
+            //         //         'treatments.rank': ''
+            //         //     },
+            //         //     like: {
+            //         //         treatmentTitle: '', 
+            //         //         articleTitle: '', 
+            //         //         journalTitle: '', 
+            //         //         authorityName: '', 
+            //         //         taxonomicNameLabel: ''
+            //         //     },
+            //         //     match: {
+            //         //         q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+            //         //     }
+            //         // }
+            //     },
+            //     tables: ['treatments'],
+            //     constraint: ['treatments.deleted = 0'],
+            //     sortBy: {
+            //         columns: ['journalYear'],
+            //         defaultSort: {
+            //             col: 'journalYear',
+            //             dir: 'ASC'
+            //         }
+            //     },
+            //     group: [],
 
-//         let i = 0;
-//         const j = validQryTypes.length;
+            //     fn: function(queryObject) {
+            //         calcQuery(this.columns, this.constraint, this.tables, queryObject);
 
-//         for (; i < j; i++) {
+            //         // now, figure out the sort params
+            //         const [sortcol, sortdir] = calcSortParams2(this.sortBy, queryObject)
 
-//             // the current qryType: data OR count OR stats, etc.
-//             const qryType = validQryTypes[i];
-    
-//             if (qryType === 'related') {
+            //         return `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')} ORDER BY ${sortcol} ${sortdir}`;
+            //     }
+            // },
+            related: {},
+            stats: {},
+            facets: {
 
-//                 // because 'related' queries are really a bunch of queries,
-//                 // they are grouped into a hash in queries{} and queriesLog()
-//                 queries[qryType] = {};
-//                 queriesLog[qryType] = {};
+                journalTitle: {
+                    columns: {
+                        toReturn: ['journalTitle', 'Count(journalTitle) AS c'],
+                        // queryable: {
+                        //     equal: {
+                        //         publicationDate: '', 
+                        //         journalYear: '', 
+                        //         journalVolume: '', 
+                        //         journalIssue: '', 
+                        //         authorityYear: '', 
+                        //         kingdom: '', 
+                        //         phylum: '', 
+                        //         '"order"': '', 
+                        //         family: '', 
+                        //         genus: '', 
+                        //         species: '', 
+                        //         status: '', 
+                        //         'treatments.rank': ''
+                        //     },
+                        //     like: {
+                        //         treatmentTitle: '', 
+                        //         articleTitle: '', 
+                        //         journalTitle: '', 
+                        //         authorityName: '', 
+                        //         taxonomicNameLabel: ''
+                        //     },
+                        //     match: {
+                        //         q: { column: 'vtreatments', table: 'JOIN vtreatments ON treatments.treatmentId = vtreatments.treatmentId' }
+                        //     }
+                        // }
+                    },
+                    tables: ['treatments'],
+                    constraint: ["treatments.deleted = 0 AND journalTitle != ''"],
+                    sortBy: {},
+                    group: ['journalTitle'],
 
-//                 // the actual queries from 'related'
-//                 const qryGroup = qryParts[resources].one[qryType];
+                    fn: function(queryObject) {
+                        calcQuery(this.columns, this.constraint, this.tables, queryObject);
+
+                        return `SELECT ${this.columns.toReturn.join(' ')} FROM ${this.tables.join(' ')} WHERE ${this.constraint.join(' AND ')}`;
+                    }
+                },
+
+                // journalYear: {
+                //     columns: ['journalYear', 'Count(journalYear) AS c'],
+                //     tables: ['treatments'],
+                //     where: ["treatments.deleted = 0 AND journalYear != ''"],
+                //     group: ['journalYear']
+                // },
+
+                // status: {
+                //     columns: ['status', 'Count(status) AS c'],
+                //     tables: ['treatments'],
+                //     where: ["treatments.deleted = 0 AND status != ''"],
+                //     group: ['status']
+                // },
                 
-//                 for (let qry in qryGroup) {
-//                     queries[qryType][qry] = {
-//                         pk: qryGroup[qry].pk,
-//                         sql: qryGroup[qry].sql + `@${plugins._resourceId}`
-//                     };
+                // rank: {
+                //     columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
+                //     tables: ['treatments'],
+                //     where: ['treatments.deleted = 0', 'treatments.rank != ""'],
+                //     group: ['treatments.rank']
+                // },
 
-//                     queriesLog[qryType][qry] = {
-//                         pk: qryGroup[qry].pk,
-//                         sql: qryGroup[qry].sql + `"${queryObject[plugins._resourceId]}"`
-//                     };
-//                 }
-                
+                // collectionCode: {
+                //     columns: ['collectionCode', 'Count(collectionCode) AS c'],
+                //     tables: ['materialsCitations', 'treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                //     where: [
+                //         'collectionCode != ""',
+                //         'materialsCitations.deleted = 0',
+                //         'treatments.deleted = 0'
+                //     ],
+                //     group: ['collectionCode']
+                // }
+            }
+        }
+    }
+}
 
-//             }
-//             else {
+// A query is made up of seven parts
+//
+// three mandatory parts
+// -----------------------------
+// SELECT <columns> 
+// FROM <tables> 
+// WHERE <constraint> 
+//
+// four optional parts
+// -----------------------------
+// GROUP BY <group>
+// ORDER BY <sortcol> <sortdir> 
+// LIMIT <limit> 
+// OFFSET <offset>
+const make = function(queryObject) {
 
-//                 const qryGroup = qryParts[resources].one[qryType];
+    // get a reference to the resource-specific query parts
+    const resource = qParts[queryObject.resources];
 
-//                 queries[qryType] = {
-//                     pk: qryGroup.pk,
-//                     sql: qryGroup.sql + `@${plugins._resourceId}`
-//                 };
-//                 queriesLog[qryType] = {
-//                     pk: qryGroup.pk,
-//                     sql: qryGroup.sql + `"${queryObject[plugins._resourceId]}"`
-//                 };
-                
-//             }
-//         }
+    // make a deep copy of the resource specific queries
+    // so it is easier to work with them. We make a deep 
+    // copy because the query parts will be modified based 
+    // on the parameters passed in the querystring, and 
+    // we want to retain the original query parts.
+    const queries = {};
+    for (let q in resource.queries) {
+        queries[q] = resource.queries[q];
+    }
 
-//         return [queries, queriesLog];
-//     }
+    plog.info('resource', queryObject.resources);
 
-//     // none or more parameters have been submitted for the query, but 
-//     // not the PK. So we have to construct the queries to be run.
-//     //
-//     // A query is made up of six parts
-//     //
-//     // mandatory parts
-//     // -----------------------------
-//     // SELECT <columns> 
-//     // FROM <tables> 
-//     // WHERE <WHERE> 
-//     //
-//     // optional parts
-//     // -----------------------------
-//     // GROUP BY <group>
-//     // ORDER BY <sortcol> <sortdir> 
-//     // LIMIT <limit> 
-//     // OFFSET <offset>
-//     else {
+    for (let queryName in queries) {
 
-//         // validQryTypes: data, count, stats, facets
-//         const validQryTypes = Object.keys(qryParts[resources].many);
+        if (queryName === 'facets' || queryName === 'stats' || queryName === 'related') {
+            // const queries = {};
+            // for (let q in resource.queries[queryName]) {
+            //     queries[q] = resource.queries[queryName][q];
+            // }
 
-//         let i = 0;
-//         const j = validQryTypes.length;
+            // const queryGroup = queryName;
+            // for (let queryName in queries) {
+            //     const query = queries[queryName].fn(queryObject);
+            //     plog.info(`QUERY ${queryGroup.toUpperCase()} ${queryName}`, query);
+            // }
+        }
+        else {
+            const query = queries[queryName].fn(resource, queryObject);
+            plog.info(`QUERY ${queryName}`, query);
+        }
+        
+    }
+};
 
-//         for (; i < j; i++) {
-
-//             // the current qryType: data OR count OR stats, etc.
-//             const qryType = validQryTypes[i];
-    
-//             if (qryType === 'stats' || qryType === 'facets') {
-
-//                 // because 'facets' and 'stats' are really a bunch of queries,
-//                 // they are grouped into a hash in queries{} and queriesLog()
-//                 queries[qryType] = {};
-//                 queriesLog[qryType] = {};
-
-//                 // the actual queries from 'facets' and 'stats'
-//                 const qryGroup = qryParts[resources].many[qryType];
-
-//                 for (let qry in qryGroup) {
-
-//                     // qrySource is the set of columns, tables, where, and 
-//                     // optionally group used to construct the query
-//                     const qrySource = qryGroup[qry];
-
-//                     const [query, queryLog] = makeQueries({qryType, qrySource,  queryObject, plugins});
-//                     queries[qryType][qry] = query;
-//                     queriesLog[qryType][qry] = queryLog;
-//                 }
-
-
-//             }
-//             else {
-//                 const qrySource = qryParts[resources].many[qryType];
-
-//                 const [query, queryLog] = makeQueries({qryType, qrySource, queryObject, plugins});
-//                 queries[qryType] = query;
-//                 queriesLog[qryType] = queryLog;
-//             }
-            
-//         }
-
-//         return [queries, queriesLog];
-//     }
-
-// };
+make({
+    communities: ['biosyslit', 'belgiumherbarium'],
+    refreshCache: false,
+    page: 1,
+    size: 30,
+    resources: 'treatments',
+    facets: true,
+    stats: false,
+    xml: false,
+    sortBy: 'journalYear:ASC',
+    q: 'carabus',
+    // creator: 'Agosti',
+    // treatmentId: 'sfwesdfs'
+})
 
 module.exports = qm;

@@ -5,13 +5,14 @@ const Joi = require('@hapi/joi');
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
 
-let descriptions = {};
-
-
+// get all the descriptions from the data dictionary
+const descriptions = {};
 for (let table in dataDict) {
     const cols = dataDict[table];
     for (let i = 0, j = cols.length; i < j; i++) {
-        descriptions[cols[i].plazi] = cols[i].definition;
+        const key = cols[i].plazi;
+        const val = cols[i].definition;
+        descriptions[key] = val;
     }
 }
 
@@ -75,6 +76,15 @@ const schemaDefaults = {
         
     q: Joi.string()
         .description('any text string')
+        .optional(),
+
+    qreq: Joi.string()
+        .description('any text string')
+        .required(),
+
+    treatmentId: Joi.string()
+        .alphanum()
+        .description(descriptions.treatmentId)
         .optional(),
 
     publication_subtypes: Joi.string()
@@ -278,11 +288,6 @@ const schema = {
 
     treatments: {
         query: Joi.object({
-            
-            treatmentId: Joi.string()
-                .alphanum()
-                .description(descriptions.treatmentId)
-                .optional(),
 
             format: Joi.string()
                 .description('Response format')
@@ -292,18 +297,15 @@ const schema = {
                 }),
 
             communities: schemaDefaults.communities,
-            communities: schemaDefaults.communities,
             page: schemaDefaults.page,
             size: schemaDefaults.size,
-            q: schemaDefaults.q,
             refreshCache: schemaDefaults.refreshCache,
-
-            treatmentTitle: Joi.string()
-                .description(descriptions.treatmentTitle)
-                .optional(),
-
-            journalTitle: Joi.string()
-                .description(descriptions.journalTitle)
+            treatmentId: schemaDefaults.treatmentId,
+            q: schemaDefaults.q,
+            
+            publicationDate: Joi.string()
+                .alphanum()
+                .description(descriptions.publicationDate)
                 .optional(),
 
             journalYear: Joi.string()
@@ -314,14 +316,34 @@ const schema = {
                 .description(descriptions.journalVolume)
                 .optional(),
 
-            authorityName: Joi.string()
-                .description(descriptions.authorityName)
+            journalIssue: Joi.number()
+                .description(descriptions.journalIssue)
                 .optional(),
 
             authorityYear: Joi.string()
                 .description(descriptions.authorityYear)
                 .optional(),
 
+            treatmentTitle: Joi.string()
+                .description(descriptions.treatmentTitle)
+                .optional(),
+
+            articleTitle: Joi.string()
+                .description(descriptions.articleTitle)
+                .optional(),
+
+            journalTitle: Joi.string()
+                .description(descriptions.journalTitle)
+                .optional(),
+
+            authorityName: Joi.string()
+                .description(descriptions.authorityName)
+                .optional(),
+            
+            taxonomicNameLabel: Joi.string()
+                .description(descriptions.taxonomicNameLabel)
+                .optional(),
+            
             kingdom: Joi.string()
                 .description(descriptions.kingdom)
                 .optional(),
@@ -331,7 +353,7 @@ const schema = {
                 .optional(),
 
             order: Joi.string()
-                .description(descriptions['"order"'])
+                .description(descriptions.order)
                 .optional(),
 
             family: Joi.string()
@@ -342,12 +364,16 @@ const schema = {
                 .description(descriptions.genus)
                 .optional(),
 
+            rank: Joi.string()
+                .description(descriptions.rank)
+                .optional(),
+
             species: Joi.string()
                 .description(descriptions.species)
                 .optional(),
 
-            rank: Joi.string()
-                .description(descriptions.rank)
+            status: Joi.string()
+                .description(descriptions.status)
                 .optional(),
 
             lat: Joi.number()
@@ -379,86 +405,203 @@ const schema = {
 
     figureCitations: {
         query: Joi.object({
+
+            page: schemaDefaults.page,
+            size: schemaDefaults.size,
+            refreshCache: schemaDefaults.refreshCache,
+
             figureCitationId: Joi.string()
                 .description(descriptions.figureCitationId)
                 .optional(),
 
+            treatmentId: schemaDefaults.treatmentId,
+            q: schemaDefaults.q
+        })
+    },
+
+    treatmentCitations: {
+        query: Joi.object({
+
             page: schemaDefaults.page,
             size: schemaDefaults.size,
-            q: schemaDefaults.q,
-            refreshCache: schemaDefaults.refreshCache
+            refreshCache: schemaDefaults.refreshCache,
+
+            treatmentCitationId: Joi.string()
+                .description(descriptions.treatmentCitationId)
+                .optional(),
+
+            treatmentId: schemaDefaults.treatmentId,
+            
+            treatmentCitation: Joi.string()
+                .description(descriptions.treatmentCitation)
+                .optional(),
+
+            refString: Joi.string()
+                .description(descriptions.refString)
+                .optional(),
         })
     },
 
     citations: {
         query: Joi.object({
+
+            page: schemaDefaults.page,
+            size: schemaDefaults.size,
+            refreshCache: schemaDefaults.refreshCache,
+
             bibRefCitationId: Joi.string()
                 .description(descriptions.bibRefCitationId)
                 .optional(),
 
-            page: schemaDefaults.page,
-            size: schemaDefaults.size,
+            treatmentId: schemaDefaults.treatmentId,
+
+            year: Joi.string()
+                .description(descriptions.year)
+                .optional(),
+
             q: schemaDefaults.q,
-            refreshCache: schemaDefaults.refreshCache,
 
-            // sortBy: Joi.string()
-            //     .description('sort column:sort order')
-            //     .optional()
-            //     .default('bibRefCitationId:ASC'),
+            sortBy: Joi.string()
+                .description('sort column:sort order')
+                .optional()
+                .default('year:ASC'),
 
-            // facets: Joi.boolean()
-            //     .description('whether or not to fetch facets')
-            //     .optional()
-            //     .default(false),
+            facets: Joi.boolean()
+                .description('whether or not to fetch facets')
+                .optional()
+                .default(false),
 
-            // stats: Joi.boolean()
-            //     .description('whether or not to fetch stats')
-            //     .optional()
-            //     .default(false)
+            stats: Joi.boolean()
+                .description('whether or not to fetch stats')
+                .optional()
+                .default(false)
         })
     },
 
     treatmentAuthors: {
         query: Joi.object({
+
+            page: schemaDefaults.page,
+            size: schemaDefaults.size,
+            refreshCache: schemaDefaults.refreshCache,
+
             treatmentAuthorId: Joi.string()
                 .description(descriptions.treatmentAuthorId)
                 .optional(),
 
+            treatmentId: schemaDefaults.treatmentId,
+
+            treatmentAuthor: Joi.string()
+                .description(descriptions.treatmentAuthor)
+                .optional()
+        })
+    },
+
+    materialsCitations: {
+        query: Joi.object({
+
             page: schemaDefaults.page,
             size: schemaDefaults.size,
-            q: schemaDefaults.q,
-            refreshCache: schemaDefaults.refreshCache
+            refreshCache: schemaDefaults.refreshCache,
+
+            materialsCitationId: Joi.string()
+                .description(descriptions.materialsCitationId)
+                .optional(),
+
+            treatmentId: schemaDefaults.treatmentId,
+
+            materialsCitationId: Joi.string()
+                .description(descriptions.materialsCitationId)
+                .optional(),
+
+            collectingDate: Joi.string()
+            .description(descriptions.collectingDate)
+            .optional(),
+            collectionCode: Joi.string()
+            .description(descriptions.collectionCode)
+            .optional(), 
+            collectorName: Joi.string()
+            .description(descriptions.collectorName)
+            .optional(),
+            country: Joi.string()
+            .description(descriptions.country)
+            .optional(),
+            collectingRegion: Joi.string()
+            .description(descriptions.collectingRegion)
+            .optional(),
+            municipality: Joi.string()
+            .description(descriptions.municipality)
+            .optional(),
+            county: Joi.string()
+            .description(descriptions.county)
+            .optional(),
+            stateProvince: Joi.string()
+            .description(descriptions.stateProvince)
+            .optional(),
+            location: Joi.string()
+            .description(descriptions.location)
+            .optional(),
+            locationDeviation: Joi.string()
+            .description(descriptions.locationDeviation)
+            .optional(), 
+            specimenCountFemale: Joi.string()
+            .description(descriptions.specimenCountFemale)
+            .optional(), 
+            specimenCountMale: Joi.string()
+            .description(descriptions.specimenCountMale)
+            .optional(), 
+            specimenCount: Joi.string()
+            .description(descriptions.specimenCount)
+            .optional(), 
+            specimenCode: Joi.string()
+            .description(descriptions.specimenCode)
+            .optional(), 
+            typeStatus: Joi.string()
+            .description(descriptions.typeStatus)
+            .optional(), 
+            determinerName: Joi.string()
+            .description(descriptions.determinerName)
+            .optional(),
+            collectingDate: Joi.string()
+            .description(descriptions.collectingDate)
+            .optional(), 
+            collectedFrom: Joi.string()
+            .description(descriptions.collectedFrom)
+            .optional(), 
+            collectingMethod: Joi.string()
+            .description(descriptions.collectingMethod)
+            .optional()
         })
     },
 
     wpsummary: {
         query: Joi.object({
-            q: Joi.string().required()
+            q: schemaDefaults.qreq,
         })
     },
 
     // no caching for any of the resources below
     authors: {
         query: Joi.object({
-            q: Joi.string().required()
+            q: schemaDefaults.qreq,
         })
     },
 
     keywords: {
         query: Joi.object({
-            q: Joi.string().required()
+            q: schemaDefaults.qreq,
         })
     },
 
     families: {
         query: Joi.object({
-            q: Joi.string().required()
+            q: schemaDefaults.qreq,
         })
     },
 
     taxa: {
         query: Joi.object({
-            q: Joi.string().required()
+            q: schemaDefaults.qreq,
         })
     }
 };

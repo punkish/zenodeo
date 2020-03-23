@@ -3,246 +3,248 @@
 // const debug = false;
 // const chalk = require('chalk');
 
-// const qryFrags = {
+const qryFrags = {
 
-//     treatments: {
+    treatments: {
 
-//         q: {
-//             column: 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context',
-//             table: 'vtreatments ON treatments.treatmentId = vtreatments.treatmentId',
-//             condition: 'vtreatments MATCH @q'
-//         },
+        q: {
+            column: 'snippet(vtreatments, 1, "<b>", "</b>", "", 50) AS context',
+            table: 'vtreatments ON treatments.treatmentId = vtreatments.treatmentId',
+            condition: 'vtreatments MATCH @q'
+        },
 
-//         data: {
-//             columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
-//             tables: ['treatments'],
-//             condition: ['treatments.deleted = 0']
-//         },
+        data: {
+            columns: ['id', 'treatments.treatmentId', 'treatmentTitle', 'doi AS articleDoi', 'zenodoDep', 'zoobank', 'articleTitle', 'publicationDate', 'journalTitle', 'journalYear', 'journalVolume', 'journalIssue', 'pages', 'authorityName', 'authorityYear', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'taxonomicNameLabel', 'treatments.rank'],
+            tables: ['treatments'],
+            condition: ['treatments.deleted = 0']
+        },
 
-//         stats: {
+        stats: {
 
-//             specimens: {
-//                 columns: ['Sum(specimenCount)'], 
-//                 tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
-//             },
+            specimens: {
+                columns: ['Sum(specimenCount)'], 
+                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
+            },
 
-//             'male specimens': {
-//                 columns: ['Sum(specimenCountMale)'], 
-//                 tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
-//             },
+            'male specimens': {
+                columns: ['Sum(specimenCountMale)'], 
+                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"],
+            },
 
-//             'female specimens': {
-//                 columns: ['Sum(specimenCountFemale)'], 
-//                 tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
-//             },
+            'female specimens': {
+                columns: ['Sum(specimenCountFemale)'], 
+                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
+            },
 
-//             'treatments with specimens': {
-//                 columns: ['Count(DISTINCT treatments.treatmentId)'], 
-//                 tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"]
-//             },
+            'treatments with specimens': {
+                columns: ['Count(DISTINCT treatments.treatmentId)'], 
+                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"]
+            },
 
-//             'treatments with male specimens': {
-//                 columns: ['Count(DISTINCT treatments.treatmentId)'], 
-//                 tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"]
-//             },
+            'treatments with male specimens': {
+                columns: ['Count(DISTINCT treatments.treatmentId)'], 
+                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountMale != ''"]
+            },
 
-//             'treatments with female specimens': {
-//                 columns: ['Count(DISTINCT treatments.treatmentId)'], 
-//                 tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
-//             },
+            'treatments with female specimens': {
+                columns: ['Count(DISTINCT treatments.treatmentId)'], 
+                tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCountFemale != ''"]
+            },
 
-//             'figure citations': {
-//                 columns: ['Count(figureCitationId)'], 
-//                 tables: ['figureCitations JOIN treatments ON figureCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND figureCitations.deleted = 0"]
-//             }
-//         },
+            'figure citations': {
+                columns: ['Count(figureCitationId)'], 
+                tables: ['figureCitations JOIN treatments ON figureCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND figureCitations.deleted = 0"]
+            }
+        },
 
-//         count: {
-//             columns: ['Count(*) AS numOfRecords'],
-//             tables: ['treatments'],
-//             condition: ['treatments.deleted = 0']
-//         },
+        count: {
+            columns: ['Count(*) AS numOfRecords'],
+            tables: ['treatments'],
+            condition: ['treatments.deleted = 0']
+        },
 
-//         facets: {
+        facets: {
 
-//             // BLR-Website Issue 10: removed from facets
-//             // https://github.com/plazi/BLR-website/issues/10
-//             //
-//             // journalVolume: {
-//             //     columns: ['journalVolume', 'Count(journalVolume) AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND journalVolume != ''"]
-//             // },
+            // BLR-Website Issue 10: removed from facets
+            // https://github.com/plazi/BLR-website/issues/10
+            //
+            // journalVolume: {
+            //     columns: ['journalVolume', 'Count(journalVolume) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND journalVolume != ''"]
+            // },
 
-//             journalTitle: {
-//                 columns: ['journalTitle', 'Count(journalTitle) AS c'],
-//                 tables: ['treatments'],
-//                 condition: ["treatments.deleted = 0 AND journalTitle != ''"]
-//             },
+            journalTitle: {
+                columns: ['journalTitle', 'Count(journalTitle) AS c'],
+                tables: ['treatments'],
+                condition: ["treatments.deleted = 0 AND journalTitle != ''"]
+            },
 
-//             journalYear: {
-//                 columns: ['journalYear', 'Count(journalYear) AS c'],
-//                 tables: ['treatments'],
-//                 condition: ["treatments.deleted = 0 AND journalYear != ''"]
-//             },
+            journalYear: {
+                columns: ['journalYear', 'Count(journalYear) AS c'],
+                tables: ['treatments'],
+                condition: ["treatments.deleted = 0 AND journalYear != ''"]
+            },
 
-//             // BLR-Website Issue 11: removed from facets
-//             // https://github.com/plazi/BLR-website/issues/11
-//             // https://github.com/plazi/BLR-website/blob/master/facets.md#treatments
-//             //
-//             // kingdom: {
-//             //     columns: ['kingdom', 'Count(kingdom) AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND kingdom != ''"]
-//             // },
+            // BLR-Website Issue 11: removed from facets
+            // https://github.com/plazi/BLR-website/issues/11
+            // https://github.com/plazi/BLR-website/blob/master/facets.md#treatments
+            //
+            // kingdom: {
+            //     columns: ['kingdom', 'Count(kingdom) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND kingdom != ''"]
+            // },
 
-//             // phylum: {
-//             //     columns: ['phylum', 'Count(phylum) AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND phylum != ''"]
-//             // },
+            // phylum: {
+            //     columns: ['phylum', 'Count(phylum) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND phylum != ''"]
+            // },
 
-//             // order: {
-//             //     columns: ['"order"', 'Count("order") AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND \"order\" != ''"]
-//             // },
+            // order: {
+            //     columns: ['"order"', 'Count("order") AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND \"order\" != ''"]
+            // },
 
-//             // family: {
-//             //     columns: ['family', 'Count(family) AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND family != ''"]
-//             // },
+            // family: {
+            //     columns: ['family', 'Count(family) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND family != ''"]
+            // },
 
-//             // genus: {
-//             //     columns: ['genus', 'Count(genus) AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND genus != ''"]
-//             // },
+            // genus: {
+            //     columns: ['genus', 'Count(genus) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND genus != ''"]
+            // },
 
-//             // species: {
-//             //     columns: ['species', 'Count(species) AS c'],
-//             //     tables: ['treatments'],
-//             //     condition: ["treatments.deleted = 0 AND species != ''"]
-//             // },
+            // species: {
+            //     columns: ['species', 'Count(species) AS c'],
+            //     tables: ['treatments'],
+            //     condition: ["treatments.deleted = 0 AND species != ''"]
+            // },
 
-//             status: {
-//                 columns: ['status', 'Count(status) AS c'],
-//                 tables: ['treatments'],
-//                 condition: ["treatments.deleted = 0 AND status != ''"]
-//             },
+            status: {
+                columns: ['status', 'Count(status) AS c'],
+                tables: ['treatments'],
+                condition: ["treatments.deleted = 0 AND status != ''"]
+            },
             
-//             rank: {
-//                 columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
-//                 tables: ['treatments'],
-//                 condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
-//             },
+            rank: {
+                columns: ['treatments.rank', 'Count(treatments.rank) AS c'],
+                tables: ['treatments'],
+                condition: ["treatments.deleted = 0 AND treatments.rank != ''"]
+            },
 
-//             collectionCode: {
-//                 columns: ['collectionCode', 'Count(collectionCode) AS c'],
-//                 tables: ['materialsCitations JOIN treatments on materialsCitations.treatmentId = treatments.treatmentId'],
-//                 condition: ["treatments.deleted = 0 AND collectionCode != ''"]
-//             }
+            collectionCode: {
+                columns: ['collectionCode', 'Count(collectionCode) AS c'],
+                tables: ['materialsCitations JOIN treatments on materialsCitations.treatmentId = treatments.treatmentId'],
+                condition: ["treatments.deleted = 0 AND collectionCode != ''"]
+            }
 
-//         },
+        },
 
-//         sortable: ['journalYear'],
-//         sortcol: 'treatments.treatmentId',
-//         sortdir: 'ASC'
+        sortable: ['journalYear'],
+        sortcol: 'treatments.treatmentId',
+        sortdir: 'ASC'
     
-//     },
+    },
 
-//     citations: {
+    citations: {
 
-//         q: {
-//             column: 1,
-//             table: 'vbibrefcitations ON bibRefCitations.bibRefCitationId = vbibrefcitations.bibRefCitationId',
-//             condition: 'vbibrefcitations MATCH @q'
-//         },
+        q: {
+            column: 1,
+            table: 'vbibrefcitations ON bibRefCitations.bibRefCitationId = vbibrefcitations.bibRefCitationId',
+            condition: 'vbibrefcitations MATCH @q'
+        },
 
-//         data: {
-//             columns: ['id', 'bibRefCitations.bibRefCitationId', 'bibRefCitations.treatmentId', 'bibRefCitations.refString', 'type', 'year'],
-//             tables: ['bibRefCitations'],
-//             condition: ['bibRefCitations.deleted = 0']
-//         },
+        data: {
+            columns: ['id', 'bibRefCitations.bibRefCitationId', 'bibRefCitations.treatmentId', 'bibRefCitations.refString', 'type', 'year'],
+            tables: ['bibRefCitations'],
+            condition: ['bibRefCitations.deleted = 0']
+        },
 
-//         stats: {
+        stats: {
 
-//             'count by year': {
-//                 columns: ['DISTINCT(year) y', 'COUNT(year) c'], 
-//                 tables: ['bibRefCitations JOIN vbibrefcitations ON bibRefCitations.bibRefCitationId = vbibrefcitations.bibRefCitationId'],
-//                 condition: ["bibRefCitations.delete = 0 AND year != ''"],
-//             }
+            'count by year': {
+                columns: ['DISTINCT(year) y', 'COUNT(year) c'], 
+                tables: ['bibRefCitations JOIN vbibrefcitations ON bibRefCitations.bibRefCitationId = vbibrefcitations.bibRefCitationId'],
+                condition: ["bibRefCitations.delete = 0 AND year != ''"],
+            }
 
-//         },
+        },
 
-//         count: {
-//             columns: ['Count(*) AS numOfRecords'],
-//             tables: ['bibRefCitations'],
-//             condition: ['bibRefCitations.deleted = 0']
-//         },
+        count: {
+            columns: ['Count(*) AS numOfRecords'],
+            tables: ['bibRefCitations'],
+            condition: ['bibRefCitations.deleted = 0']
+        },
 
-//         facets: {
-//             'count by year': {
-//                 columns: ['DISTINCT(year) y', 'COUNT(year) c'],
-//                 tables: ['bibRefCitations'],
-//                 condition: ["bibRefCitations.deleted = 0 AND year != ''"]
-//             },
+        facets: {
+            'count by year': {
+                columns: ['DISTINCT(year) y', 'COUNT(year) c'],
+                tables: ['bibRefCitations'],
+                condition: ["bibRefCitations.deleted = 0 AND year != ''"]
+            },
 
-//             'type of citation': {
-//                 columns: ['DISTINCT(type) t', 'COUNT(type) c'],
-//                 tables: ['bibRefCitations'],
-//                 condition: ["bibRefCitations.deleted = 0 AND year != ''"]
-//             }
+            'type of citation': {
+                columns: ['DISTINCT(type) t', 'COUNT(type) c'],
+                tables: ['bibRefCitations'],
+                condition: ["bibRefCitations.deleted = 0 AND year != ''"]
+            }
 
-//         },
+        },
 
-//         sortable: [],
-//         sortcol: 'bibRefCitations.bibRefCitationId',
-//         sortdir: 'ASC'
-//     },
+        sortable: [],
+        sortcol: 'bibRefCitations.bibRefCitationId',
+        sortdir: 'ASC'
+    },
 
-//     treatmentAuthors: {
-//         none: {
-//             stats: {
-//                 authors: {
-//                     columns: ['Count(*)'], 
-//                     tables: ['treatmentAuthors'],
-//                     condition: ['deleted = 0']
-//                 }
-//             }
-//         },
-//         one: {
-//             data: 'SELECT treatmentAuthorId, treatmentId, treatmentAuthor FROM treatmentAuthors WHERE treatmentAuthorId = @treatmentAuthorId',
+    treatmentAuthors: {
+        none: {
+            stats: {
+                authors: {
+                    columns: ['Count(*)'], 
+                    tables: ['treatmentAuthors'],
+                    condition: ['deleted = 0']
+                }
+            }
+        },
+        one: {
+            data: 'SELECT treatmentAuthorId, treatmentId, treatmentAuthor FROM treatmentAuthors WHERE treatmentAuthorId = @treatmentAuthorId',
             
-//             related: {
-//                 treatments: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN treatmentAuthors a ON t.treatmentId = a.treatmentId WHERE a.treatmentAuthorId = @treatmentAuthorId',
-//             }
-//         },
-//         many: {
-//             q: {
-//                 count: 'SELECT Count(treatmentAuthorId) AS numOfRecords FROM treatmentAuthors WHERE treatmentAuthor LIKE @q',
+            related: {
+                treatments: 'SELECT t.id, t.treatmentId, t.treatmentTitle, authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context FROM treatments t JOIN treatmentAuthors a ON t.treatmentId = a.treatmentId WHERE a.treatmentAuthorId = @treatmentAuthorId',
+            }
+        },
+        many: {
+            q: {
+                count: 'SELECT Count(treatmentAuthorId) AS numOfRecords FROM treatmentAuthors WHERE treatmentAuthor LIKE @q',
                 
-//                 data: 'SELECT treatmentAuthorId, treatmentId, treatmentAuthor FROM treatmentAuthors WHERE treatmentAuthor LIKE @q LIMIT @limit OFFSET @offset',
+                data: 'SELECT treatmentAuthorId, treatmentId, treatmentAuthor FROM treatmentAuthors WHERE treatmentAuthor LIKE @q LIMIT @limit OFFSET @offset',
                 
-//                 stats: {
-//                     authors: {
-//                         columns: ['Count(*)'], 
-//                         tables: ['treatmentAuthors'],
-//                         condition: ['deleted = 0']
-//                     }
-//                 }
-//             }
-//         }
-//     }
-// };
+                stats: {
+                    authors: {
+                        columns: ['Count(*)'], 
+                        tables: ['treatmentAuthors'],
+                        condition: ['deleted = 0']
+                    }
+                }
+            }
+        }
+    }
+};
+
+/****************************************************/
 
 // const queryMaker = function(queryObject) {
 
@@ -445,6 +447,7 @@
 
 //     return queries;
 // };
+
 
 const qryParts = {
     treatments: {

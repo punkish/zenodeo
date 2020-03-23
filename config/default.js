@@ -1,3 +1,5 @@
+'use strict';
+
 const path = require('path');
 const cwd = process.cwd();
 
@@ -15,19 +17,19 @@ tb.plazi.org/GgServer/dumps/plazi.xmlHistory.zip
 
 module.exports = {
     
-    'info': {
-        'title': 'Zenodeo API documentation for BLR',
-        'description': '`nodejs` interface to the Zenodo/BLR community collection',
-        'version': '2.5.0',
-        'termsOfService': '/tos',
-        'contact': { 
-            'name': 'Puneet Kishor',
-            'url': 'https://punkish.org/About',
-            'email': 'punkish@plazi.org' 
+    info: {
+        title: 'Zenodeo API documentation for BLR',
+        description: '`nodejs` interface to the Zenodo/BLR community collection',
+        version: '2.5.0',
+        termsOfService: '/tos',
+        contact: { 
+            name: 'Puneet Kishor',
+            url: 'https://punkish.org/About',
+            email: 'punkish@plazi.org' 
         },
-        'license': { 
-            'name': 'CC0 Public Domain Dedication',
-            'url': 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
+        license: { 
+            name: 'CC0 Public Domain Dedication',
+            url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
         } 
     },
     // 'cache': {
@@ -56,7 +58,8 @@ module.exports = {
         "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
     },
     'swaggered-scheme': ['http'],
-    'port': 3030,
+    port: 3030,
+    loglevel: 'INFO',
 
     v1: {
         cache: {
@@ -70,8 +73,8 @@ module.exports = {
             zenodo: 'https://zenodo.org/api'
         },
         
-        'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
-        'schema': path.join(cwd, 'api', 'v1', 'schema.js')
+        dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+        schema: path.join(cwd, 'api', 'v1', 'schema.js')
     },
 
     v2: {
@@ -92,13 +95,13 @@ module.exports = {
         },
         
 
-        'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
-        'schema': path.join(cwd, 'api', 'v2', 'schema.js'),
+        dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+        schema: path.join(cwd, 'api', 'v2', 'schema.js'),
 
         // 'rank' is a reserved word in FTS tables, so using it in an FTS query 
         // throws an error. That is why we prefix the column 'rank' with the 
         // table name
-        'facets': ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCode']
+        // facets: ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCode']
   
 
         // relatedMaterialCitations: {
@@ -133,8 +136,8 @@ module.exports = {
         {'col': 'query', 'type': 'TEXT'},
         {'col': 'message', 'type': 'TEXT'}
     ],
-    'plog': path.join(cwd, 'lib', 'plog.js'),
-    'httpStatusCodes': path.join(cwd, 'lib', 'httpStatusCodes.js'),
+    plog: path.join(cwd, 'lib', 'plog.js'),
+    httpStatusCodes: path.join(cwd, 'lib', 'httpStatusCodes.js'),
     'data': {
         'logs': path.join(cwd, 'data', 'logs.sqlite'),
         'treatments': path.join(cwd, 'data', 'treatments.sqlite'),
