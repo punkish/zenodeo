@@ -73,13 +73,14 @@ const calcQuery = function(query, resource, queryObject) {
                 
                 if (equalKeys.includes(k)) {
                     const kk = equal[k] || k;
-                    constraint.push(`${kk} = @${kk}`);
-                    constraintLog.push(`${kk} = '${queryObject[kk]}'`);
+                    constraint.push(`${kk} = @${k}`);
+                    constraintLog.push(`${kk} = '${queryObject[k]}'`);
                 }
                 else if (likeKeys.includes(k)) {
                     const kk = like[k] || k;
-                    constraint.push(`${kk} LIKE @${kk}`);
-                    constraintLog.push(`${kk} LIKE '${queryObject[kk].toLowerCase()}'`);
+                    
+                    constraint.push(`${kk} LIKE @${k}`);
+                    constraintLog.push(`${kk} LIKE '${queryObject[k].toLowerCase()}'`);
                 }
                 else if (matchKeys.includes(k)) {
                     tables.push(match[k].table);

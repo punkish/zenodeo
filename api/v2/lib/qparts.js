@@ -23,12 +23,12 @@ const qParts = {
                 taxonomicNameLabel: '',
                 kingdom: '', 
                 phylum: '', 
-                '"order"': '', 
+                order: '"order"', 
                 family: '', 
                 genus: '', 
                 species: '', 
                 status: '', 
-                'treatments.rank': ''
+                rank: 'treatments.rank'
             },
 
             // 'MATCH' is used for full-text search. The search term is 
