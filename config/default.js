@@ -32,24 +32,7 @@ module.exports = {
             url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
         } 
     },
-    // 'cache': {
-    //     'path': path.join(cwd, 'cache'),
-    //     'v1': {
-    //         'path': path.join(cwd, 'cache'),
-    //         'name': 'persistent',
-    //     },
-        // 'v2': {
-        //     'path': path.join(cwd, 'cache', 'catbox'),
-        //     'name': 'catbox',
-        //     'on': false
-        // }
-    //},
-    // 'uri': {
-    //     'local': 'http://localhost:3000',
-    //     'remote': 'https://zenodo.org/api',
-    //     'zenodeo': 'http://localhost:3030',
-    //     'zenodo': 'https://zenodo.org/api'
-    // },
+
     'download-program': {
         "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
         "treatmentsListDir": path.join(cwd, 'data'),
@@ -57,6 +40,7 @@ module.exports = {
         "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
         "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
     },
+
     'swaggered-scheme': ['http'],
     port: 3030,
     loglevel: 'INFO',
@@ -96,31 +80,11 @@ module.exports = {
         
 
         dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
-        schema: path.join(cwd, 'api', 'v2', 'schema.js'),
-
-        // 'rank' is a reserved word in FTS tables, so using it in an FTS query 
-        // throws an error. That is why we prefix the column 'rank' with the 
-        // table name
-        // facets: ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCode']
-  
-
-        // relatedMaterialCitations: {
-        //     yes: integer, // count
-        //     no: integer // count
-        // },
-        // relatedTreatmentCitations: {
-        //     yes: integer, // count
-        //     no: integer // count
-        // }, 
-        // hasFigures: {
-        //     yes: integer, // count
-        //     no: integer // count
-        // }, 
+        schema: path.join(cwd, 'api', 'v2', 'schema.js')
 
     },
 
     'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
-    //'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
     'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
     'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
     //'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
@@ -146,81 +110,6 @@ module.exports = {
         'taxa': path.join(cwd, 'data', 'taxa.min'),
         'families': path.join(cwd, 'data', 'families.min'),
         'facets': path.join(cwd, 'data', 'facets.sqlite')
-    },
-
+    }
     
-
-    // 'cacheBase': '/Users/punkish/Projects/zenodeo/cache',
-    // 'uri': {
-    //     'local': 'http://localhost:3000',
-    //     'remote': 'https://zenodo.org/api',
-    //     'tb': 'http://tb.plazi.org/GgServer/xml/'
-    // },
-    // 'index': {
-    //     'cacheName': 'diskCache',
-    //     'cachePath': '/Users/punkish/Projects/catbox/diskCache',
-    //     'info': { 
-    //         title: 'Zenodeo API documentation for BLR',
-    //         description: '`nodejs` interface to the Zenodo/BLR community collection',
-    //         version: '2.0.0',
-    //         termsOfService: '/tos',
-    //         contact: { 
-    //             name: 'Puneet Kishor',
-    //             url: 'https://punkish.org/About',
-    //             email: 'punkish@plazi.org' 
-    //         },
-    //         license: { 
-    //             name: 'CC0 Public Domain Dedication',
-    //             url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
-    //         } 
-    //     }
-    // },
-    // 'api': {
-    //     'v1': {
-    //         'utils': {
-    //             'authors': '../../data/authors',
-    //             'keywords': '../../data/keywords'
-    //         },
-    //         'routes': {
-    //             cacheBase: '/Users/punkish/Projects/zenodeo/cache',
-    //             'treatments': {
-    //                 'sqliteDatabase': './data/plazi.sqlite'
-    //             }
-    //         }
-    //     },
-    //     'v2': {
-    //         'utils': {
-    //             'authors': '../../data/authors',
-    //             'keywords': '../../data/keywords'
-    //         },
-    //         'routes': {
-    //             'treatments': {
-    //                 'sqliteDatabase': './data/plazi.sqlite'
-    //             }
-    //         }
-    //     }
-    // },
-    // 'bin': {
-    //     'renew': {
-    //         //'xmlDumpDir': './data/treatmentsDump',
-    //         // 'download': {
-    //         //     'downloadDir': 'data/treatments',
-    //         //     'fileName': 'plazi.xml.zip',
-    //         //     'host': 'tb.plazi.org',
-    //         //     'port': 80,
-    //         //     'pathToFile': '/GgServer/dumps/'
-    //         // },
-    //         // 'parsex': {
-    //         //     'xmlDumpDir': './data/treatmentsDump'
-    //         // },
-    //         // 'database': {
-    //         //     'sqliteDatabase': './data/plazi.sqlite',
-    //         //     'logDatabase': './data/logs.sqlite'
-    //         // },
-    //         // 'rearrangefiles': {
-    //         //     'srcdir': 'data/treatmentsDump',
-    //         //     'destdir': 'data/treatments'
-    //         // }
-    //     }
-    // }
 }
