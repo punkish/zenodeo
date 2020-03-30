@@ -7,19 +7,19 @@ module.exports = {
 
     v1: {
         uri: {
-            zenodeo: 'https://zenodeo.punkish.org/v2'
+            zenodeo: 'https://z2.punkish.org/v2'
         }
     },
 
     v2: {
         cache: {
-            on: true
+            on: false
         },
 
         uri: {
-            zenodeo: 'https://zenodeo.punkish.org/v2'
+            zenodeo: 'https://z2.punkish.org/v2'
         }
     },
     
-    'swaggered-scheme': ['https'],
+    'swaggered-scheme': ['http'],
 }
