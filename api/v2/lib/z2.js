@@ -12,12 +12,14 @@ const plog = require(config.get('plog'));
 const Schema = require('../schema.js');
 const cacheOn = config.get('v2.cache.on');
 const uriZenodeo = config.get('v2.uri.zenodeo');
-const getSql = require('../lib/qm').getSql;
+//const getSql = require('../lib/qm').getSql;
 const Utils = require('../utils');
 const Database = require('better-sqlite3');
 const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
-const qParts = require('./qparts');
+//const qParts = require('./qparts');
+
+const dd2queries = require('../lib/dd2queries');
 
 const handler = function(plugins) {
 
@@ -76,15 +78,15 @@ const handler = function(plugins) {
 
 };
 
-const getAllLikes = function(queryObject) {
+// const getAllLikes = function(queryObject) {
 
-    const resourceLike = qParts[queryObject.resources].queryable.like;
-    for (let key in queryObject) {
-        if (key in resourceLike) {
-            queryObject[key] =queryObject[key] + '%';
-        }
-    }
-};
+//     const resourceLike = qParts[queryObject.resources].queryable.like;
+//     for (let key in queryObject) {
+//         if (key in resourceLike) {
+//             queryObject[key] =queryObject[key] + '%';
+//         }
+//     }
+// };
 
 const getRecords = function(cacheKey) {
 
@@ -104,7 +106,8 @@ const getRecords = function(cacheKey) {
 
 const getOneRecord = function(queryObject) {
 
-    const q = getSql(queryObject);
+    //const q = getSql(queryObject);
+    const q = dd2queries(queryObject);
     const sqlLog = q.queriesLog.essential.data.sql;
     const sql = q.queriesLog.essential.data.sql;
 
@@ -207,12 +210,13 @@ const getManyRecords = async function(queryObject) {
 
     // procees all the query params that are used in LIKE searches
     // and add a '%' suffix to them
-    getAllLikes(queryObject);
+    //getAllLikes(queryObject);
 
     // print out the queryObject
     const messages = [{label: 'queryObject', params: queryObject}];
 
-    const q = getSql(queryObject);
+    //const q = getSql(queryObject);
+    const q = dd2queries(queryObject);
     
     let t = process.hrtime();
 
