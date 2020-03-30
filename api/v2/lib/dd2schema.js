@@ -4,6 +4,7 @@ const Joi = require('@hapi/joi');
 const config = require('config');
 const plog = require(config.get('plog'));
 const dd = require('../../../dataDictionary/dd');
+const Boom = require('@hapi/boom');
 
 // 'resources' is the plural form of the desired resource
 // for example, 'treatments' or 'materialsCitations'
@@ -29,6 +30,7 @@ const dd2schema = function() {
             const qs = f.queryString;
             
             if (qs) {
+                const r = resource;
                 const d = f.description;
                 const v = f.validation;
                 rso[qs] = eval(v);
@@ -37,7 +39,12 @@ const dd2schema = function() {
             
         }
 
-        so[resource] = { query: Joi.object(rso) };
+        so[resource] = { 
+            query: Joi.object(rso), 
+            failAction: (request, h, err) => {
+                throw Boom.badRequest(err)
+            }
+        };
         soLog[resource] = { query: `Joi.object(${JSON.stringify(rsoLog, null, 4)})` };
     }
     
@@ -46,31 +53,31 @@ const dd2schema = function() {
 
 };
 
-const so = dd2schema();
+// const so = dd2schema();
 
-const { error, value } = so.treatments.query.validate({
-    communities: 'biosyslit',
-    refreshCache: false,
-    page: 1,
-    size: 30,
-    //resources: 'treatments',
-    facets: true,
-    stats: true,
-    xml: false,
-    sortBy: 'journalYear:ASC',
-    q: 'carabus',
-    // authorityName: 'Agosti',
-    // journalYear: '1996',
-    format: 'xml',
-    treatmentTitle: 'opheys',
-    doi: '10.2454/sdff:1956'
-});
+// const { error, value } = so.treatments.query.validate({
+//     communities: 'biosyslit',
+//     refreshCache: false,
+//     page: 1,
+//     size: 30,
+//     //resources: 'treatments',
+//     facets: true,
+//     stats: true,
+//     xml: false,
+//     sortBy: 'journalYear:ASC',
+//     q: 'carabus',
+//     // authorityName: 'Agosti',
+//     // journalYear: '1996',
+//     format: 'xml',
+//     treatmentTitle: 'opheys',
+//     doi: '10.2454/sdff:1956'
+// });
 
-if (error) {
-    console.log(error);
-}
-else {
-    plog.info('passed');
-}
+// if (error) {
+//     console.log(error);
+// }
+// else {
+//     plog.info('passed');
+// }
 
-module.exports = dd2schema;
+module.exports = (dd2schema)();

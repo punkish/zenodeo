@@ -91,7 +91,7 @@
         description   : 'Number of records to fetch per query, defaults to <b>30</b>',
         queryable     : '',
         queryString   : 'size',
-        validation    : 'Joi.number().integer().default(30).description(`${d}`)',
+        validation    : 'Joi.number().integer().min(1).max(100).default(30).description(`${d}`)',
         resourceId    : false
     },
     {
@@ -118,6 +118,156 @@
     }
  ];
 
+ const commonZenodeoQueryParams = [
+    {
+        plaziName     : 'id',
+        zenodoName    : '',
+        sqlType       : 'INTEGER PRIMARY KEY',
+        cheerioElement: '',
+        description   : 'pk',
+        queryable     : '',
+        queryString   : '',
+        validation    : '',
+        resourceId    : false
+    },
+    {
+        plaziName     : 'treatmentId',
+        zenodoName    : '',
+        sqlType       : 'TEXT NOT NULL',
+        cheerioElement: '$("document").attr("docId")',
+        description   : 'The unique ID of the treatment',
+        queryable     : 'equal',
+        queryString   : 'treatmentId',
+        validation    : 'Joi.string().guid().description(`${d}`).optional()',
+        resourceId    : false
+    },
+    {
+        plaziName     : 'deleted',
+        zenodoName    : '',
+        sqlType       : 'INTEGER DEFAULT 0',
+        cheerioElement: '$("document").attr("deleted")',
+        description   : 'A boolean that tracks whether or not this resource is considered deleted/revoked, 1 if yes, 0 if no',
+        queryable     : '',
+        queryString   : '',
+        validation    : '',
+        resourceId    : false
+    }
+ ];
+
+ const commonZenodoQueryParams = [
+    {
+        plaziName     : 'id',
+        zenodoName    : '',
+        sqlType       : '',
+        cheerioElement: '',
+        description   : 'unique identifier of the record',
+        queryable     : 'equal',
+        queryString   : 'id',
+        validation    : 'Joi.number().integer().description(`${d}`).optional()',
+        resourceId    : true
+    },
+    {
+        plaziName     : 'creator',
+        zenodoName    : 'creator',
+        sqlType       : '',
+        cheerioElement: '',
+        description   : `Usually the author. Use the following syntax:
+
+Starts with « Ago » 
+*This will find all Ago; Agosti; Agostini and so on.*
+
+        ┌─────────────┐
+        │     Ago     │
+        └─────────────┘
+
+Is exactly « Agosti, Donat »
+*Keep in mind, this will *not* find « Donat Agosti »*
+
+        ┌─────────────────┐
+        │ "Agosti, Donat" │
+        └─────────────────┘
+
+Either « Agosti » OR « Donat »
+*This will find Agostini, Carlos; Donat; Donat Agosti and so on.*
+
+        ┌──────────────┐
+        │ Agosti Donat │
+        └──────────────┘
+
+Both « Agosti » AND « Donat »
+*This will find Agosti, Donat; Donat Agosti; and other variations with these two words*
+
+        ┌──────────────────┐
+        │ Agosti AND Donat │
+        └──────────────────┘`,
+        queryable     : 'like',
+        queryString   : 'creator',
+        validation    : 'Joi.string().description(`${d}`).optional()',
+        resourceId    : false
+    },
+    {
+        plaziName     : 'title',
+        zenodoName    : 'title',
+        sqlType       : '',
+        cheerioElement: '',
+        description   : `Title of the record. Use the following syntax:
+
+Starts with « pea » 
+*This will find all pea; peacock; peabody and so on.*
+
+        ┌─────────────┐
+        │     pea     │
+        └─────────────┘
+
+Is exactly « spider, peacock »
+*Keep in mind, this will *not* find « peacock spider »*
+
+        ┌───────────────────┐
+        │ "spider, peacock" │
+        └───────────────────┘
+
+Either « spider » OR « peacock »
+*This will find spider, peacock; Donat; Donat Agosti and so on.*
+
+        ┌────────────────┐
+        │ spider peacock │
+        └────────────────┘
+
+Both « spider » AND « peacock »
+*This will find spider, peacock; peacock spider; and other variations with these two words*
+
+        ┌────────────────────┐
+        │ spider AND peacock │
+        └────────────────────┘`,
+        queryable     : 'like',
+        queryString   : 'title',
+        validation    : 'Joi.string().description(`${d}`).optional()',
+        resourceId    : false
+    },
+    {
+        plaziName     : 'communities',
+        zenodoName    : '',
+        sqlType       : '',
+        cheerioElement: '',
+        description   : 'The community on Zenodo; defaults to <b>"biosyslit"</b>',
+        queryable     : '',
+        queryString   : 'communities',
+        validation    : 'Joi.string().valid("all", "biosyslit", "belgiumherbarium").default("biosyslit").description(`${d}`).optional()',
+        resourceId    : false
+    },
+    {
+        plaziName     : 'keywords',
+        zenodoName    : 'keywords',
+        sqlType       : '',
+        cheerioElement: '',
+        description   : 'The keywords associated with the publication; more than one keywords may be used',
+        queryable     : 'equal',
+        queryString   : 'type',
+        validation    : 'Joi.string().description(`${d}`).optional()',
+        resourceId    : false
+    }
+ ];
+
 const dd = {
     treatments: [
         {
@@ -139,7 +289,7 @@ const dd = {
             description   : 'The unique ID of the treatment',
             queryable     : 'equal',
             queryString   : 'treatmentId',
-            validation    : 'Joi.string().alphanum().description(`${d}`).optional()',
+            validation    : 'Joi.string().guid().description(`${d}`).optional()',
             resourceId    : true
         },
         {
@@ -391,7 +541,7 @@ const dd = {
             zenodoName    : '',
             sqlType       : 'INTEGER DEFAULT 0',
             cheerioElement: '$("document").attr("deleted")',
-            description   : 'A boolean that tracks whether or not a treatment is considered deleted/revoked, 1 if yes, 0 if no',
+            description   : 'A boolean that tracks whether or not this resource is considered deleted/revoked, 1 if yes, 0 if no',
             queryable     : '',
             queryString   : '',
             validation    : '',
@@ -427,17 +577,6 @@ const dd = {
             resourceId    : false
         },
         {
-            plaziName     : 'communities',
-            zenodoName    : '',
-            sqlType       : '',
-            cheerioElement: '',
-            description   : 'The community on Zenodo; defaults to <b>"biosyslit"</b>',
-            queryable     : '',
-            queryString   : 'communities',
-            validation    : 'Joi.string().valid("all", "biosyslit", "belgiumherbarium").default("biosyslit").description(`${d}`)',
-            resourceId    : false
-        },
-        {
             plaziName     : 'xml',
             zenodoName    : '',
             sqlType       : '',
@@ -463,17 +602,6 @@ const dd = {
 
     figureCitations: [
         {
-            plaziName     : 'id',
-            zenodoName    : '',
-            sqlType       : 'INTEGER PRIMARY KEY',
-            cheerioElement: '',
-            description   : 'pk',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
-        },
-        {
             plaziName     : 'figureCitationId',
             zenodoName    : '',
             sqlType       : 'TEXT NOT NULL UNIQUE',
@@ -483,17 +611,6 @@ const dd = {
             queryString   : 'figureCitationId',
             validation    : 'Joi.string().description(`${d}`).optional()',
             resourceId    : true
-        },
-        {
-            plaziName     : 'treatmentId',
-            zenodoName    : '',
-            sqlType       : 'TEXT NOT NULL',
-            cheerioElement: '$("document").attr("docId")',
-            description   : 'The unique ID of the treatment',
-            queryable     : 'equal',
-            queryString   : 'treatmentId',
-            validation    : 'Joi.string().alphanum().description(`${d}`).optional()',
-            resourceId    : false
         },
         {
             plaziName     : 'captionText',
@@ -531,32 +648,10 @@ const dd = {
             queryString   : '',
             validation    : '',
             resourceId    : false
-        },
-        {
-            plaziName     : 'deleted',
-            zenodoName    : '',
-            sqlType       : 'INTEGER DEFAULT 0',
-            cheerioElement: '$("figureCitation").attr("deleted")',
-            description   : 'A boolean that tracks whether or not a bibRefCitation is considered deleted/revoked, 1 if yes, 0 if no',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
         }
     ],
 
     bibRefCitations: [
-        {
-            plaziName     : 'id',
-            zenodoName    : '',
-            sqlType       : 'INTEGER PRIMARY KEY',
-            cheerioElement: '',
-            description   : 'pk',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
-        },
         {
             plaziName     : 'bibRefCitationId',
             zenodoName    : '',
@@ -567,17 +662,6 @@ const dd = {
             queryString   : 'bibRefCitationId',
             validation    : 'Joi.string().description(`${d}`).optional()',
             resourceId    : true
-        },
-        {
-            plaziName     : 'treatmentId',
-            zenodoName    : '',
-            sqlType       : 'TEXT NOT NULL',
-            cheerioElement: '$("document").attr("docId")',
-            description   : 'The unique ID of the treatment',
-            queryable     : 'equal',
-            queryString   : 'treatmentId',
-            validation    : 'Joi.string().alphanum().description(`${d}`).optional()',
-            resourceId    : false
         },
         {
             plaziName     : 'refString',
@@ -615,32 +699,10 @@ const dd = {
             queryString   : '',
             validation    : '',
             resourceId    : false
-        },
-        {
-            plaziName     : 'deleted',
-            zenodoName    : '',
-            sqlType       : 'INTEGER DEFAULT 0',
-            cheerioElement: '$("figureCitation").attr("deleted")',
-            description   : 'A boolean that tracks whether or not a bibRefCitation is considered deleted/revoked, 1 if yes, 0 if no',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
         }
     ],
 
     treatmentCitations: [
-        {
-            plaziName     : 'id',
-            zenodoName    : '',
-            sqlType       : 'INTEGER PRIMARY KEY',
-            cheerioElement: '',
-            description   : 'pk',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
-        },
         {
             plaziName     : 'treatmentCitationId',
             zenodoName    : '',
@@ -651,17 +713,6 @@ const dd = {
             queryString   : 'treatmentCitationId',
             validation    : 'Joi.string().description(`${d}`).optional()',
             resourceId    : true
-        },
-        {
-            plaziName     : 'treatmentId',
-            zenodoName    : '',
-            sqlType       : 'TEXT NOT NULL',
-            cheerioElement: '$("document").attr("docId")',
-            description   : 'The unique ID of the treatment',
-            queryable     : 'equal',
-            queryString   : 'treatmentId',
-            validation    : 'Joi.string().alphanum().description(`${d}`).optional()',
-            resourceId    : false
         },
         {
             plaziName     : 'treatmentCitation',
@@ -684,32 +735,10 @@ const dd = {
             queryString   : '',
             validation    : 'Joi.string().description(`${d}`).optional()',
             resourceId    : false
-        },
-        {
-            plaziName     : 'deleted',
-            zenodoName    : '',
-            sqlType       : 'INTEGER DEFAULT 0',
-            cheerioElement: '$("figureCitation").attr("deleted")',
-            description   : 'A boolean that tracks whether or not a bibRefCitation is considered deleted/revoked, 1 if yes, 0 if no',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
         }
     ],
 
     materialsCitations: [
-        {
-            plaziName     : 'id',
-            zenodoName    : '',
-            sqlType       : 'INTEGER PRIMARY KEY',
-            cheerioElement: '',
-            description   : 'pk',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
-            resourceId    : false
-        },
         {
             plaziName     : 'materialsCitationId',
             zenodoName    : '',
@@ -720,17 +749,6 @@ const dd = {
             queryString   : 'materialsCitationId',
             validation    : 'Joi.string().description(`${d}`).optional()',
             resourceId    : true
-        },
-        {
-            plaziName     : 'treatmentId',
-            zenodoName    : '',
-            sqlType       : 'TEXT NOT NULL',
-            cheerioElement: '$("document").attr("docId")',
-            description   : 'The unique ID of the treatment',
-            queryable     : 'equal',
-            queryString   : 'treatmentId',
-            validation    : 'Joi.string().alphanum().description(`${d}`).optional()',
-            resourceId    : false
         },
         {
             plaziName     : 'collectingDate',
@@ -973,24 +991,53 @@ const dd = {
             queryString   : '',
             validation    : '',
             resourceId    : false
-        },
+        }
+    ],
+
+    images: [
         {
-            plaziName     : 'deleted',
-            zenodoName    : '',
-            sqlType       : 'INTEGER DEFAULT 0',
-            cheerioElement: '$("figureCitation").attr("deleted")',
-            description   : 'A boolean that tracks whether or not a materialsCitation is considered deleted/revoked, 1 if yes, 0 if no',
-            queryable     : '',
-            queryString   : '',
-            validation    : '',
+            plaziName     : 'type',
+            zenodoName    : 'publication_subtypes',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'The image subtype; defaults to <b>"all"</b>',
+            queryable     : 'equal',
+            queryString   : 'type',
+            validation    : 'Joi.string().valid("all", "figure", "photo", "drawing", "diagram", "plot", "other").default("all").description(`${d}`).optional()',
+            resourceId    : false
+        }
+    ],
+
+    publications: [
+        {
+            plaziName     : 'type',
+            zenodoName    : 'image_subtypes',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'The publication subtype; defaults to <b>"all"</b>',
+            queryable     : 'equal',
+            queryString   : 'type',
+            validation    : 'Joi.string().valid("all", "article", "report", "book", "thesis", "section", "workingpaper", "preprint").default("all").description(`${d}`).optional()',
             resourceId    : false
         }
     ]
 };
 
+const zenodoResources = ['images', 'publications'];
+const zenodeoResources = ['figureCitations', 'bibRefCitations', 'materialsCitations', 'treatmentCitations'];
+
 module.exports = (function() {
     for (let resource in dd) {
         dd[resource].push(...commonQueryParams);
+
+        if (zenodoResources.includes(resource)) {
+            dd[resource].push(...commonZenodoQueryParams);
+        }
+        else {
+            if (resource !== 'treatments') {
+                dd[resource].push(...commonZenodeoQueryParams);
+            }
+        }
     }
 
     return dd;

@@ -216,20 +216,20 @@ const dd2queries = function(queryObject) {
 module.exports = dd2queries;
 
 // const so = dd2schema();
-const q = dd2queries({
-    communities: ['biosyslit', 'belgiumherbarium'],
-    refreshCache: false,
-    page: 1,
-    size: 30,
-    resources: 'treatments',
-    facets: true,
-    stats: true,
-    xml: false,
-    sortBy: 'journalYear:ASC',
-    q: 'carabus',
-    // authorityName: 'Agosti',
-    // journalYear: '1996',
-    format: 'xml',
-    treatmentTitle: 'opheys',
-    doi: '10.2454/sdff:1956'
-});
+// const q = dd2queries({
+//     communities: ['biosyslit', 'belgiumherbarium'],
+//     refreshCache: false,
+//     page: 1,
+//     size: 30,
+//     resources: 'treatments',
+//     facets: true,
+//     stats: true,
+//     xml: false,
+//     sortBy: 'journalYear:ASC',
+//     q: 'carabus',
+//     // authorityName: 'Agosti',
+//     // journalYear: '1996',
+//     format: 'xml',
+//     treatmentTitle: 'opheys',
+//     doi: '10.2454/sdff:1956'
+// });

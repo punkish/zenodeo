@@ -1,6 +1,7 @@
 'use strict';
 
-const Schema = require('../schema.js');
+//const Schema = require('../schema.js');
+const Schema = require('./dd2schema');
 const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils');
 const {handler, getRecords} = require('../lib/z2');
@@ -26,7 +27,9 @@ const h = function(plugins) {
                 server.route([{ 
                     path: plugins._path,   
                     method: 'GET', 
-                    config: {
+                    handler: handler(plugins),
+
+                    options: {
                         description: `Fetch ${plugins._resources} from Zenodeo`,
                         tags: [plugins._resources, 'api'],
                         plugins: {
@@ -41,7 +44,7 @@ const h = function(plugins) {
                         ]
                     },
     
-                    handler: handler(plugins) 
+                    
                 }]);
             },
         },

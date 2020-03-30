@@ -91,9 +91,13 @@ const createTaxonIndexes = function() {
     }
 
     return messages;
-}
+};
+
+const zenodeoResources = ['treatments', 'figureCitations', 'bibRefCitations', 'materialsCitations', 'treatmentCitations'];
 
 for (let resources in dd) {
-    createTable(resources);
-    createIndexes(resources);
+    if (zenodeoResources.includes(resources)) {
+        createTable(resources);
+        createIndexes(resources);
+    }
 }
