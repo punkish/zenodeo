@@ -102,6 +102,24 @@ const getRecords = function(cacheKey) {
     }
 };
 
+const dataForDelivery = function(t, data) {
+    const [s, ns] = t;
+    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
+
+    if (cacheOn) {
+        return data;
+    }
+    else {
+        return {
+            value: data,
+            cached: null,
+            report: {
+                msec: ms
+            }
+        }
+    }
+};
+
 const getOneRecord = function(queryObject) {
 
     const q = getSql(queryObject);
@@ -116,7 +134,7 @@ const getOneRecord = function(queryObject) {
     // The following params may get added to the queryObject but they 
     // are not used when making the _self, _prev, _next links, or  
     // the search-criteria 
-    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId', 'page', 'size', 'sortBy', 'facets', 'stats'];
+    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
 
     for (let key in queryObject) {
         if (! exclude.includes(key)) {
@@ -130,21 +148,22 @@ const getOneRecord = function(queryObject) {
 
         // add query results to data.records. If no results are found,
         // add an empty array to data.records
-        data.records = [db.prepare(sql).get(queryObject)] || [];        
+        const records = db.prepare(sql).get(queryObject);
+        if (records) {
+            data.records = [ records ];
+            data['num-of-records'] = 1;
+        }
+        else {
+            data.records = [];
+            data['num-of-records'] = 0;
+        }    
     } 
     catch (error) {
         plog.error(error, sqlLog);
     }
 
     t = process.hrtime(t);
-    messages.push({
-        label: 'data', 
-        params: { sql: sqlLog, took: t }
-    });
-
-    // if the query is successful, but no records are found
-    // add 'num-of-records' = 0
-    data['num-of-records'] = data.records ? 1 : 0;
+    
     
     // add a self link to the data
     data._links = Utils.makeSelfLink({
@@ -156,23 +175,27 @@ const getOneRecord = function(queryObject) {
             .join('&')
     });
 
+    messages.push({label: 'data', params: { sql: sqlLog, took: t }});
     messages.push({label: 'num-of-records', params: data['num-of-records']});
     plog.log({ header: 'ONE QUERY', messages: messages });
 
     // We are done if no records found
-    if (! data['num-of-records']) return data;
+    if (! data['num-of-records']) {
+        return dataForDelivery(t, data);
+    }
 
     // more data from beyond the database
     if (queryObject.resources === 'treatments') {
-        if (queryObject.xml) {
-            data.xml = getXml(queryObject.treatmentId);
+        if (queryObject.xml && queryObject.xml === 'true') {
+            data.records[0].xml = getXml(queryObject.treatmentId);
         }
         
         data.taxonStats = getTaxonStats(data);
     }
 
     data['related-records'] = getRelatedRecords(q, queryObject);
-    return data;
+
+    return dataForDelivery(t, data);
 };
 
 // calc limit and offset and add them to the queryObject
@@ -193,7 +216,7 @@ const getManyRecords = async function(queryObject) {
     // The following params may get added to the queryObject but they 
     // are not used when making the _self, _prev, _next links, or  
     // the search-criteria 
-    const exclude = ['refreshCache', 'resources', 'resourceId'];
+    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
 
     for (let key in queryObject) {
         if (! exclude.includes(key)) {
@@ -244,7 +267,9 @@ const getManyRecords = async function(queryObject) {
     });
 
     // We are done if no records found
-    if (! data['num-of-records']) return data;
+    if (! data['num-of-records']) {
+        return dataForDelivery(t, data);
+    }
     
     t = process.hrtime();
 
@@ -324,22 +349,7 @@ const getManyRecords = async function(queryObject) {
     });
 
     // all done
-    const [s, ns] = t;
-    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
-
-    // all done
-    if (cacheOn) {
-        return data;
-    }
-    else {
-        return {
-            value: data,
-            cached: null,
-            report: {
-                msec: ms
-            }
-        }
-    }
+    return dataForDelivery(t, data);
 };
 
 const getStatsFacets = function(type, q, queryObject) {

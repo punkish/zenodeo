@@ -62,9 +62,16 @@ const calcQuery = function(query, resource, queryObject) {
 
     const pagination = query.pagination;
 
+    let sql;
+    let sqlLog;
+
     if (queryObject[pk]) {
         constraint.push(`${pk} = @${pk}`);
         constraintLog.push(`${pk} = '${queryObject[pk]}'`);
+
+        sql = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraint.join(' AND ')}`;
+
+        sqlLog = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraintLog.join(' AND ')}`;
     }
     else {
         for (let k in queryObject) {
@@ -97,28 +104,29 @@ const calcQuery = function(query, resource, queryObject) {
             }
             
         }
-    }
 
-    let sql = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraint.join(' AND ')}`;
-    let sqlLog = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraintLog.join(' AND ')}`;
+        sql = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraint.join(' AND ')}`;
+        
+        sqlLog = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraintLog.join(' AND ')}`;
 
-    // now, figure out the sort params, if applicable
-    let [sortcol, sortdir] = ['', ''];
-    if (queryObject.sortBy && Object.keys(sortBy).length) {
-        [sortcol, sortdir] = calcSortParams(sortBy, queryObject);
-        sql += ` ORDER BY ${sortcol} ${sortdir}`;
-        sqlLog += ` ORDER BY ${sortcol} ${sortdir}`;
-    }
+        // now, figure out the sort params, if applicable
+        let [sortcol, sortdir] = ['', ''];
+        if (queryObject.sortBy && Object.keys(sortBy).length) {
+            [sortcol, sortdir] = calcSortParams(sortBy, queryObject);
+            sql += ` ORDER BY ${sortcol} ${sortdir}`;
+            sqlLog += ` ORDER BY ${sortcol} ${sortdir}`;
+        }
 
-    if (group && Object.keys(group).length) {
-        sql += ` GROUP BY ${group.join(' ')}`;
-        sqlLog += ` GROUP BY ${group.join(' ')}`;
-    }
+        if (group && Object.keys(group).length) {
+            sql += ` GROUP BY ${group.join(' ')}`;
+            sqlLog += ` GROUP BY ${group.join(' ')}`;
+        }
 
-    if (! queryObject[pk]) {
-        if (pagination) {
-            sql += ' LIMIT @limit OFFSET @offset';
-            sqlLog += ` LIMIT ${queryObject.limit} OFFSET ${queryObject.offset}`;
+        if (! queryObject[pk]) {
+            if (pagination) {
+                sql += ' LIMIT @limit OFFSET @offset';
+                sqlLog += ` LIMIT ${queryObject.limit} OFFSET ${queryObject.offset}`;
+            }
         }
     }
 
@@ -169,6 +177,7 @@ const qm = {
                 q.queriesLog[queryGroup] = {};
                 for (let queryName in groupQueries) {
                     const query = groupQueries[queryName];
+                    
                     const [sql, sqlLog] = calcQuery(query, resource, queryObject);
                     //plog.info(`${queryGroup.toUpperCase()} ${queryName}`, sqlLog);
                     q.queries[queryGroup][queryName] = { sql: sql };

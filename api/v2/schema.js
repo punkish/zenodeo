@@ -105,13 +105,12 @@ const schemaDefaults = {
         .description(`Types of images; defaults to <b>${defaults.images[0]}</b>`)
         .valid(
             'all',
-            'article', 
-            'report',  
-            'book', 
-            'thesis', 
-            'section', 
-            'workingpaper', 
-            'preprint'
+            'figure', 
+            'photo', 
+            'drawing', 
+            'other', 
+            'diagram', 
+            'plot'
         )
         .default(defaults.images[0]),
 
@@ -216,6 +215,11 @@ Both « spider » AND « peacock »
         .optional()
         .default(false),
 
+    xml: Joi.boolean()
+        .description('whether or not to fetch the XML')
+        .optional()
+        .default(false),
+
     refreshCache: Joi.boolean()
         .description("force refresh cache")
         .optional()
@@ -296,7 +300,7 @@ const schema = {
                     then: Joi.optional()
                 }),
 
-            communities: schemaDefaults.communities,
+            //communities: schemaDefaults.communities,
             page: schemaDefaults.page,
             size: schemaDefaults.size,
             refreshCache: schemaDefaults.refreshCache,
@@ -395,11 +399,7 @@ const schema = {
 
             facets: schemaDefaults.facets,
             stats: schemaDefaults.stats,
-
-            xml: Joi.boolean()
-                .description('whether or not to fetch the XML')
-                .optional()
-                .default(false)
+            xml: schemaDefaults.xml
         })
     },
 
