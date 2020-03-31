@@ -377,8 +377,8 @@ const schema = {
                 .optional(),
 
             lat: Joi.number()
-                .min(-180)
-                .max(180)
+                .min(-90)
+                .max(90)
                 .description(descriptions.latitude)
                 .optional(),
 

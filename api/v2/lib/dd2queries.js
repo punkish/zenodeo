@@ -27,29 +27,52 @@ const calcSortParams = function(sortBy, queryObject) {
     return [sortcol, sortdir];
 };
 
-const fieldsByOperator = function(resources) {
-    const rdd = dd[resources];
+const calcConstraint = function(pk, queryObject) {
 
-    const equals = [];
-    const likes = [];
-    const matches = [];
+    const resource = queryObject.resources;
 
-    for (let i = 0, j = rdd.length; i < j; i++) {
-        const queryable = rdd[i].queryable || false;
-        const plaziName = rdd[i].plaziName;
+    // const tables = JSON.parse(JSON.stringify(query.tables));
+    // const constraint = JSON.parse(JSON.stringify(query.constraint));
+    // const constraintLog = JSON.parse(JSON.stringify(query.constraint));
+    const matchTables = [];
+    const constraint = [];
+    const constraintLog = [];
 
-        if (queryable === 'equal') {
-            equals.push({ key: plaziName, val: '' });
-        }
-        else if (queryable === 'like') {
-            likes.push({ key: plaziName, val: '' });
-        }
-        else if (queryable === 'match') {
-            matches.push({ key: plaziName, val: rdd[i].fts });
+    if (queryObject[pk]) {
+        constraint.push(`${pk} = @${pk}`);
+        constraintLog.push(`${pk} = '${queryObject[pk]}'`);
+    }
+    else {
+        for (let k in queryObject) {
+            
+            if (! exclude.includes(k)) {
+                
+                const ddk = ddByKeys[resource][k];
+                if (ddk) {
+                    const op = ddk.queryable;
+                    const sqlName = ddk.sqlName;
+
+                    if (op === 'equal') {
+                        constraint.push(`${sqlName} = @${k}`);
+                        constraintLog.push(`${sqlName} = '${queryObject[k]}'`);
+                    }
+                    else if (op === 'like') {
+                        queryObject[k] = queryObject[k] + '%';
+                        constraint.push(`${sqlName} LIKE @${k}`);
+                        constraintLog.push(`${sqlName} LIKE '${queryObject[k].toLowerCase()}'`);
+                    }
+                    else if (op === 'match') {
+                        matchTables.push(ddk.table);
+                        constraint.push(`${sqlName} MATCH @${k}`);
+                        constraintLog.push(`${sqlName} MATCH '${queryObject[k]}'`);
+                    }
+                }
+            }
+            
         }
     }
 
-    return [equals, likes, matches];
+    return [matchTables, constraint, constraintLog];
 };
 
 // A query is made up of seven parts
@@ -66,60 +89,55 @@ const fieldsByOperator = function(resources) {
 // ORDER BY <sortcol> <sortdir> 
 // LIMIT <limit> 
 // OFFSET <offset>
-const calcQuery = function(query, pk, queryObject, opKeys) {
+const calcQuery = function(query, pk, queryObject, matchTables, constraint, constraintLog) {
 
-    //const resources = queryObject.resources;
-
-    const [equals, likes, matches] = opKeys;
+    // const resource = queryObject.resources;
 
     const columns = query.columns;
     const tables = JSON.parse(JSON.stringify(query.tables));
-    const constraint = JSON.parse(JSON.stringify(query.constraint));
-    const constraintLog = JSON.parse(JSON.stringify(query.constraint));
+    // const constraint = JSON.parse(JSON.stringify(query.constraint));
+    // const constraintLog = JSON.parse(JSON.stringify(query.constraint));
     const sortBy = query.sortBy;
     const group = query.group;
 
-    const inc = function(op, k) {
-        for (let i = 0, j = op.length; i < j; i++) {
-            if (op[i].key === k) {
-                return op[i].val ? op[i].val : true;
-            }
-        }
-    };
-
     const pagination = query.pagination;
 
-    if (queryObject[pk]) {
-        constraint.push(`${pk} = @${pk}`);
-        constraintLog.push(`${pk} = '${queryObject[pk]}'`);
-    }
-    else {
-        for (let k in queryObject) {
+    // if (queryObject[pk]) {
+    //     constraint.push(`${pk} = @${pk}`);
+    //     constraintLog.push(`${pk} = '${queryObject[pk]}'`);
+    // }
+    // else {
+    //     for (let k in queryObject) {
             
-            if (! exclude.includes(k)) {
+    //         if (! exclude.includes(k)) {
                 
-                let val;
-                if (val = inc(equals, k)) {
-                    constraint.push(`${k} = @${k}`);
-                    constraintLog.push(`${k} = '${queryObject[k]}'`);
-                }
-                else if (val = inc(likes, k)) {
-                    queryObject[k] =queryObject[k] + '%';
-                    constraint.push(`${k} LIKE @${k}`);
-                    constraintLog.push(`${k} LIKE '${queryObject[k].toLowerCase()}'`);
-                }
-                else if (val = inc(matches, k)) {
-                    const matchTable = val.join;
-                    const matchColumn = val.table;
-                    
-                    tables.push(matchTable);
+    //             const ddk = ddByKeys[resource][k];
+    //             if (ddk) {
+    //                 const op = ddk.queryable;
+    //                 const sqlName = ddk.sqlName;
 
-                    constraint.push(`${matchColumn} MATCH @${k}`);
-                    constraintLog.push(`${matchColumn} MATCH '${queryObject[k]}'`);
-                }
-            }
+    //                 if (op === 'equal') {
+    //                     constraint.push(`${sqlName} = @${k}`);
+    //                     constraintLog.push(`${sqlName} = '${queryObject[k]}'`);
+    //                 }
+    //                 else if (op === 'like') {
+    //                     queryObject[k] = queryObject[k] + '%';
+    //                     constraint.push(`${sqlName} LIKE @${k}`);
+    //                     constraintLog.push(`${sqlName} LIKE '${queryObject[k].toLowerCase()}'`);
+    //                 }
+    //                 else if (op === 'match') {
+    //                     tables.push(ddk.table);
+    //                     constraint.push(`${sqlName} MATCH @${k}`);
+    //                     constraintLog.push(`${sqlName} MATCH '${queryObject[k]}'`);
+    //                 }
+    //             }
+    //         }
             
-        }
+    //     }
+    // }
+
+    if (matchTables.length) {
+        tables.push(...matchTables);
     }
 
     let sql = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraint.join(' AND ')}`;
@@ -148,7 +166,29 @@ const calcQuery = function(query, pk, queryObject, opKeys) {
     return [sql, sqlLog];
 };
 
+const ddByKeys = (function() {
+    const ddByKeys = {};
 
+    for (let resource in dd) {
+
+        ddByKeys[resource] = {};
+
+        const resPart = dd[resource];
+        for (let i = 0, j = resPart.length; i < j; i++) {
+            const qs = resPart[i].queryString;
+            if (qs) {
+                ddByKeys[resource][qs] = {
+                    sqlName: resPart[i].sqlName || qs,
+                    queryable: resPart[i].queryable,
+                    table: resPart[i].table || false
+                }
+            }
+        }
+
+    }
+
+    return ddByKeys;
+})();
 
 const dd2queries = function(queryObject) {
 
@@ -164,8 +204,7 @@ const dd2queries = function(queryObject) {
     const r = qParts[resources];
     const pk = r.pk;
 
-    // get the fields by SQL operators
-    const opKeys = fieldsByOperator(resources);
+    const [matchTables, constraint, constraintLog] = calcConstraint(pk, queryObject);
 
     // make a deep copy of the resource specific queries
     // so it is easier to work with them. We make a deep 
@@ -194,11 +233,10 @@ const dd2queries = function(queryObject) {
 
             q.queries[queryGroup] = {};
             q.queriesLog[queryGroup] = {};
+
             for (let queryName in groupQueries) {
                 const query = groupQueries[queryName];
-                const [sql, sqlLog] = calcQuery(query, pk, queryObject, opKeys);
-
-                plog.info(`${queryGroup.toUpperCase()} ${queryName}`, sqlLog);
+                const [sql, sqlLog] = calcQuery(query, pk, queryObject, matchTables, constraint, constraintLog);
 
                 q.queries[queryGroup][queryName] = { sql: sql };
                 q.queriesLog[queryGroup][queryName] = { sql: sqlLog };

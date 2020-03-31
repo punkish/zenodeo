@@ -119,17 +119,28 @@
  ];
 
  const commonZenodeoQueryParams = [
+
+    // The following is used in every SQL table
+    // It is automatically generated and incremented
+    // by SQLite
     {
-        plaziName     : 'id',
-        zenodoName    : '',
-        sqlType       : 'INTEGER PRIMARY KEY',
-        cheerioElement: '',
-        description   : 'pk',
-        queryable     : '',
-        queryString   : '',
-        validation    : '',
-        resourceId    : false
+    plaziName     : 'id',
+    zenodoName    : '',
+    sqlType       : 'INTEGER PRIMARY KEY',
+    cheerioElement: '',
+    description   : 'The primary key (PK) for this table',
+    queryable     : '',
+    queryString   : '',
+    validation    : '',
+    resourceId    : false
     },
+
+    // The following definition of 'treatmentId' not 
+    // used in the 'treatments' table which has its 
+    // own declration (mainly, its `sqlType` and 
+    // `resourceId` values are diferet). The following 
+    // definition is used in all other tables as a 
+    // foreign key (FK)
     {
         plaziName     : 'treatmentId',
         zenodoName    : '',
@@ -152,7 +163,7 @@
         validation    : '',
         resourceId    : false
     }
- ];
+];
 
  const commonZenodoQueryParams = [
     {
@@ -462,6 +473,7 @@ const dd = {
         {
             plaziName     : 'order',
             zenodoName    : 'subjects',
+            sqlName       : '"order"',
             sqlType       : 'TEXT',
             cheerioElement: '$("subSubSection[type=nomenclature] taxonomicName").attr("order")',
             description   : 'The higher category of the taxonomicName',
@@ -528,6 +540,7 @@ const dd = {
         {
             plaziName     : 'rank',
             zenodoName    : 'subjects',
+            sqlName       : 'treatments.rank',
             sqlType       : 'TEXT',
             cheerioElement: '$("subSubSection[type=nomenclature] taxonomicName").attr("rank")',
             description   : 'The taxonomic rank of the taxon, e.g. species, family',
@@ -550,6 +563,8 @@ const dd = {
         {
             plaziName     : 'fulltext',
             zenodoName    : '',
+            sqlName       : 'vtreatments',
+            table         : 'vtreatments ON treatments.treatmentId = vtreatments.treatmentId',
             sqlType       : 'TEXT',
             cheerioElement: '$("treatment").text()',
             description   : 'The full text of the treatment',
@@ -956,7 +971,7 @@ const dd = {
             description   : 'Geographic coordinates of the location where the specimen was collected',
             queryable     : 'equal',
             queryString   : 'latitude',
-            validation    : 'Joi.string().description(`${d}`).optional()',
+            validation    : 'Joi.number().min(-90).max(90).description(`${d}`).optional()',
             resourceId    : false
         },
         {
@@ -967,7 +982,7 @@ const dd = {
             description   : 'Geographic coordinates of the location where the specimen was collected',
             queryable     : 'equal',
             queryString   : 'longitude',
-            validation    : 'Joi.string().description(`${d}`).optional()',
+            validation    : 'Joi.number().min(-180).max(180).description(`${d}`).optional()',
             resourceId    : false
         },
         {

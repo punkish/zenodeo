@@ -19,7 +19,9 @@ const db = new Database(config.get('data.treatments'));
 const fs = require('fs');
 //const qParts = require('./qparts');
 
+//const dd = require('../../../dataDictionary/dd');
 const dd2queries = require('../lib/dd2queries');
+
 
 const handler = function(plugins) {
 
