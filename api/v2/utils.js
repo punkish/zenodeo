@@ -1,3 +1,5 @@
+'use strict';
+
 const Wreck = require('@hapi/wreck');
 // const Schema = require('./schema.js');
 // const ResponseMessages = require('../responseMessages');
@@ -33,6 +35,21 @@ module.exports = {
     
     //     return(res);
     // },
+    timerFormat: function(t) {
+
+        const [s, ns] = t;
+
+        let ms = ns / 1000000;
+        const msr = Math.round(ms);
+
+        let str;
+        if (ms >= 1000) {
+            s = s + Math.round(ms / 1000);
+            str = `${s}s ${ms - (s * 1000)}`;
+        }
+
+        return { msr: msr, str: str}
+    },
 
     find: function(pattern, source) {
         return dbFacets.prepare(`SELECT ${facets[source]} FROM ${source} WHERE ${facets[source]} LIKE ?`)

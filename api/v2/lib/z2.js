@@ -80,16 +80,6 @@ const handler = function(plugins) {
 
 };
 
-// const getAllLikes = function(queryObject) {
-
-//     const resourceLike = qParts[queryObject.resources].queryable.like;
-//     for (let key in queryObject) {
-//         if (key in resourceLike) {
-//             queryObject[key] =queryObject[key] + '%';
-//         }
-//     }
-// };
-
 const getRecords = function(cacheKey) {
 
     const queryObject = Utils.makeQueryObject(cacheKey);
@@ -106,51 +96,88 @@ const getRecords = function(cacheKey) {
     }
 };
 
-const getOneRecord = function(queryObject) {
+const dataForDelivery = function(t, data, sqlDebug) {
+    const [s, ns] = t;
+    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
 
-    //const q = getSql(queryObject);
-    const q = dd2queries(queryObject);
-    const sqlLog = q.queriesLog.essential.data.sql;
-    const sql = q.queriesLog.essential.data.sql;
+    if (cacheOn) {
+        return data;
+    }
+    else {
+        const report = { msec: ms }
 
-    const messages = [ {label: 'queryObject', params: queryObject} ];
+        if (process.env.NODE_ENV === 'test') {
+            report.debug = sqlDebug;
+        }
+
+        return {
+            value: data,
+            cached: null,
+            report: report
+        }
+    }
+};
+
+const calcSearchCriteria = function(queryObject) {
 
     // data will hold all the query results to be sent back
-    const data = { 'search-criteria': {} };
+    const sc = {};
 
     // The following params may get added to the queryObject but they 
     // are not used when making the _self, _prev, _next links, or  
     // the search-criteria 
-    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId', 'page', 'size', 'sortBy', 'facets', 'stats'];
+    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
 
     for (let key in queryObject) {
         if (! exclude.includes(key)) {
-            data['search-criteria'][key] = queryObject[key];
+            sc[key] = queryObject[key];
         }
     }
 
-    let t = process.hrtime();
+    return sc;
+}
+const getOneRecord = function(queryObject) {
+
+    let timer = process.hrtime();
+
+    const messages = [ {label: 'queryObject', params: queryObject} ];
+
+    // data will hold all the query results to be sent back
+    const data = {
+        'search-criteria': calcSearchCriteria(queryObject)
+    };
+
+    const q = dd2queries(queryObject);
+    const sqlDebug = [];
+    const sqlLog = q.queriesLog.essential.data.sql;
+    const sql = q.queriesLog.essential.data.sql;
 
     try {
 
+        let t = process.hrtime();
+
         // add query results to data.records. If no results are found,
         // add an empty array to data.records
-        data.records = [db.prepare(sql).get(queryObject)] || [];        
+        const records = db.prepare(sql).get(queryObject);
+        if (records) {
+            data.records = [ records ];
+            data['num-of-records'] = 1;
+        }
+        else {
+            data.records = [];
+            data['num-of-records'] = 0;
+        }
+
+        t = process.hrtime(t);
+        messages.push({label: 'data', params: { sql: sqlLog, took: t }});
+
+        const took = Utils.timerFormat(t);
+        sqlDebug.push({ sql: sqlLog, took: took.msr });
     } 
     catch (error) {
         plog.error(error, sqlLog);
     }
 
-    t = process.hrtime(t);
-    messages.push({
-        label: 'data', 
-        params: { sql: sqlLog, took: t }
-    });
-
-    // if the query is successful, but no records are found
-    // add 'num-of-records' = 0
-    data['num-of-records'] = data.records ? 1 : 0;
-    
     // add a self link to the data
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
@@ -161,82 +188,70 @@ const getOneRecord = function(queryObject) {
             .join('&')
     });
 
-    messages.push({label: 'num-of-records', params: data['num-of-records']});
     plog.log({ header: 'ONE QUERY', messages: messages });
 
     // We are done if no records found
-    if (! data['num-of-records']) return data;
+    if (! data['num-of-records']) {
+        timer = process.hrtime(timer);
+        return dataForDelivery(timer, data);
+    }
 
     // more data from beyond the database
     if (queryObject.resources === 'treatments') {
-        if (queryObject.xml) {
-            data.xml = getXml(queryObject.treatmentId);
+        if (queryObject.xml && queryObject.xml === 'true') {
+            data.records[0].xml = getXml(queryObject.treatmentId);
         }
         
-        data.taxonStats = getTaxonStats(data);
+        data.taxonStats = getTaxonStats(data, sqlDebug);
     }
 
-    data['related-records'] = getRelatedRecords(q, queryObject);
-    return data;
+    data['related-records'] = getRelatedRecords(q, queryObject, sqlDebug);
+
+    timer = process.hrtime(timer);
+    return dataForDelivery(timer, data, sqlDebug);
 };
 
-// calc limit and offset and add them to the queryObject
-// as we will need them for the SQL query
-const calcLimitAndOffset = function(queryObject) {
+const getManyRecords = async function(queryObject) {
+    let timer = process.hrtime();
+
+    const messages = [{label: 'queryObject', params: queryObject}];
+
+    // data will hold all the query results to be sent back
+    const data = {
+        'search-criteria': calcSearchCriteria(queryObject)
+    };
+
+    const q = dd2queries(queryObject);
+    
+    // calc limit and offset and add them to the queryObject
+    // as we will need them for the SQL query
     const page = queryObject.page ? parseInt(queryObject.page) : 1;
     const limit = Schema.defaults.size;
     const offset = (page - 1) * limit;
     queryObject.limit = limit;
     queryObject.offset = offset;
-};
-
-const getManyRecords = async function(queryObject) {
-
-    // data will hold all the query results to be sent back
-    const data = { 'search-criteria': {} };
-
-    // The following params may get added to the queryObject but they 
-    // are not used when making the _self, _prev, _next links, or  
-    // the search-criteria 
-    const exclude = ['refreshCache', 'resources', 'resourceId'];
-
-    for (let key in queryObject) {
-        if (! exclude.includes(key)) {
-            data['search-criteria'][key] = queryObject[key];
-        }
-    }
-
-    calcLimitAndOffset(queryObject);
 
     const id = queryObject.id ? parseInt(queryObject.id) : 0;
-
-    // procees all the query params that are used in LIKE searches
-    // and add a '%' suffix to them
-    //getAllLikes(queryObject);
-
-    // print out the queryObject
-    const messages = [{label: 'queryObject', params: queryObject}];
-
-    //const q = getSql(queryObject);
-    const q = dd2queries(queryObject);
-    
-    let t = process.hrtime();
 
     // first find total number of matches
     const countSql = q.queries.essential.count.sql;
     const countSqlLog = q.queriesLog.essential.count.sql;
 
+    
     try {
+
+        let t = process.hrtime();
+
         data['num-of-records'] = db.prepare(countSql)
             .get(queryObject)
             .numOfRecords;
+
+        t = process.hrtime(t);
+        messages.push({ label: 'count', params: { sql: countSqlLog, took: t } });
     }
     catch (error) {
         plog.error(error, countSqlLog);
     }
-
-    t = process.hrtime(t);
-    messages.push({ label: 'count', params: { sql: countSqlLog, took: t } });
 
     // add a self link to the data
     data._links = {};
@@ -250,23 +265,28 @@ const getManyRecords = async function(queryObject) {
     });
 
     // We are done if no records found
-    if (! data['num-of-records']) return data;
+    if (! data['num-of-records']) {
+        plog.log({ header: 'MANY QUERIES', messages: messages });
+        timer = process.hrtime(timer);
+        return dataForDelivery(timer, data);
+    }
     
-    t = process.hrtime();
-
     // get the records
     const dataSql = q.queries.essential.data.sql;
     const dataSqlLog = q.queriesLog.essential.data.sql;
 
     try {
+
+        let t = process.hrtime();
+
         data.records = db.prepare(dataSql).all(queryObject) || [];
+
+        t = process.hrtime(t);
+        messages.push({ label: 'data', params: { sql: dataSqlLog, took: t } });
     }
     catch (error) {
         plog.error(error, dataSqlLog);
     }
-
-    t = process.hrtime(t);
-    messages.push({ label: 'data', params: { sql: dataSqlLog, took: t } });
 
     plog.log({ header: 'MANY QUERIES', messages: messages });
 
@@ -330,22 +350,8 @@ const getManyRecords = async function(queryObject) {
     });
 
     // all done
-    const [s, ns] = t;
-    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
-
-    // all done
-    if (cacheOn) {
-        return data;
-    }
-    else {
-        return {
-            value: data,
-            cached: null,
-            report: {
-                msec: ms
-            }
-        }
-    }
+    timer = process.hrtime(timer);
+    return dataForDelivery(timer, data);
 };
 
 const getStatsFacets = function(type, q, queryObject) {
@@ -379,7 +385,7 @@ const getStatsFacets = function(type, q, queryObject) {
     return result;
 };
 
-const getRelatedRecords = function(q, queryObject) {
+const getRelatedRecords = function(q, queryObject, sqlDebug) {
 
     const related = {};
     const messages = [];
@@ -405,6 +411,9 @@ const getRelatedRecords = function(q, queryObject) {
         }
 
         t = process.hrtime(t);
+
+        const took = Utils.timerFormat(t);
+        sqlDebug.push({ sql: sql, took: took.msr });
         messages.push({
             label: query, 
             params: { sql: sqlLog, took: t }
@@ -416,7 +425,7 @@ const getRelatedRecords = function(q, queryObject) {
     return related;
 };
 
-const getTaxonStats = function(data) {
+const getTaxonStats = function(data, sqlDebug) {
     const rec = data.records[0];
     const taxonStats = [
         { name: 'kingdom', value: rec.kingdom, num: 0 }, 
@@ -442,6 +451,10 @@ const getTaxonStats = function(data) {
         }
 
         t = process.hrtime(t);
+
+        const took = Utils.timerFormat(t);
+        sqlDebug.push({ sql: sql, took: took.msr });
+
         messages.push({
             label: taxon.name, 
             params: { sql: sql, took: t }

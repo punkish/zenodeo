@@ -538,7 +538,7 @@ const qParts = {
 
     },
 
-    citations: {
+    bibRefCitations: {
         pk: 'bibRefCitationId',
 
         // columns that can be queried with the respective
@@ -1232,7 +1232,7 @@ const queryParts = {
 
     },
 
-    citations: {
+    bibRefCitations: {
         pk: 'bibRefCitationId',
 
         queries: {
