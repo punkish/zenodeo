@@ -5,7 +5,7 @@ const plugins = {
     _resources: 'materialsCitations',
     _resourceId: 'materialsCitationId',
     _name: 'materialscitations2',
-    _path: '/materialscitations',
+    _path: 'materialscitations',
     _order: 5
 };
 

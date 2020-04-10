@@ -69,7 +69,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'http://localhost:3030',
+            zenodeo: 'http://localhost:3030/v1',
             zenodo: 'https://zenodo.org/api'
         },
         
@@ -90,7 +90,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'http://localhost:3030',
+            zenodeo: 'http://localhost:3030/v2',
             zenodo: 'https://zenodo.org/api'
         },
         
@@ -138,14 +138,15 @@ module.exports = {
     ],
     plog: path.join(cwd, 'lib', 'plog.js'),
     httpStatusCodes: path.join(cwd, 'lib', 'httpStatusCodes.js'),
-    'data': {
-        'logs': path.join(cwd, 'data', 'logs.sqlite'),
-        'treatments': path.join(cwd, 'data', 'treatments.sqlite'),
-        'authors': path.join(cwd, 'data', 'authors'),
-        'keywords': path.join(cwd, 'data', 'keywords'),
-        'taxa': path.join(cwd, 'data', 'taxa.min'),
-        'families': path.join(cwd, 'data', 'families.min'),
-        'facets': path.join(cwd, 'data', 'facets.sqlite')
+    data: {
+        logs: path.join(cwd, 'data', 'logs.sqlite'),
+        treatments: path.join(cwd, 'data', 'treatments.sqlite'),
+        authors: path.join(cwd, 'data', 'authors'),
+        keywords: path.join(cwd, 'data', 'keywords'),
+        taxa: path.join(cwd, 'data', 'taxa.min'),
+        families: path.join(cwd, 'data', 'families.min'),
+        facets: path.join(cwd, 'data', 'facets.sqlite'),
+        queries: path.join(cwd, 'data', 'queryStats.sqlite')
     },
 
     

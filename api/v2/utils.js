@@ -27,6 +27,7 @@ const facets = {
 };
 
 module.exports = {
+
     // findjs: function(pattern, source) {
     //     const re = new RegExp(`^${pattern}`, 'i');
     //     const res = data[source].filter(function(element) {
@@ -35,6 +36,7 @@ module.exports = {
     
     //     return(res);
     // },
+    
     timerFormat: function(t) {
 
         const [s, ns] = t;
@@ -45,7 +47,10 @@ module.exports = {
         let str;
         if (ms >= 1000) {
             s = s + Math.round(ms / 1000);
-            str = `${s}s ${ms - (s * 1000)}`;
+            str = `${s}s ${ms - (s * 1000)}ms`;
+        }
+        else {
+            str = `${msr}ms`
         }
 
         return { msr: msr, str: str}
@@ -155,7 +160,7 @@ module.exports = {
         records.forEach(row => {
             row._links = this.makeSelfLink({
                 uri: uri,
-                resource: resource.toLowerCase(),
+                path: resource.toLowerCase(),
                 queryString: `${id}=${row[id]}`
             })
         });
@@ -301,12 +306,12 @@ module.exports = {
     
     },
 
-    makeSelfLink: function({uri, resource, queryString}) {
-        return { self: { href: `${uri}/${resource}?${queryString}` } }
+    makeSelfLink: function({uri, path, queryString}) {
+        return { self: { href: `${uri}/${path}?${queryString}` } }
     },
 
-    makeLink: function({uri, resource, queryString}) {
-        return { href: `${uri}/${resource}?${queryString}` };
+    makeLink: function({uri, path, queryString}) {
+        return { href: `${uri}/${path}?${queryString}` };
     }
 }
 

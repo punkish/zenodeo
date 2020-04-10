@@ -286,8 +286,9 @@ const dd = {
     treatments: require('./treatments'),
     figureCitations: require('./figureCitations'),
     bibRefCitations: require('./bibRefCitations'),
-    treatmentCitations: require('./bibRefCitations'),
+    treatmentCitations: require('./treatmentCitations'),
     materialsCitations: require('./materialsCitations'),
+    treatmentAuthors: require('./treatmentAuthors'),
 
     images: [
         {

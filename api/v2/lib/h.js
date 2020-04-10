@@ -24,7 +24,7 @@ const h = function(plugins, handler, getRecords) {
                 server.bind({ cache });
     
                 server.route([{
-                    path: plugins._path, 
+                    path: `/${plugins._path}`, 
                     method: 'GET', 
     
                     config: {

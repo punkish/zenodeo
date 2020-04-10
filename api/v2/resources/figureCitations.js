@@ -4,8 +4,8 @@ const plugins = {
     _resource: 'figureCitation',
     _resources: 'figureCitations',
     _resourceId: 'figureCitationId',
-    _name: 'figureCitations2',
-    _path: '/figurecitations',
+    _name: 'figurecitations2',
+    _path: 'figurecitations',
     _order: 4
 };
 

@@ -25,7 +25,7 @@ const h = function(plugins) {
                 server.bind({ cache });
     
                 server.route([{ 
-                    path: plugins._path,   
+                    path: `/${plugins._path}`,   
                     method: 'GET', 
                     handler: handler(plugins),
 

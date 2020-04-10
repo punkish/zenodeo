@@ -10,7 +10,7 @@ const plugins = {
     _resourceId: 'id',
     _name: 'images2',
     _segment: 'images2',
-    _path: '/images',
+    _path: 'images',
     _order: 7
 };
 

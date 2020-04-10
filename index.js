@@ -109,7 +109,18 @@ const start = async () => {
         require('./resources/examples'),
         require('./resources/about'),
         require('./resources/releases'),
-        require('./resources/deefault')
+        //require('./resources/deefault'),
+        {
+            method: '*',
+            path: '/{any*}',
+            handler: function (request, h) {
+    
+                return {
+                    error: "404 Error! Page Not Found! You might want to start at the root",
+                    root: `${server.info.uri}/v2/`
+                }
+            }
+        }
     ]);
     
     await server.start();

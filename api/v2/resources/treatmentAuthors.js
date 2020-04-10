@@ -5,7 +5,7 @@ const plugins = {
     _resources: 'treatmentAuthors',
     _resourceId: 'treatmentAuthorId',
     _name: 'treatmentAuthors2',
-    _path: '/treatmentauthors',
+    _path: 'treatmentauthors',
     _order: 6
 };
 

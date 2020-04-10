@@ -1,11 +1,11 @@
 'use strict';
 
 const plugins = {
-    _resource: 'citation',
-    _resources: 'citations',
+    _resource: 'bibRefCitation',
+    _resources: 'bibRefCitations',
     _resourceId: 'bibRefCitationId',
-    _name: 'citation2',
-    _path: '/citations',
+    _name: 'bibrefcitations2',
+    _path: 'bibrefcitations',
     _order: 3
 };
 

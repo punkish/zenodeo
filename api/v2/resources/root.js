@@ -38,7 +38,7 @@ module.exports = {
                             return {
                                 name: name,
                                 description: description,
-                                path: path
+                                path: `${server.info.uri}${path}`
                             }
                         });
                         

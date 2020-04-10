@@ -9,17 +9,14 @@
 
 const config = require('config');
 const plog = require(config.get('plog'));
-const Schema = require('../schema.js');
 const cacheOn = config.get('v2.cache.on');
 const uriZenodeo = config.get('v2.uri.zenodeo');
-//const getSql = require('../lib/qm').getSql;
 const Utils = require('../utils');
 const Database = require('better-sqlite3');
 const db = new Database(config.get('data.treatments'));
+const dbQueries = new Database(config.get('data.queries'));
 const fs = require('fs');
-//const qParts = require('./qparts');
 
-//const dd = require('../../../dataDictionary/dd');
 const dd2queries = require('../lib/dd2queries');
 
 
@@ -35,6 +32,7 @@ const handler = function(plugins) {
         // '000343DSDHSK923HHC9SKKS' (value of 'treatmentId')
         queryObject.resources = plugins._resources;
         queryObject.resourceId = plugins._resourceId;
+        queryObject.path = plugins._path;
         
         // bunch up messages to print them to the log
         const messages = [{label: 'queryObject', params: queryObject}];
@@ -59,12 +57,13 @@ const handler = function(plugins) {
         let result;
         if (cacheOn) {
             if (queryObject.refreshCache || queryObject.refreshCache === 'true') {
-                messages.push({label: 'info', params: 'force emptying the cache'});
+
+                messages.push({label: 'info', params: 'emptying the cache'});
                 this.cache.drop(cacheKey);
-                messages.push({label: 'info', params: 'refilling the cache'});
+
             }
     
-            messages.push({label: 'info', params: 'getting results from  the cache'});
+            messages.push({label: 'info', params: 'getting fresh results'});
             plog.log({ header: 'WEB QUERY', messages: messages });
             result = this.cache.get(cacheKey);
         }
@@ -96,18 +95,85 @@ const getRecords = function(cacheKey) {
     }
 };
 
-const dataForDelivery = function(t, data, sqlDebug) {
-    const [s, ns] = t;
-    const ms = (ns / 1000000) + (s ? s * 1000 : 0);
+// https://stackoverflow.com/a/18234317/183692
+const formatUnicorn = function () {
+    
+    let str = this.toString().replace(/@(\w+)/g, "'{\$1}'");
+    
+    if (arguments.length) {
+
+        const t = typeof arguments[0];
+        const args = ('string' === t || 'number' === t) ?
+            Array.prototype.slice.call(arguments)
+            : arguments[0];
+
+        for (let key in args) {
+            str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
+        }
+    }
+
+    return str;
+};
+
+String.prototype.formatUnicorn = String.prototype.formatUnicorn || formatUnicorn;
+
+const dataForDelivery = function(t, data, debug) {
+    console.log('now in dataDelivery');
 
     if (cacheOn) {
         return data;
     }
     else {
-        const report = { msec: ms }
+        const report = { msec: t.msr }
 
         if (process.env.NODE_ENV === 'test') {
-            report.debug = sqlDebug;
+            report.debug = debug;
+        }
+
+        const {queryObject, sqls} = debug;
+        const inserts = sqls.length;
+
+        const s1 = dbQueries.prepare(`INSERT INTO webqueries (qp) VALUES(@qp) ON CONFLICT(qp) DO UPDATE SET count=count+1`);
+
+        const s2 = dbQueries.prepare('SELECT Max(id) AS id FROM webqueries');
+
+        const s3 = dbQueries.prepare(`INSERT INTO sqlqueries (sql) VALUES(@sql) ON CONFLICT(sql) DO NOTHING`);
+
+        const s4 = dbQueries.prepare('SELECT Max(id) AS id FROM sqlqueries');
+
+        const s5 = dbQueries.prepare('INSERT INTO stats (webqueries_id, sqlqueries_id, timeTaken) VALUES (@webqueries_id, @sqlqueries_id, @timeTaken)');
+
+        if (inserts) {
+
+            try {
+                //dbQueries.prepare('BEGIN TRANSACTION').run();
+
+                const qp = JSON.stringify(queryObject);
+                s1.run({qp: qp});
+
+                const webqueries_id = s2.get().id;
+
+                for (let i = 0; i < inserts; i++) {
+
+                    const sql = sqls[i].sql.formatUnicorn(queryObject);
+                    const t = sqls[i].took;
+        
+                    s3.run({sql: sql});
+                    
+                    const sqlqueries_id = s4.get().id;
+    
+                    s5.run({
+                        webqueries_id: webqueries_id, 
+                        sqlqueries_id: sqlqueries_id, 
+                        timeTaken: t.msr
+                    });
+
+                }
+            }
+            catch (error) {
+                console.log(error);
+            }
+            
         }
 
         return {
@@ -116,6 +182,7 @@ const dataForDelivery = function(t, data, sqlDebug) {
             report: report
         }
     }
+
 };
 
 const calcSearchCriteria = function(queryObject) {
@@ -126,7 +193,7 @@ const calcSearchCriteria = function(queryObject) {
     // The following params may get added to the queryObject but they 
     // are not used when making the _self, _prev, _next links, or  
     // the search-criteria 
-    const exclude = ['resources', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
+    const exclude = ['path', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
 
     for (let key in queryObject) {
         if (! exclude.includes(key)) {
@@ -135,7 +202,8 @@ const calcSearchCriteria = function(queryObject) {
     }
 
     return sc;
-}
+};
+
 const getOneRecord = function(queryObject) {
 
     let timer = process.hrtime();
@@ -148,9 +216,15 @@ const getOneRecord = function(queryObject) {
     };
 
     const q = dd2queries(queryObject);
-    const sqlDebug = [];
-    const sqlLog = q.queriesLog.essential.data.sql;
-    const sql = q.queriesLog.essential.data.sql;
+
+    // this is where we will store the various SQL statements 
+    // and their performance metrics so we can store them in a db
+    const debug = {
+        queryObject: queryObject,
+        sqls: []
+    };
+
+    const sql = q.essential.data.sql;
 
     try {
 
@@ -169,31 +243,35 @@ const getOneRecord = function(queryObject) {
         }
 
         t = process.hrtime(t);
-        messages.push({label: 'data', params: { sql: sqlLog, took: t }});
+        const p = { sql: sql, took: Utils.timerFormat(t) };
 
-        const took = Utils.timerFormat(t);
-        sqlDebug.push({ sql: sqlLog, took: took.msr });
+        messages.push({ label: 'data', params: p });
+        debug.sqls.push(p);
     } 
     catch (error) {
-        plog.error(error, sqlLog);
+        plog.error(error, sql);
     }
 
     // add a self link to the data
     data._links = Utils.makeSelfLink({
         uri: uriZenodeo, 
-        resource: queryObject.resources, 
+        path: queryObject.path, 
         queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + e[1])
             .sort()
             .join('&')
     });
 
-    plog.log({ header: 'ONE QUERY', messages: messages });
+    plog.log({ 
+        header: 'ONE QUERY', 
+        messages: messages, 
+        queryObject: queryObject 
+    });
 
     // We are done if no records found
     if (! data['num-of-records']) {
         timer = process.hrtime(timer);
-        return dataForDelivery(timer, data);
+        return dataForDelivery(timer, data, debug);
     }
 
     // more data from beyond the database
@@ -202,16 +280,17 @@ const getOneRecord = function(queryObject) {
             data.records[0].xml = getXml(queryObject.treatmentId);
         }
         
-        data.taxonStats = getTaxonStats(data, sqlDebug);
+        data.taxonStats = getTaxonStats(q, queryObject, debug);
     }
 
-    data['related-records'] = getRelatedRecords(q, queryObject, sqlDebug);
+    data['related-records'] = getRelatedRecords(q, queryObject, debug);
 
     timer = process.hrtime(timer);
-    return dataForDelivery(timer, data, sqlDebug);
+    return dataForDelivery(timer, data, debug);
 };
 
 const getManyRecords = async function(queryObject) {
+
     let timer = process.hrtime();
 
     const messages = [{label: 'queryObject', params: queryObject}];
@@ -221,21 +300,28 @@ const getManyRecords = async function(queryObject) {
         'search-criteria': calcSearchCriteria(queryObject)
     };
 
-    const q = dd2queries(queryObject);
-    
     // calc limit and offset and add them to the queryObject
     // as we will need them for the SQL query
     const page = queryObject.page ? parseInt(queryObject.page) : 1;
-    const limit = Schema.defaults.size;
+    const size = queryObject.size ? parseInt(queryObject.size) : 30;
+    const limit = size;
     const offset = (page - 1) * limit;
     queryObject.limit = limit;
     queryObject.offset = offset;
 
+    const q = dd2queries(queryObject);
+
+    // this is where we will store the various SQL statements 
+    // and their performance metrics so we can store them in a db
+    const debug = {
+        queryObject: queryObject,
+        sqls: []
+    };
+
     const id = queryObject.id ? parseInt(queryObject.id) : 0;
 
     // first find total number of matches
-    const countSql = q.queries.essential.count.sql;
-    const countSqlLog = q.queriesLog.essential.count.sql;
+    const countSql = q.essential.count.sql;
 
     
     try {
@@ -247,17 +333,20 @@ const getManyRecords = async function(queryObject) {
             .numOfRecords;
 
         t = process.hrtime(t);
-        messages.push({ label: 'count', params: { sql: countSqlLog, took: t } });
+        const p = { sql: countSql, took: Utils.timerFormat(t) };
+
+        messages.push({ label: 'count', params: p });
+        debug.sqls.push(p);
     }
     catch (error) {
-        plog.error(error, countSqlLog);
+        plog.error(error, countSql);
     }
 
     // add a self link to the data
     data._links = {};
     data._links.self = Utils.makeLink({
         uri: uriZenodeo, 
-        resource: queryObject.resources, 
+        path: queryObject.path,
         queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + e[1])
             .sort()
@@ -266,14 +355,18 @@ const getManyRecords = async function(queryObject) {
 
     // We are done if no records found
     if (! data['num-of-records']) {
-        plog.log({ header: 'MANY QUERIES', messages: messages });
+        plog.log({ 
+            header: 'MANY QUERIES', 
+            messages: messages, 
+            queryObject: queryObject 
+        });
+
         timer = process.hrtime(timer);
-        return dataForDelivery(timer, data);
+        return dataForDelivery(timer, data, debug);
     }
     
     // get the records
-    const dataSql = q.queries.essential.data.sql;
-    const dataSqlLog = q.queriesLog.essential.data.sql;
+    const dataSql = q.essential.data.sql;
 
     try {
 
@@ -282,25 +375,30 @@ const getManyRecords = async function(queryObject) {
         data.records = db.prepare(dataSql).all(queryObject) || [];
 
         t = process.hrtime(t);
-        messages.push({ label: 'data', params: { sql: dataSqlLog, took: t } });
+        const p = { sql: countSql, took: Utils.timerFormat(t) };
+
+        messages.push({ label: 'data', params: p });
+        debug.sqls.push(p);
     }
     catch (error) {
-        plog.error(error, dataSqlLog);
+        plog.error(error, dataSql);
     }
 
-    plog.log({ header: 'MANY QUERIES', messages: messages });
+    plog.log({ 
+        header: 'MANY QUERIES', 
+        messages: messages,
+        queryObject: queryObject
+    });
 
     if (data.records.length > 0) {
         data.records.forEach(rec => {
             rec._links = Utils.makeSelfLink({
                 uri: uriZenodeo, 
-                resource: queryObject.resources, 
+                path: queryObject.path,
                 queryString: Object.entries({
-                    treatmentId: rec[queryObject.resourceId]
-                })
-                    .map(e => e[0] + '=' + e[1])
-                    .sort()
-                    .join('&')
+                    key: queryObject.resourceId,
+                    val: rec[queryObject.resourceId]
+                }).map(e => e[1]).join('=')
             });
         });
 
@@ -325,7 +423,7 @@ const getManyRecords = async function(queryObject) {
 
     data._links.prev = Utils.makeLink({
         uri: uriZenodeo, 
-        resource: queryObject.resources, 
+        path: queryObject.path,
         queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + (e[0] === 'page' ? data.prevpage : e[1]))
             .sort()
@@ -334,7 +432,7 @@ const getManyRecords = async function(queryObject) {
 
     data._links.next = Utils.makeLink({
         uri: uriZenodeo, 
-        resource: queryObject.resources, 
+        path: queryObject.path,
         queryString: Object.entries(data['search-criteria'])
             .map(e => e[0] + '=' + (e[0] === 'page' ? data.nextpage : e[1]))
             .sort()
@@ -345,56 +443,58 @@ const getManyRecords = async function(queryObject) {
     const groupedQueries = ['facets', 'stats'];
     groupedQueries.forEach(g => {
         if (g in queryObject && queryObject[g] === 'true') {
-            data[g] = getStatsFacets(g, q, queryObject);
+            data[g] = getStatsFacets(g, q, queryObject, debug);
         }
     });
 
     // all done
     timer = process.hrtime(timer);
-    return dataForDelivery(timer, data);
+    return dataForDelivery(timer, data, debug);
 };
 
-const getStatsFacets = function(type, q, queryObject) {
+const getStatsFacets = function(type, q, queryObject, debug) {
+
     const result = {};
     const messages = [];
 
-    for (let query in q.queries[type]) {
+    for (let query in q[type]) {
 
         let t = process.hrtime();
 
-        const sql = q.queries[type][query].sql;
-        const sqlLog = q.queriesLog[type][query].sql;
+        const sql = q[type][query].sql;
 
         try {
             result[query] = db.prepare(sql).all(queryObject);
         }
         catch (error) {
-            plog.error(error, sqlLog);
+            plog.error(error, sql);
         }
 
         t = process.hrtime(t);
-        messages.push({
-            label: query, 
-            params: { sql: sqlLog, took: t }
-        });
-        
+
+        const p = { sql: sql, took: Utils.timerFormat(t) };
+        messages.push({ label: query, params: p });
+        debug.sqls.push(p);
     }
 
-    plog.log({ header: `${type.toUpperCase()} QUERIES`, messages: messages });
+    plog.log({ 
+        header: `${type.toUpperCase()} QUERIES`, 
+        messages: messages,
+        queryObject: queryObject
+    });
 
     return result;
 };
 
-const getRelatedRecords = function(q, queryObject, sqlDebug) {
+const getRelatedRecords = function(q, queryObject, debug) {
 
     const related = {};
     const messages = [];
 
-    for (let query in q.queries.related) {
+    for (let query in q.related) {
 
-        const pk = q.queries.related[query].pk;
-        const sqlLog = q.queriesLog.related[query].sql;
-        const sql = q.queries.related[query].sql;
+        const pk = q.related[query].pk;
+        const sql = q.related[query].sql;
 
         let t = process.hrtime();
 
@@ -407,61 +507,58 @@ const getRelatedRecords = function(q, queryObject, sqlDebug) {
             });
         }
         catch (error) {
-            plog.error(error, sqlLog);
+            plog.error(error, sql);
         }
 
         t = process.hrtime(t);
 
-        const took = Utils.timerFormat(t);
-        sqlDebug.push({ sql: sql, took: took.msr });
-        messages.push({
-            label: query, 
-            params: { sql: sqlLog, took: t }
-        });
+        const p = { sql: sql, took: Utils.timerFormat(t) };
+        debug.sqls.push(p);
+        messages.push({ label: query, params: p });
 
     }
 
-    plog.log({ header: 'ONE RELATED', messages: messages });
+    plog.log({ 
+        header: 'ONE RELATED', 
+        messages: messages, 
+        queryObject: queryObject 
+    });
+
     return related;
 };
 
-const getTaxonStats = function(data, sqlDebug) {
-    const rec = data.records[0];
-    const taxonStats = [
-        { name: 'kingdom', value: rec.kingdom, num: 0 }, 
-        { name: 'phylum',  value: rec.phylum,  num: 0 }, 
-        { name: '"order"', value: rec.order,   num: 0 }, 
-        { name: 'family',  value: rec.family,  num: 0 }, 
-        { name: 'genus',   value: rec.genus,   num: 0 }, 
-        { name: 'species', value: rec.species, num: 0 }
-    ];
+const getTaxonStats = function(q, queryObject, debug) {
 
+    const taxonStats = {};
     const messages = [];
 
-    taxonStats.forEach((taxon, index) => {
-        const sql = `SELECT Count(*) AS num FROM treatments WHERE deleted = 0 AND ${taxon.name} = '${taxon.value}'`;
+    for (let query in q.taxonStats) {
+
+        const sql = q.taxonStats[query].sql;
 
         let t = process.hrtime();
 
         try {
-            taxonStats[index].num = db.prepare(sql).get().num;
-        } 
+            taxonStats[query] = db.prepare(sql).get(queryObject).num;
+        }
         catch (error) {
             plog.error(error, sql);
         }
 
         t = process.hrtime(t);
 
-        const took = Utils.timerFormat(t);
-        sqlDebug.push({ sql: sql, took: took.msr });
+        const p = { sql: sql, took: Utils.timerFormat(t) };
+        debug.sqls.push(p);
+        messages.push({ label: query, params: p });
 
-        messages.push({
-            label: taxon.name, 
-            params: { sql: sql, took: t }
-        });
-    })
+    }
 
-    plog.log({ header: 'ONE TAXONSTATS', messages: messages });
+    plog.log({ 
+        header: 'ONE TAXONSTATS', 
+        messages: messages, 
+        queryObject: queryObject
+    });
+
     return taxonStats;
 };
 

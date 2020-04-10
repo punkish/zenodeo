@@ -14,6 +14,7 @@ exports.plugin = {
             { plugin: require('./resources/figureCitations'), options: cache },
             { plugin: require('./resources/treatmentAuthors'), options: cache },
             { plugin: require('./resources/bibRefCitations'), options: cache },
+            { plugin: require('./resources/treatmentCitations'), options: cache },
             { plugin: require('./resources/materialsCitations'), options: cache },
             { plugin: require('./resources/images'), options: cache },
             { plugin: require('./resources/publications'), options: cache },

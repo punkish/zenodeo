@@ -10,7 +10,7 @@ const plugins = {
     _resourceId: 'id',
     _name: 'publications2',
     _segment: 'publications2',
-    _path: '/publications',
+    _path: 'publications',
     _order: 8
 };
 

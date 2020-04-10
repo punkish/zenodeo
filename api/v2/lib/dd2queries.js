@@ -34,11 +34,9 @@ const calcConstraint = function(queryObject) {
 
     const matchTables = [];
     const constraint = [];
-    const constraintLog = [];
 
     if (queryObject[pk]) {
         constraint.push(`${pk} = @${pk}`);
-        constraintLog.push(`${pk} = '${queryObject[pk]}'`);
     }
     else {
         for (let k in queryObject) {
@@ -52,17 +50,14 @@ const calcConstraint = function(queryObject) {
 
                     if (op === 'equal') {
                         constraint.push(`${sqlName} = @${k}`);
-                        constraintLog.push(`${sqlName} = '${queryObject[k]}'`);
                     }
                     else if (op === 'like') {
                         queryObject[k] = queryObject[k] + '%';
                         constraint.push(`${sqlName} LIKE @${k}`);
-                        constraintLog.push(`${sqlName} LIKE '${queryObject[k].toLowerCase()}'`);
                     }
                     else if (op === 'match') {
                         matchTables.push(ddk.table);
                         constraint.push(`${sqlName} MATCH @${k}`);
-                        constraintLog.push(`${sqlName} MATCH '${queryObject[k]}'`);
                     }
                 }
             }
@@ -70,7 +65,7 @@ const calcConstraint = function(queryObject) {
         }
     }
 
-    return [matchTables, constraint, constraintLog];
+    return [ matchTables, constraint ];
 };
 
 // A query is made up of seven parts
@@ -87,46 +82,54 @@ const calcConstraint = function(queryObject) {
 // ORDER BY <sortcol> <sortdir> 
 // LIMIT <limit> 
 // OFFSET <offset>
-const calcQuery = function(query, queryObject, matchTables, constraint, constraintLog) {
+const calcQuery = function(queryGroup, query, queryObject, matchTables, addedConstraint) {
 
     const columns = query.columns;
     const tables = JSON.parse(JSON.stringify(query.tables));
+    const constraint = JSON.parse(JSON.stringify(query.constraint));
+
     const sortBy = query.sortBy;
     const group = query.group;
 
     const pk = ddKeys.byResourceIds[queryObject.resources];
-    //plog.info('pk', pk);
 
     const pagination = query.pagination;
-
+    const limit = queryObject.limit || query.limit || 0;
+    const offset = queryObject.offset || query.offset || 0;
+    
     if (matchTables.length) {
         tables.push(...matchTables);
     }
 
+    if (queryGroup !== 'taxonStats' && queryGroup !== 'related') {
+        if (addedConstraint.length) {
+            constraint.push(...addedConstraint);
+        }
+    }
+    
+
     let sql = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraint.join(' AND ')}`;
-    let sqlLog = `SELECT ${columns.join(', ')} FROM ${tables.join(' JOIN ')} WHERE ${constraintLog.join(' AND ')}`;
 
     // now, figure out the sort params, if applicable
     let [sortcol, sortdir] = ['', ''];
     if (queryObject.sortBy && Object.keys(sortBy).length) {
         [sortcol, sortdir] = calcSortParams(sortBy, queryObject);
         sql += ` ORDER BY ${sortcol} ${sortdir}`;
-        sqlLog += ` ORDER BY ${sortcol} ${sortdir}`;
     }
 
     if (group && Object.keys(group).length) {
         sql += ` GROUP BY ${group.join(' ')}`;
-        sqlLog += ` GROUP BY ${group.join(' ')}`;
     }
 
     if (! queryObject[pk]) {
         if (pagination) {
-            sql += ' LIMIT @limit OFFSET @offset';
-            sqlLog += ` LIMIT ${queryObject.limit} OFFSET ${queryObject.offset}`;
+            if (limit > 0) {
+                sql += ' LIMIT @limit OFFSET @offset';
+            }
         }
     }
 
-    return [sql, sqlLog];
+    return sql;
 };
 
 const ddKeys = (function() {
@@ -179,7 +182,7 @@ const dd2queries = function(queryObject) {
     const r = qParts[resources];
     const pk = ddKeys.byResourceIds[resources];
 
-    const [matchTables, constraint, constraintLog] = calcConstraint(queryObject);
+    const [ matchTables, constraint ] = calcConstraint(queryObject);
 
     // make a deep copy of the resource specific queries
     // so it is easier to work with them. We make a deep 
@@ -189,34 +192,29 @@ const dd2queries = function(queryObject) {
     const queries = JSON.parse(JSON.stringify(r.queries));
 
     const queryGroups = {
-        PK: ['related'],
-        notPK: ['facets', 'stats']
+        PK: [ 'related', 'taxonStats' ],
+        notPK: [ 'facets', 'stats' ]
     };
 
     const doGroups = queryObject[pk] ? queryGroups.PK : queryGroups.notPK;
     doGroups.push('essential');
 
-    const q = {
-        queries: {},
-        queriesLog: {}
-    };
+    const q = {};
 
     for (let queryGroup in queries) {
     
         if (doGroups.includes(queryGroup)) {
             const groupQueries = queries[queryGroup];
 
-            q.queries[queryGroup] = {};
-            q.queriesLog[queryGroup] = {};
+            q[queryGroup] = {};
 
             for (let queryName in groupQueries) {
                 const query = groupQueries[queryName];
-                const [sql, sqlLog] = calcQuery(query, queryObject, matchTables, constraint, constraintLog);
+                const sql = calcQuery(queryGroup, query, queryObject, matchTables, constraint);
 
-                q.queries[queryGroup][queryName] = { sql: sql };
-                q.queriesLog[queryGroup][queryName] = { sql: sqlLog };
+                q[queryGroup][queryName] = { sql: sql };
                 if ('pk' in query) {
-                    q.queries[queryGroup][queryName].pk = query.pk;
+                    q[queryGroup][queryName].pk = query.pk;
                 }
             }
         }
@@ -234,7 +232,7 @@ module.exports = dd2queries;
 //     refreshCache: false,
 //     page: 1,
 //     size: 30,
-//     resources: 'bibRefCitations',
+//     resources: 'treatments',
 //     facets: true,
 //     stats: true,
 //     xml: false,
@@ -244,7 +242,8 @@ module.exports = dd2queries;
 //     journalYear: '1996',
 //     format: 'xml',
 //     treatmentTitle: 'opheys',
-//     doi: '10.2454/sdff:1956'
+//     doi: '10.2454/sdff:1956',
+//     treatmentId: '58F12CC7CCAD08F32CF9920D36C9992E'
 // });
 
 // console.log(JSON.stringify(q, null, '\t'))
