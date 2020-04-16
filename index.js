@@ -109,7 +109,6 @@ const start = async () => {
         require('./resources/examples'),
         require('./resources/about'),
         require('./resources/releases'),
-        //require('./resources/deefault'),
         {
             method: '*',
             path: '/{any*}',
@@ -124,6 +123,7 @@ const start = async () => {
     ]);
     
     await server.start();
+    console.log('Server running on %s', server.info.uri);
 
     server.events.on('log', (event, tags) => {
 

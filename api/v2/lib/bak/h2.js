@@ -1,6 +1,5 @@
 'use strict';
 
-//const Schema = require('../schema.js');
 const Schema = require('./dd2schema');
 const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils');
@@ -10,9 +9,10 @@ const h = function(plugins) {
     
     return {
         plugin: {
-            name: plugins._name,
+            name: plugins._resource,
             register: function(server, options) {
     
+                // create the cache
                 const cache = Utils.makeCache({
                     server: server, 
                     options: options, 
@@ -20,27 +20,27 @@ const h = function(plugins) {
                     plugins: plugins
                 });
     
-                // binds the cache to every route registered  
+                // bind the cache to every route registered  
                 // **within this plugin** after this line
                 server.bind({ cache });
     
                 server.route([{ 
-                    path: `/${plugins._path}`,   
+                    path: `/${plugins._resource.toLowerCase()}`,   
                     method: 'GET', 
                     handler: handler(plugins),
 
                     options: {
-                        description: `Fetch ${plugins._resources} from Zenodeo`,
-                        tags: [plugins._resources, 'api'],
+                        description: `Fetch ${plugins._resource} from Zenodeo`,
+                        tags: [plugins._resource, 'api'],
                         plugins: {
                             'hapi-swagger': {
                                 order: plugins._order,
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema[plugins._resources],
+                        validate: Schema[plugins._resource],
                         notes: [
-                            `This is the main route for fetching ${plugins._resources} from Zenodeo matching the provided query parameters.`
+                            `This is the main route for fetching ${plugins._resource} from Zenodeo matching the provided query parameters.`
                         ]
                     },
     

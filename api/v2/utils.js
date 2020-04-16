@@ -1,9 +1,6 @@
 'use strict';
 
 const Wreck = require('@hapi/wreck');
-// const Schema = require('./schema.js');
-// const ResponseMessages = require('../responseMessages');
-// const debug = require('debug')('v2:utils');
 
 const config = require('config');
 const plog = require(config.get('plog'));
@@ -11,13 +8,6 @@ const plog = require(config.get('plog'));
 const Database = require('better-sqlite3');
 const dbFacets = new Database(config.get('data.facets'));
 const dbTreatments = new Database(config.get('data.treatments'));
-
-// const data = {
-//     authors: require(authors),
-//     keywords: require(keywords),
-//     taxa: require(taxa),
-//     families: require(families)
-// };
 
 const facets = {
     authors: 'author',
@@ -27,15 +17,6 @@ const facets = {
 };
 
 module.exports = {
-
-    // findjs: function(pattern, source) {
-    //     const re = new RegExp(`^${pattern}`, 'i');
-    //     const res = data[source].filter(function(element) {
-    //         return (element.search(re) > -1)
-    //     });
-    
-    //     return(res);
-    // },
     
     timerFormat: function(t) {
 
@@ -173,7 +154,7 @@ module.exports = {
             cache: options.cacheName,
             expiresIn: options.expiresIn,
             generateTimeout: options.generateTimeout,
-            segment: plugins._segment, 
+            segment: plugins._resources, 
             generateFunc: async (cacheKey) => { 
                 return await query(cacheKey) 
             },
@@ -306,12 +287,253 @@ module.exports = {
     
     },
 
-    makeSelfLink: function({uri, path, queryString}) {
-        return { self: { href: `${uri}/${path}?${queryString}` } }
+    makeLink: function({uri, params, page}) {
+        const qs = Object.entries(params)
+            .filter(e => e[0] !== 'resource')
+            .map(e => page ? `${e[0]}=${(e[0] === 'page' ? page : e[1])}` 
+                      : e[0] === 'resourceId' ? `${e[1][0]}=${e[1][1]}`
+                      : `${e[0]}=${e[1]}`)
+            .sort()
+            .join('&');
+
+        return { href: `${uri}/${params.resource}?${qs}` }
     },
 
-    makeLink: function({uri, path, queryString}) {
-        return { href: `${uri}/${path}?${queryString}` };
+    /* The incoming queryObject is changed so queries can be made */
+    modifyIncomingQueryObject: function(queryObject, resource) {
+
+        /***************************************************************/
+        /* lookups                                                      */
+        /***************************************************************/
+
+        // This is the easiest as nothing is added to queryObject, so 
+        // we avoid this completely
+        if (resource.group !== 'lookups') {
+
+            // The following are added to queryObject whether the 
+            // resource is being fetched from Zenodo or from Zenodeo
+            queryObject.resource = resource.name;
+            queryObject.resourceId = resource.resourceId;
+            queryObject.path = resource.name.toLowerCase();
+            
+            if (! queryObject.page) queryObject.page = 1;
+            if (! queryObject.size) queryObject.size = 30;
+
+            // The following are added *only* for resources being
+            // fetched from zenodeo
+            if (resource.group === 'zenodeoCore' || resource.group === 'zenodeoRelated') {
+
+                // 'page' and 'size' are not really needed for Zenodeo 
+                // resources. Instead, 'limit' and 'offset' are needed 
+                // for the SQL queries. But we add 'page' and 'size' 
+                // to the queryObject to have a consistent query syntax
+                //  vis a vis Zenodo queries, and then calculate the 
+                // 'limit' and 'offset' from these values.
+                queryObject.limit = parseInt(queryObject.size);
+                queryObject.offset = (queryObject.page - 1) * queryObject.limit;
+            }
+
+        }
+
+        return queryObject;
+    },
+
+    /* Some keys are removed from the queryObject so it can be converted to a 
+    human-readable search string */
+    makeSearchCriteria: function(queryObject) {
+
+        const sc = {};
+
+        // The following params may already be present or may get added 
+        // to the queryObject but they are not used when making the 
+        //_self, _prev, _next links, or the search-criteria 
+        const exclude = [
+            'facets',
+            'limit', 
+            'offset', 
+            //'page',
+            'path', 
+            'refreshCache', 
+            //'resource', 
+            'resourceId', 
+            //'size',
+            'stats'
+        ];
+
+        for (let key in queryObject) {
+            if (! exclude.includes(key)) {
+                sc[key] = queryObject[key];
+            }
+        }
+
+        return sc;
+    },
+
+    makeRemoteQueryString: function(queryObject) {
+        const qArr = [];
+
+        const seen = {
+            creator: false,
+            title: false
+        };
+
+        // this is where we store all the query params so we can 
+        // create a query from them
+        const params = [];
+
+        for (let k in queryObject) {
+
+            // 'resources' and 'refreshCache' are not sent to Zenodo
+            if (k !== 'refreshCache' && k !== 'resources') {
+
+                const param = queryObject[k];
+
+                if (Array.isArray(param)) {
+
+                    // convert 'type' into 'subtype' and join all of them into the query like so
+                    // subtype=value1&subtype=value2&subtype=value3
+                    if (k === 'type') k = 'subtype';
+                    param.forEach(p => params.push(`${k}=${p}`));
+
+                }
+                else {
+                    if (k === 'type') {
+                        if (param.toLowerCase() === 'all') {
+
+                            const resources = ['publications', 'images'];
+                            if (resources.includes(queryObject.resources)) {
+                                let v = Schema.defaults[queryObject.resources];
+                                v = v.filter(i => i !== 'all');
+                                v.forEach(t => params.push(`subtype=${t}`));
+                            }
+                        }
+                        else {
+                            params.push(`subtype=${param}`);
+                        }
+                    }
+                    else if (k === 'communities') {
+                        if (param.toLowerCase() === 'all') {
+                            let v = Schema.defaults.communities;
+                            v = v.filter(i => i !== 'all');
+                            v.forEach(t => params.push(`communities=${t}`));
+                        }
+                        else {
+                            params.push(`communities=${param}`);
+                        }
+                    }
+
+                    else if (k === 'creator') {
+
+                        if (! seen.creator) {
+                            let c = queryObject.creator;
+
+                            if (c.indexOf(' AND ') > -1) {
+                                c = `(${c})`;
+                            }
+                            else if (/".+"/.test(c)) {
+                                c = c;
+                            }
+                            else {
+                                c = `/${c}.*/`;
+                            }
+        
+                            qArr.push('+creators.name:' + c);
+        
+                            // remove 'creator' from queryObject as its job is done
+                            delete(queryObject.creator);
+                            seen.creator = true;
+                        }
+                        
+                    }
+
+                    else if (k === 'title') {
+
+                        if (! seen.title) {
+                            let c = queryObject.title;
+
+                            if (c.indexOf(' AND ') > -1) {
+                                c = `(${c})`;
+                            }
+                            else if (/".+"/.test(c)) {
+                                c = c;
+                            }
+                            else {
+                                c = `/${c}.*/`;
+                            }
+        
+                            qArr.push('+title:' + c);
+        
+                            // remove 'title' from queryObject as its job is done
+                            delete(queryObject.title);
+                            seen.title = true;
+                        }
+                        
+                    }
+
+                    else if (k === 'q') {
+
+                        qArr.push(queryObject.q);
+
+                        if (queryObject.creator) {
+                            if (! seen.creator) {
+                                let c = queryObject.creator;
+
+                                if (c.indexOf(' AND ') > -1) {
+                                    c = `(${c})`;
+                                }
+                                else if (/".+"/.test(c)) {
+                                    c = c;
+                                }
+                                else {
+                                    c = `/${c}.*/`;
+                                }
+            
+                                qArr.push('+creators.name:' + c);
+            
+                                // remove 'creator' from queryObject as its job is done
+                                delete(queryObject.creator);
+                                seen.creator = true;
+                            }
+                        }
+                        else if (queryObject.title) {
+                            if (! seen.title) {
+                                let c = queryObject.title;
+
+                                if (c.indexOf(' AND ') > -1) {
+                                    c = `(${c})`;
+                                }
+                                else if (/".+"/.test(c)) {
+                                    c = c;
+                                }
+                                else {
+                                    c = `/${c}.*/`;
+                                }
+            
+                                qArr.push('+title:' + c);
+            
+                                // remove 'title' from queryObject as its job is done
+                                delete(queryObject.title);
+                                seen.title = true;
+                            }
+                        }
+                        else {
+                            params.push(`${k}=${param}`);
+                        }
+                    }
+
+                    else {
+                        params.push(`${k}=${param}`);
+                    }
+                }
+            }
+        }
+
+        const q = encodeURIComponent(qArr.join(' '));
+        const p = params.join('&');
+
+        const uri = `q=${q}&${p}&type=${queryObject.resource.slice(0, -1)}&access_right=open`;
+
+        return uri;
     }
 }
 

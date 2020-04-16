@@ -1,14 +1,15 @@
 'use strict';
 
-const Schema = require('../schema.js');
+const Schema = require('./dd2schema');
 const ResponseMessages = require('../../responseMessages');
 const Utils = require('../utils');
+const {handler, getRecords} = require('../lib/z');
 
-const h = function(plugins, handler, getRecords) {
+const h = function(plugins) {
     
     return {
         plugin: {
-            name: plugins._name,
+            name: plugins._resource,
             register: async function(server, options) {
     
                 // create the cache
@@ -24,25 +25,26 @@ const h = function(plugins, handler, getRecords) {
                 server.bind({ cache });
     
                 server.route([{
-                    path: `/${plugins._path}`, 
-                    method: 'GET', 
+                    path: `/${plugins._resource.toLowerCase()}`, 
+                    method: 'GET',
+                    handler: handler(plugins),
     
-                    config: {
-                        description: `Fetch ${plugins._resources} from Zenodo`,
-                        tags: [plugins._resources, 'api'],
+                    options: {
+                        description: `Fetch ${plugins._resource} from Zenodo`,
+                        tags: [plugins._resource, 'api'],
                         plugins: {
                             'hapi-swagger': {
                                 order: plugins._order,
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema[plugins._resources],
+                        validate: Schema[plugins._resource],
                         notes: [
-                            `This is the main route for fetching ${plugins._resources} matching the provided query parameters.`
+                            `This is the main route for fetching ${plugins._resource} matching the provided query parameters.`
                         ]
                     },
     
-                    handler: handler(plugins)
+                    
                 }]);
             },
         }

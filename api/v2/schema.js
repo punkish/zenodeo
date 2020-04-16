@@ -80,7 +80,9 @@ const schemaDefaults = {
 
     qreq: Joi.string()
         .description('any text string')
-        .required(),
+        .required()
+        .min(3)
+        .message(`a querystring of at least {#limit} characters is required`),
 
     treatmentId: Joi.string()
         .alphanum()
@@ -583,8 +585,17 @@ const schema = {
     // no caching for any of the resources below
     authors: {
         query: Joi.object({
-            q: schemaDefaults.qreq,
-        })
+            //q: schemaDefaults.qreq,
+            q: Joi.string()
+            .description('any text string')
+            .required()
+            .min(3)
+            .message(`a querystring of at least {#limit} characters is required`)
+        }),
+        failAction: (request, h, err) => {
+            throw err;
+            return;
+        }
     },
 
     keywords: {

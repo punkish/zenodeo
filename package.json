@@ -9,9 +9,6 @@
   "dependencies": {
     "@hapi/boom": "^7.4.11",
     "@hapi/catbox": "^10.2.3",
-    "@hapi/good": "^8.2.4",
-    "@hapi/good-console": "^8.1.2",
-    "@hapi/good-squeeze": "^5.2.1",
     "@hapi/hapi": "^18.4.0",
     "@hapi/inert": "^5.2.2",
     "@hapi/joi": "^16.1.8",

@@ -20,24 +20,16 @@ const fs = require('fs');
 const dd2queries = require('../lib/dd2queries');
 
 
-const handler = function(plugins) {
+const handler = function(resource) {
 
     return async function(request, h) {
 
-        const queryObject = request.query;
-
-        // Add names of the resource and the resource's PK
-        // Note, these are *not* values, but just keys. For
-        // example, 'treatments' and 'treatmentId', not 
-        // '000343DSDHSK923HHC9SKKS' (value of 'treatmentId')
-        queryObject.resources = plugins._resources;
-        queryObject.resourceId = plugins._resourceId;
-        queryObject.path = plugins._path;
+        const queryObject = Utils.modifyIncomingQueryObject(request.query, resource);
         
         // bunch up messages to print them to the log
         const messages = [{label: 'queryObject', params: queryObject}];
 
-        if (queryObject.resources === 'treatments') {
+        //if (queryObject.resource === 'treatments') {
 
             // if xml is being requested, send it back and be done with it
             if (queryObject.format && queryObject.format === 'xml') {
@@ -48,7 +40,7 @@ const handler = function(plugins) {
                     .header('Content-Type', 'application/xml');
                 
             }
-        }
+        //}
     
         // cacheKey is the URL query without the refreshCache param.
         const cacheKey = Utils.makeCacheKey(request);
@@ -58,19 +50,38 @@ const handler = function(plugins) {
         if (cacheOn) {
             if (queryObject.refreshCache || queryObject.refreshCache === 'true') {
 
-                messages.push({label: 'info', params: 'emptying the cache'});
+                messages.push({
+                    label: 'info', 
+                    params: 'force emptying the cache'
+                });
+
                 this.cache.drop(cacheKey);
+
+                messages.push({
+                    label: 'info', 
+                    params: 'refilling the cache with fresh results'
+                });
 
             }
     
-            messages.push({label: 'info', params: 'getting fresh results'});
+            messages.push({
+                label: 'info', 
+                params: 'getting results from the cache'
+            });
+
             plog.log({ header: 'WEB QUERY', messages: messages });
             result = this.cache.get(cacheKey);
         }
         else {
-            messages.push({label: 'info', params: 'querying for fresh results'});
+
+            messages.push({
+                label: 'info', 
+                params: 'querying for fresh results'
+            });
+
             plog.log({ header: 'WEB QUERY', messages: messages });
             result = getRecords(cacheKey);
+
         }
 
         return result;
@@ -118,7 +129,6 @@ const formatUnicorn = function () {
 String.prototype.formatUnicorn = String.prototype.formatUnicorn || formatUnicorn;
 
 const dataForDelivery = function(t, data, debug) {
-    console.log('now in dataDelivery');
 
     if (cacheOn) {
         return data;
@@ -185,25 +195,6 @@ const dataForDelivery = function(t, data, debug) {
 
 };
 
-const calcSearchCriteria = function(queryObject) {
-
-    // data will hold all the query results to be sent back
-    const sc = {};
-
-    // The following params may get added to the queryObject but they 
-    // are not used when making the _self, _prev, _next links, or  
-    // the search-criteria 
-    const exclude = ['path', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
-
-    for (let key in queryObject) {
-        if (! exclude.includes(key)) {
-            sc[key] = queryObject[key];
-        }
-    }
-
-    return sc;
-};
-
 const getOneRecord = function(queryObject) {
 
     let timer = process.hrtime();
@@ -212,7 +203,7 @@ const getOneRecord = function(queryObject) {
 
     // data will hold all the query results to be sent back
     const data = {
-        'search-criteria': calcSearchCriteria(queryObject)
+        'search-criteria': Utils.makeSearchCriteria(queryObject)
     };
 
     const q = dd2queries(queryObject);
@@ -252,14 +243,10 @@ const getOneRecord = function(queryObject) {
         plog.error(error, sql);
     }
 
-    // add a self link to the data
-    data._links = Utils.makeSelfLink({
+    data._links = {};
+    data._links.self = Utils.makeLink({
         uri: uriZenodeo, 
-        path: queryObject.path, 
-        queryString: Object.entries(data['search-criteria'])
-            .map(e => e[0] + '=' + e[1])
-            .sort()
-            .join('&')
+        params: data['search-criteria']
     });
 
     plog.log({ 
@@ -275,7 +262,7 @@ const getOneRecord = function(queryObject) {
     }
 
     // more data from beyond the database
-    if (queryObject.resources === 'treatments') {
+    if (queryObject.resource === 'treatments') {
         if (queryObject.xml && queryObject.xml === 'true') {
             data.records[0].xml = getXml(queryObject.treatmentId);
         }
@@ -297,17 +284,8 @@ const getManyRecords = async function(queryObject) {
 
     // data will hold all the query results to be sent back
     const data = {
-        'search-criteria': calcSearchCriteria(queryObject)
+        'search-criteria': Utils.makeSearchCriteria(queryObject)
     };
-
-    // calc limit and offset and add them to the queryObject
-    // as we will need them for the SQL query
-    const page = queryObject.page ? parseInt(queryObject.page) : 1;
-    const size = queryObject.size ? parseInt(queryObject.size) : 30;
-    const limit = size;
-    const offset = (page - 1) * limit;
-    queryObject.limit = limit;
-    queryObject.offset = offset;
 
     const q = dd2queries(queryObject);
 
@@ -346,11 +324,7 @@ const getManyRecords = async function(queryObject) {
     data._links = {};
     data._links.self = Utils.makeLink({
         uri: uriZenodeo, 
-        path: queryObject.path,
-        queryString: Object.entries(data['search-criteria'])
-            .map(e => e[0] + '=' + e[1])
-            .sort()
-            .join('&')
+        params: data['search-criteria']
     });
 
     // We are done if no records found
@@ -391,19 +365,23 @@ const getManyRecords = async function(queryObject) {
     });
 
     if (data.records.length > 0) {
+
         data.records.forEach(rec => {
-            rec._links = Utils.makeSelfLink({
+
+            rec._links = {};
+            rec._links.self = Utils.makeLink({
                 uri: uriZenodeo, 
-                path: queryObject.path,
-                queryString: Object.entries({
-                    key: queryObject.resourceId,
-                    val: rec[queryObject.resourceId]
-                }).map(e => e[1]).join('=')
+                params: {
+                    resource: queryObject.resource,
+                    resourceId: [ queryObject.resourceId, rec[queryObject.resourceId] ]
+                }
             });
+
         });
 
         const lastrec = data.records[data.records.length - 1];
         data.nextid = lastrec.id;
+
     }
     else {
         data.nextid = '';
@@ -411,32 +389,27 @@ const getManyRecords = async function(queryObject) {
 
     // set some records-specific from and to for the formatted
     // search criteria string
-    data.from = ((queryObject.page - 1) * queryObject.limit) + 1;
-    data.to = data.records.length < queryObject.limit ? 
-        data.from + data.records.length - 1 : 
-        data.from + queryObject.limit - 1;
+    const num = data.records.length;
+    data.from = ((queryObject.page - 1) * queryObject.size) + 1;
+    data.to = num < queryObject.size ? 
+        data.from + num - 1 : 
+        data.from + queryObject.size - 1;
 
     data.previd = id;
 
     data.prevpage = queryObject.page >= 1 ? queryObject.page - 1 : '';
-    data.nextpage = data.records.length < queryObject.limit ? '' : parseInt(queryObject.page) + 1;
+    data.nextpage = num < queryObject.size ? '' : +queryObject.page + 1;
 
     data._links.prev = Utils.makeLink({
         uri: uriZenodeo, 
-        path: queryObject.path,
-        queryString: Object.entries(data['search-criteria'])
-            .map(e => e[0] + '=' + (e[0] === 'page' ? data.prevpage : e[1]))
-            .sort()
-            .join('&')
+        params: data['search-criteria'],
+        page: data.prevpage
     });
 
     data._links.next = Utils.makeLink({
         uri: uriZenodeo, 
-        path: queryObject.path,
-        queryString: Object.entries(data['search-criteria'])
-            .map(e => e[0] + '=' + (e[0] === 'page' ? data.nextpage : e[1]))
-            .sort()
-            .join('&')
+        params: data['search-criteria'],
+        page: data.nextpage
     });
 
     // finally, get facets and stats, if requested 
@@ -594,4 +567,4 @@ const formatAuthors = function(authors) {
     return authorsList;
 };
 
-module.exports = {handler, getRecords};
+module.exports = { handler, getRecords };

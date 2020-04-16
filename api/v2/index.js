@@ -8,21 +8,16 @@ exports.plugin = {
     version: '1.0.1',
     register: async function(server, options) {
 
-        await server.register([
-            { plugin: require('./resources/root') },
-            { plugin: require('./resources/treatments'), options: cache },
-            { plugin: require('./resources/figureCitations'), options: cache },
-            { plugin: require('./resources/treatmentAuthors'), options: cache },
-            { plugin: require('./resources/bibRefCitations'), options: cache },
-            { plugin: require('./resources/treatmentCitations'), options: cache },
-            { plugin: require('./resources/materialsCitations'), options: cache },
-            { plugin: require('./resources/images'), options: cache },
-            { plugin: require('./resources/publications'), options: cache },
-            { plugin: require('./resources/taxa') },
-            { plugin: require('./resources/families') },
-            { plugin: require('./resources/keywords') },
-            { plugin: require('./resources/authors') },
-            { plugin: require('./resources/wpsummary'), options: cache }
-        ]);
+        const rootRoute = [{ plugin: require('./resources/rootRoute') }];
+
+        const otherRoutes = require('./resources/otherRoutes');
+        otherRoutes.forEach(r => r.options = cache);
+        otherRoutes.push({ 
+            plugin: require('./resources/wpsummary'), 
+            options: cache 
+        });
+        
+        const routes = [].concat(rootRoute, otherRoutes);
+        await server.register(routes);
     }
 };

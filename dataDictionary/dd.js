@@ -60,281 +60,329 @@
  * 
  **********************************************************************/
 
+const commonParams = {
 
-
- const commonQueryParams = [
-    {
-        plaziName     : 'refreshCache',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'Force refresh cache',
-        queryable     : '',
-        queryString   : 'refreshCache',
-        validation    : 'Joi.boolean().default(false).description(`${d}`).optional()',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'page',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'Starting page, defaults to <b>1</b>',
-        queryable     : '',
-        queryString   : 'page',
-        validation    : 'Joi.number().integer().default(1).description(`${d}`)',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'size',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'Number of records to fetch per query, defaults to <b>30</b>',
-        queryable     : '',
-        queryString   : 'size',
-        validation    : 'Joi.number().integer().min(1).max(100).default(30).description(`${d}`)',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'facets',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'Whether or not to fetch facets',
-        queryable     : '',
-        queryString   : 'facets',
-        validation    : 'Joi.boolean().default(false).description(`${d}`)',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'stats',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'Whether or not to fetch stats',
-        queryable     : '',
-        queryString   : 'stats',
-        validation    : 'Joi.boolean().default(false).description(`${d}`)',
-        resourceId    : false
-    }
- ];
-
- const commonZenodeoQueryParams = [
-
-    // The following is used in every SQL table
-    // It is automatically generated and incremented
-    // by SQLite
-    {
-    plaziName     : 'id',
-    zenodoName    : '',
-    sqlType       : 'INTEGER PRIMARY KEY',
-    cheerioElement: '',
-    description   : 'The primary key (PK) for this table',
-    queryable     : '',
-    queryString   : '',
-    validation    : '',
-    resourceId    : false
-    },
-
-    // The following definition of 'treatmentId' not 
-    // used in the 'treatments' table which has its 
-    // own declration (mainly, its `sqlType` and 
-    // `resourceId` values are diferet). The following 
-    // definition is used in all other tables as a 
-    // foreign key (FK)
-    {
-        plaziName     : 'treatmentId',
-        zenodoName    : '',
-        sqlType       : 'TEXT NOT NULL',
-        cheerioElement: '$("document").attr("docId")',
-        description   : 'The unique ID of the treatment',
-        queryable     : 'equal',
-        queryString   : 'treatmentId',
-        validation    : 'Joi.string().guid().description(`${d}`).optional()',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'deleted',
-        zenodoName    : '',
-        sqlType       : 'INTEGER DEFAULT 0',
-        cheerioElement: '$("document").attr("deleted")',
-        description   : 'A boolean that tracks whether or not this resource is considered deleted/revoked, 1 if yes, 0 if no',
-        queryable     : '',
-        queryString   : '',
-        validation    : '',
-        resourceId    : false
-    }
-];
-
- const commonZenodoQueryParams = [
-    {
-        plaziName     : 'id',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'unique identifier of the record',
-        queryable     : 'equal',
-        queryString   : 'id',
-        validation    : 'Joi.number().integer().description(`${d}`).optional()',
-        resourceId    : true
-    },
-    {
-        plaziName     : 'creator',
-        zenodoName    : 'creator',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : `Usually the author. Use the following syntax:
-
-Starts with « Ago » 
-*This will find all Ago; Agosti; Agostini and so on.*
-
-        ┌─────────────┐
-        │     Ago     │
-        └─────────────┘
-
-Is exactly « Agosti, Donat »
-*Keep in mind, this will *not* find « Donat Agosti »*
-
-        ┌─────────────────┐
-        │ "Agosti, Donat" │
-        └─────────────────┘
-
-Either « Agosti » OR « Donat »
-*This will find Agostini, Carlos; Donat; Donat Agosti and so on.*
-
-        ┌──────────────┐
-        │ Agosti Donat │
-        └──────────────┘
-
-Both « Agosti » AND « Donat »
-*This will find Agosti, Donat; Donat Agosti; and other variations with these two words*
-
-        ┌──────────────────┐
-        │ Agosti AND Donat │
-        └──────────────────┘`,
-        queryable     : 'like',
-        queryString   : 'creator',
-        validation    : 'Joi.string().description(`${d}`).optional()',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'title',
-        zenodoName    : 'title',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : `Title of the record. Use the following syntax:
-
-Starts with « pea » 
-*This will find all pea; peacock; peabody and so on.*
-
-        ┌─────────────┐
-        │     pea     │
-        └─────────────┘
-
-Is exactly « spider, peacock »
-*Keep in mind, this will *not* find « peacock spider »*
-
-        ┌───────────────────┐
-        │ "spider, peacock" │
-        └───────────────────┘
-
-Either « spider » OR « peacock »
-*This will find spider, peacock; Donat; Donat Agosti and so on.*
-
-        ┌────────────────┐
-        │ spider peacock │
-        └────────────────┘
-
-Both « spider » AND « peacock »
-*This will find spider, peacock; peacock spider; and other variations with these two words*
-
-        ┌────────────────────┐
-        │ spider AND peacock │
-        └────────────────────┘`,
-        queryable     : 'like',
-        queryString   : 'title',
-        validation    : 'Joi.string().description(`${d}`).optional()',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'communities',
-        zenodoName    : '',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'The community on Zenodo; defaults to <b>"biosyslit"</b>',
-        queryable     : '',
-        queryString   : 'communities',
-        validation    : 'Joi.string().valid("all", "biosyslit", "belgiumherbarium").default("biosyslit").description(`${d}`).optional()',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'keywords',
-        zenodoName    : 'keywords',
-        sqlType       : '',
-        cheerioElement: '',
-        description   : 'The keywords associated with the publication; more than one keywords may be used',
-        queryable     : 'equal',
-        queryString   : 'type',
-        validation    : 'Joi.string().description(`${d}`).optional()',
-        resourceId    : false
-    }
- ];
-
-const dd = {
-    
-    treatments: require('./treatments'),
-    figureCitations: require('./figureCitations'),
-    bibRefCitations: require('./bibRefCitations'),
-    treatmentCitations: require('./treatmentCitations'),
-    materialsCitations: require('./materialsCitations'),
-    treatmentAuthors: require('./treatmentAuthors'),
-
-    images: [
+    all: [
         {
-            plaziName     : 'type',
-            zenodoName    : 'publication_subtypes',
+            plaziName     : 'refreshCache',
+            zenodoName    : '',
             sqlType       : '',
             cheerioElement: '',
-            description   : 'The image subtype; defaults to <b>"all"</b>',
-            queryable     : 'equal',
-            queryString   : 'type',
-            validation    : 'Joi.string().valid("all", "figure", "photo", "drawing", "diagram", "plot", "other").default("all").description(`${d}`).optional()',
+            description   : 'Force refresh cache',
+            queryable     : '',
+            queryString   : 'refreshCache',
+            validation    : 'Joi.boolean().default(false).description(`${d}`).optional()',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'page',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'Starting page, defaults to <b>1</b>',
+            queryable     : '',
+            queryString   : 'page',
+            validation    : 'Joi.number().integer().default(1).description(`${d}`)',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'size',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'Number of records to fetch per query, defaults to <b>30</b>',
+            queryable     : '',
+            queryString   : 'size',
+            validation    : 'Joi.number().integer().min(1).max(100).default(30).description(`${d}`)',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'facets',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'Whether or not to fetch facets',
+            queryable     : '',
+            queryString   : 'facets',
+            validation    : 'Joi.boolean().default(false).description(`${d}`)',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'stats',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'Whether or not to fetch stats',
+            queryable     : '',
+            queryString   : 'stats',
+            validation    : 'Joi.boolean().default(false).description(`${d}`)',
             resourceId    : false
         }
     ],
 
-    publications: [
+    zenodeoCore: [],
+
+    zenodeoRelated: [
+
+        // The following is used in every SQL table
+        // It is automatically generated and incremented
+        // by SQLite
         {
-            plaziName     : 'type',
-            zenodoName    : 'image_subtypes',
-            sqlType       : '',
+            plaziName     : 'id',
+            zenodoName    : '',
+            sqlType       : 'INTEGER PRIMARY KEY',
             cheerioElement: '',
-            description   : 'The publication subtype; defaults to <b>"all"</b>',
+            description   : 'The primary key (PK) for this table',
+            queryable     : '',
+            queryString   : '',
+            validation    : '',
+            resourceId    : false
+        },
+    
+        // The following definition of 'treatmentId' not 
+        // used in the 'treatments' table which has its 
+        // own declration (mainly, its `sqlType` and 
+        // `resourceId` values are diferent). The following 
+        // definition is used in all other tables as a 
+        // foreign key (FK)
+        {
+            plaziName     : 'treatmentId',
+            zenodoName    : '',
+            sqlType       : 'TEXT NOT NULL',
+            cheerioElement: '$("document").attr("docId")',
+            description   : 'The unique ID of the treatment',
             queryable     : 'equal',
-            queryString   : 'type',
-            validation    : 'Joi.string().valid("all", "article", "report", "book", "thesis", "section", "workingpaper", "preprint").default("all").description(`${d}`).optional()',
+            queryString   : 'treatmentId',
+            validation    : 'Joi.string().guid().description(`${d}`).optional()',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'deleted',
+            zenodoName    : '',
+            sqlType       : 'INTEGER DEFAULT 0',
+            cheerioElement: '$("document").attr("deleted")',
+            description   : 'A boolean that tracks whether or not this resource is considered deleted/revoked, 1 if yes, 0 if no',
+            queryable     : '',
+            queryString   : '',
+            validation    : '',
             resourceId    : false
         }
-    ]
+    ],
+
+    zenodo: [
+        {
+            plaziName     : 'id',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'unique identifier of the record',
+            queryable     : 'equal',
+            queryString   : 'id',
+            validation    : 'Joi.number().integer().description(`${d}`).optional()',
+            resourceId    : true
+        },
+        {
+            plaziName     : 'q',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'term for full-text search',
+            queryable     : 'equal',
+            queryString   : 'q',
+            validation    : 'Joi.string().description(`${d}`).optional()',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'creator',
+            zenodoName    : 'creator',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : `Usually the author. Use the following syntax:
+    
+    Starts with « Ago » 
+    *This will find all Ago; Agosti; Agostini and so on.*
+    
+            ┌─────────────┐
+            │     Ago     │
+            └─────────────┘
+    
+    Is exactly « Agosti, Donat »
+    *Keep in mind, this will *not* find « Donat Agosti »*
+    
+            ┌─────────────────┐
+            │ "Agosti, Donat" │
+            └─────────────────┘
+    
+    Either « Agosti » OR « Donat »
+    *This will find Agostini, Carlos; Donat; Donat Agosti and so on.*
+    
+            ┌──────────────┐
+            │ Agosti Donat │
+            └──────────────┘
+    
+    Both « Agosti » AND « Donat »
+    *This will find Agosti, Donat; Donat Agosti; and other variations with these two words*
+    
+            ┌──────────────────┐
+            │ Agosti AND Donat │
+            └──────────────────┘`,
+            queryable     : 'like',
+            queryString   : 'creator',
+            validation    : 'Joi.string().description(`${d}`).optional()',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'title',
+            zenodoName    : 'title',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : `Title of the record. Use the following syntax:
+    
+    Starts with « pea » 
+    *This will find all pea; peacock; peabody and so on.*
+    
+            ┌─────────────┐
+            │     pea     │
+            └─────────────┘
+    
+    Is exactly « spider, peacock »
+    *Keep in mind, this will *not* find « peacock spider »*
+    
+            ┌───────────────────┐
+            │ "spider, peacock" │
+            └───────────────────┘
+    
+    Either « spider » OR « peacock »
+    *This will find spider, peacock; Donat; Donat Agosti and so on.*
+    
+            ┌────────────────┐
+            │ spider peacock │
+            └────────────────┘
+    
+    Both « spider » AND « peacock »
+    *This will find spider, peacock; peacock spider; and other variations with these two words*
+    
+            ┌────────────────────┐
+            │ spider AND peacock │
+            └────────────────────┘`,
+            queryable     : 'like',
+            queryString   : 'title',
+            validation    : 'Joi.string().description(`${d}`).optional()',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'communities',
+            zenodoName    : '',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'The community on Zenodo; defaults to <b>"biosyslit"</b>',
+            queryable     : '',
+            queryString   : 'communities',
+            validation    : 'Joi.string().valid("all", "biosyslit", "belgiumherbarium").default("biosyslit").description(`${d}`).optional()',
+            resourceId    : false
+        },
+        {
+            plaziName     : 'keywords',
+            zenodoName    : 'keywords',
+            sqlType       : '',
+            cheerioElement: '',
+            description   : 'The keywords associated with the publication; more than one keywords may be used',
+            queryable     : 'equal',
+            queryString   : 'type',
+            validation    : 'Joi.string().description(`${d}`).optional()',
+            resourceId    : false
+        }
+    ],
+
+    lookups: []
+
 };
 
-const zenodoResources = ['images', 'publications'];
-const zenodeoResources = ['figureCitations', 'bibRefCitations', 'materialsCitations', 'treatmentCitations'];
+const dd = {
+    
+    zenodeoCore: {
 
-module.exports = (function() {
-    for (let resource in dd) {
-        dd[resource].push(...commonQueryParams);
+        treatments: require('./treatments'),
 
-        if (zenodoResources.includes(resource)) {
-            dd[resource].push(...commonZenodoQueryParams);
-        }
-        else {
-            if (resource !== 'treatments') {
-                dd[resource].push(...commonZenodeoQueryParams);
+    },
+
+    zenodeoRelated: {
+
+        figureCitations: require('./figureCitations'),
+        bibRefCitations: require('./bibRefCitations'),
+        treatmentCitations: require('./treatmentCitations'),
+        materialsCitations: require('./materialsCitations'),
+        treatmentAuthors: require('./treatmentAuthors')
+
+    },
+
+    zenodo: {
+
+        images: require('./images'),
+        publications: require('./publications')
+
+    },
+
+    lookups: {
+
+        authors: [
+            {
+                plaziName     : 'author',
+                zenodoName    : '',
+                sqlType       : '',
+                cheerioElement: '',
+                description   : 'retrieve all authors starting with the provided letters',
+                queryable     : 'like',
+                queryString   : 'q',
+                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=ago»)`)',
+                resourceId    : false
             }
-        }
+        ],
+    
+        keywords: [
+            {
+                plaziName     : 'keyword',
+                zenodoName    : '',
+                sqlType       : '',
+                cheerioElement: '',
+                description   : 'retrieve all keywords starting with the provided letters',
+                queryable     : 'like',
+                queryString   : 'q',
+                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=son»)`)',
+                resourceId    : false
+            }
+        ],
+    
+        families: [
+            {
+                plaziName     : 'family',
+                zenodoName    : '',
+                sqlType       : '',
+                cheerioElement: '',
+                description   : 'retrieve all families starting with the provided letters',
+                queryable     : 'like',
+                queryString   : 'q',
+                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=ago»)`)',
+                resourceId    : false
+            }
+        ],
+    
+        taxa: [
+            {
+                plaziName     : 'taxon',
+                zenodoName    : '',
+                sqlType       : '',
+                cheerioElement: '',
+                description   : 'retrieve all taxa starting with the provided letters',
+                queryable     : 'like',
+                queryString   : 'q',
+                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=ago»)`)',
+                resourceId    : false
+            }
+        ]
+
     }
 
-    return dd;
-})();
+};
+
+module.exports = { dd: dd, commonParams: commonParams };

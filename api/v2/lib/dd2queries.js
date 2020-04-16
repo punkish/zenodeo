@@ -2,8 +2,6 @@
 
 const config = require('config');
 const plog = require(config.get('plog'));
-const qParts = require('./qparts');
-const dd = require('../../../dataDictionary/dd');
 
 // The following params may be present in the querystring but they are 
 // not included when making the SQL
@@ -27,10 +25,9 @@ const calcSortParams = function(sortBy, queryObject) {
     return [sortcol, sortdir];
 };
 
-const calcConstraint = function(queryObject) {
+const calcConstraint = function(ddKeys, queryObject) {
 
-    const resources = queryObject.resources;
-    const pk = ddKeys.byResourceIds[resources];
+    const pk = ddKeys.byResourceIds[queryObject.resource];
 
     const matchTables = [];
     const constraint = [];
@@ -43,7 +40,7 @@ const calcConstraint = function(queryObject) {
             
             if (! exclude.includes(k)) {
                 
-                const ddk = ddKeys.byQueryString[resources][k];
+                const ddk = ddKeys.byQueryString[queryObject.resource][k];
                 if (ddk) {
                     const op = ddk.queryable;
                     const sqlName = ddk.sqlName;
@@ -82,7 +79,7 @@ const calcConstraint = function(queryObject) {
 // ORDER BY <sortcol> <sortdir> 
 // LIMIT <limit> 
 // OFFSET <offset>
-const calcQuery = function(queryGroup, query, queryObject, matchTables, addedConstraint) {
+const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, addedConstraint) {
 
     const columns = query.columns;
     const tables = JSON.parse(JSON.stringify(query.tables));
@@ -132,15 +129,18 @@ const calcQuery = function(queryGroup, query, queryObject, matchTables, addedCon
     return sql;
 };
 
-const ddKeys = (function() {
+const ddKeys = function() {
+
     const byQueryString = {};
     const byResourceIds = {};
 
-    for (let resource in dd) {
+    const { dataDictionary, resourceGroups } = require('./dd2datadictionary');
+
+    for (let resource in dataDictionary) {
 
         byQueryString[resource] = {};
 
-        const resPart = dd[resource];
+        const resPart = dataDictionary[resource];
         for (let i = 0, j = resPart.length; i < j; i++) {
             const qs = resPart[i].queryString;
 
@@ -154,6 +154,7 @@ const ddKeys = (function() {
                 }
 
                 if (resPart[i].resourceId) {
+
                     byResourceIds[resource] = resPart[i].plaziName
                 }
                 
@@ -166,23 +167,24 @@ const ddKeys = (function() {
         byQueryString: byQueryString,
         byResourceIds: byResourceIds
     };
-})();
+
+};
 
 const dd2queries = function(queryObject) {
 
     plog.info('queryObject', JSON.stringify(queryObject));
 
-    // for what resource are we creating the queries
-    const resources = queryObject.resources;
-
     // get a reference to the resource-specific query parts.
-    // For example, if 'queryObject.resources' is 'treatments'
+    // For example, if 'queryObject.resource' is 'treatments'
     // then 'r' will be a reference to the 'treatments'
     // specific qParts
-    const r = qParts[resources];
-    const pk = ddKeys.byResourceIds[resources];
+    const qParts = require('./qparts');
+    const r = qParts[queryObject.resource];
 
-    const [ matchTables, constraint ] = calcConstraint(queryObject);
+    const ddKeys = ddKeys();
+    const pk = ddKeys.byResourceIds[queryObject.resource];
+
+    const [ matchTables, constraint ] = calcConstraint(ddKeys, queryObject);
 
     // make a deep copy of the resource specific queries
     // so it is easier to work with them. We make a deep 
@@ -210,7 +212,14 @@ const dd2queries = function(queryObject) {
 
             for (let queryName in groupQueries) {
                 const query = groupQueries[queryName];
-                const sql = calcQuery(queryGroup, query, queryObject, matchTables, constraint);
+                const sql = calcQuery(
+                    ddKeys, 
+                    queryGroup, 
+                    query, 
+                    queryObject, 
+                    matchTables, 
+                    constraint
+                );
 
                 q[queryGroup][queryName] = { sql: sql };
                 if ('pk' in query) {

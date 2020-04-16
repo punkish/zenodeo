@@ -1,9 +1,7 @@
 'use strict';
 
 const Joi = require('@hapi/joi');
-const config = require('config');
-const plog = require(config.get('plog'));
-const dd = require('../../../dataDictionary/dd');
+const { dataDictionary, resourceGroups } = require('./dd2datadictionary');
 const Boom = require('@hapi/boom');
 
 // 'resources' is the plural form of the desired resource
@@ -14,10 +12,10 @@ const dd2schema = function() {
     const so = {};
     const soLog = {};
 
-    for (let resource in dd) {
+    for (let resource in dataDictionary) {
 
         // resource-specific data dictionary
-        const rdd = dd[resource];
+        const rdd = dataDictionary[resource];
 
         // resource-specific schema description
         const rso = {};
@@ -40,11 +38,14 @@ const dd2schema = function() {
         }
 
         so[resource] = { 
+
             query: Joi.object(rso), 
             failAction: (request, h, err) => {
                 throw Boom.badRequest(err)
             }
+
         };
+
         soLog[resource] = { query: `Joi.object(${JSON.stringify(rsoLog, null, 4)})` };
     }
     
