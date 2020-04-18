@@ -93,7 +93,7 @@ const getOneRecord = async function(queryObject) {
     const uriRemote = uriZenodo + queryObject[queryObject.resourceId];
 
     const messages = [ {label: 'queryObject', params: queryObject} ];
-    const messages = [ {label: 'remote URI', params: uriRemote} ];
+    messages.push({label: 'remote URI', params: uriRemote});
 
     // data will hold all the query results to be sent back
     const data = {

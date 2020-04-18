@@ -4,10 +4,11 @@ const Wreck = require('@hapi/wreck');
 
 const config = require('config');
 const plog = require(config.get('plog'));
-
+const cacheOn = config.get('v2.cache.on');
 const Database = require('better-sqlite3');
 const dbFacets = new Database(config.get('data.facets'));
 const dbTreatments = new Database(config.get('data.treatments'));
+const dbQueries = new Database(config.get('data.queries'));
 
 const facets = {
     authors: 'author',
@@ -17,6 +18,93 @@ const facets = {
 };
 
 module.exports = {
+
+    dataForDelivery: function(t, data, debug) {
+
+        if (cacheOn) {
+            return data;
+        }
+        else {
+            const report = { msec: t.msr }
+    
+            if (process.env.NODE_ENV === 'test') {
+                report.debug = debug;
+            }
+    
+            const {queryObject, sqls} = debug;
+            const inserts = sqls.length;
+    
+            const s1 = dbQueries.prepare(`INSERT INTO webqueries (qp) VALUES(@qp) ON CONFLICT(qp) DO UPDATE SET count=count+1`);
+    
+            const s2 = dbQueries.prepare('SELECT Max(id) AS id FROM webqueries');
+    
+            const s3 = dbQueries.prepare(`INSERT INTO sqlqueries (sql) VALUES(@sql) ON CONFLICT(sql) DO NOTHING`);
+    
+            const s4 = dbQueries.prepare('SELECT Max(id) AS id FROM sqlqueries');
+    
+            const s5 = dbQueries.prepare('INSERT INTO stats (webqueries_id, sqlqueries_id, timeTaken) VALUES (@webqueries_id, @sqlqueries_id, @timeTaken)');
+    
+            if (inserts) {
+    
+                try {
+                    //dbQueries.prepare('BEGIN TRANSACTION').run();
+    
+                    const qp = JSON.stringify(queryObject);
+                    s1.run({qp: qp});
+    
+                    const webqueries_id = s2.get().id;
+    
+                    for (let i = 0; i < inserts; i++) {
+    
+                        const sql = sqls[i].sql.formatUnicorn(queryObject);
+                        const t = sqls[i].took;
+            
+                        s3.run({sql: sql});
+                        
+                        const sqlqueries_id = s4.get().id;
+        
+                        s5.run({
+                            webqueries_id: webqueries_id, 
+                            sqlqueries_id: sqlqueries_id, 
+                            timeTaken: t.msr
+                        });
+    
+                    }
+                }
+                catch (error) {
+                    console.log(error);
+                }
+                
+            }
+    
+            return {
+                value: data,
+                cached: null,
+                report: report
+            }
+        }
+    
+    },
+
+    // https://stackoverflow.com/a/18234317/183692
+    formatUnicorn: function () {
+        
+        let str = this.toString().replace(/@(\w+)/g, "'{\$1}'");
+        
+        if (arguments.length) {
+
+            const t = typeof arguments[0];
+            const args = ('string' === t || 'number' === t) ?
+                Array.prototype.slice.call(arguments)
+                : arguments[0];
+
+            for (let key in args) {
+                str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
+            }
+        }
+
+        return str;
+    },
     
     timerFormat: function(t) {
 
@@ -289,14 +377,14 @@ module.exports = {
 
     makeLink: function({uri, params, page}) {
         const qs = Object.entries(params)
-            .filter(e => e[0] !== 'resource')
+            .filter(e => e[0] !== 'path')
             .map(e => page ? `${e[0]}=${(e[0] === 'page' ? page : e[1])}` 
-                      : e[0] === 'resourceId' ? `${e[1][0]}=${e[1][1]}`
-                      : `${e[0]}=${e[1]}`)
+                    : e[0] === 'resourceId' ? `${e[1].key}=${e[1].val}`
+                    : `${e[0]}=${e[1]}`)
             .sort()
             .join('&');
 
-        return { href: `${uri}/${params.resource}?${qs}` }
+        return { href: `${uri}/${params.path}?${qs}` }
     },
 
     /* The incoming queryObject is changed so queries can be made */
@@ -352,13 +440,17 @@ module.exports = {
             'limit', 
             'offset', 
             //'page',
-            'path', 
+            //'path', 
             'refreshCache', 
-            //'resource', 
+            'resource', 
             'resourceId', 
             //'size',
             'stats'
         ];
+
+        if (queryObject[queryObject.resourceId]) {
+            exclude.push(...['page', 'size']);
+        }
 
         for (let key in queryObject) {
             if (! exclude.includes(key)) {

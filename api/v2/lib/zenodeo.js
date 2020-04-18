@@ -1,11 +1,17 @@
-/**************************************
- * abstracted logic for the handler and other functions 
- * for resources that are fetched from Zenodeo
- * - treatments.js
- * - treatmentAuthors.js
- **************************************/
-
 'use strict';
+
+/*******************************************************
+ * 
+ * Abstracted logic for the handler and other functions 
+ * for the related resources that are fetched from 
+ * Zenodeo
+ * - treatmentAuthors
+ * - materialsCitations
+ * - treatmentCitations
+ * - bibRefCitations
+ * - figureCitations
+ * 
+ ******************************************************/
 
 const config = require('config');
 const plog = require(config.get('plog'));
@@ -14,9 +20,8 @@ const uriZenodeo = config.get('v2.uri.zenodeo');
 const Utils = require('../utils');
 const Database = require('better-sqlite3');
 const db = new Database(config.get('data.treatments'));
-const dbQueries = new Database(config.get('data.queries'));
-const fs = require('fs');
-
+// const dbQueries = new Database(config.get('data.queries'));
+//console.log('rg')
 const dd2queries = require('../lib/dd2queries');
 
 
@@ -29,18 +34,14 @@ const handler = function(resource) {
         // bunch up messages to print them to the log
         const messages = [{label: 'queryObject', params: queryObject}];
 
-        //if (queryObject.resource === 'treatments') {
-
-            // if xml is being requested, send it back and be done with it
-            if (queryObject.format && queryObject.format === 'xml') {
-        
-                plog.log({ header: 'WEB QUERY', messages: messages });
-                return h.response(getXml(queryObject.treatmentId))
-                    .type('text/xml')
-                    .header('Content-Type', 'application/xml');
-                
-            }
-        //}
+        if (queryObject.format && queryObject.format === 'xml') {
+    
+            plog.log({ header: 'WEB QUERY', messages: messages });
+            return h.response(getXml(queryObject.treatmentId))
+                .type('text/xml')
+                .header('Content-Type', 'application/xml');
+            
+        }
     
         // cacheKey is the URL query without the refreshCache param.
         const cacheKey = Utils.makeCacheKey(request);
@@ -106,94 +107,7 @@ const getRecords = function(cacheKey) {
     }
 };
 
-// https://stackoverflow.com/a/18234317/183692
-const formatUnicorn = function () {
-    
-    let str = this.toString().replace(/@(\w+)/g, "'{\$1}'");
-    
-    if (arguments.length) {
-
-        const t = typeof arguments[0];
-        const args = ('string' === t || 'number' === t) ?
-            Array.prototype.slice.call(arguments)
-            : arguments[0];
-
-        for (let key in args) {
-            str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
-        }
-    }
-
-    return str;
-};
-
-String.prototype.formatUnicorn = String.prototype.formatUnicorn || formatUnicorn;
-
-const dataForDelivery = function(t, data, debug) {
-
-    if (cacheOn) {
-        return data;
-    }
-    else {
-        const report = { msec: t.msr }
-
-        if (process.env.NODE_ENV === 'test') {
-            report.debug = debug;
-        }
-
-        const {queryObject, sqls} = debug;
-        const inserts = sqls.length;
-
-        const s1 = dbQueries.prepare(`INSERT INTO webqueries (qp) VALUES(@qp) ON CONFLICT(qp) DO UPDATE SET count=count+1`);
-
-        const s2 = dbQueries.prepare('SELECT Max(id) AS id FROM webqueries');
-
-        const s3 = dbQueries.prepare(`INSERT INTO sqlqueries (sql) VALUES(@sql) ON CONFLICT(sql) DO NOTHING`);
-
-        const s4 = dbQueries.prepare('SELECT Max(id) AS id FROM sqlqueries');
-
-        const s5 = dbQueries.prepare('INSERT INTO stats (webqueries_id, sqlqueries_id, timeTaken) VALUES (@webqueries_id, @sqlqueries_id, @timeTaken)');
-
-        if (inserts) {
-
-            try {
-                //dbQueries.prepare('BEGIN TRANSACTION').run();
-
-                const qp = JSON.stringify(queryObject);
-                s1.run({qp: qp});
-
-                const webqueries_id = s2.get().id;
-
-                for (let i = 0; i < inserts; i++) {
-
-                    const sql = sqls[i].sql.formatUnicorn(queryObject);
-                    const t = sqls[i].took;
-        
-                    s3.run({sql: sql});
-                    
-                    const sqlqueries_id = s4.get().id;
-    
-                    s5.run({
-                        webqueries_id: webqueries_id, 
-                        sqlqueries_id: sqlqueries_id, 
-                        timeTaken: t.msr
-                    });
-
-                }
-            }
-            catch (error) {
-                console.log(error);
-            }
-            
-        }
-
-        return {
-            value: data,
-            cached: null,
-            report: report
-        }
-    }
-
-};
+String.prototype.formatUnicorn = String.prototype.formatUnicorn || Utils.formatUnicorn;
 
 const getOneRecord = function(queryObject) {
 
@@ -258,7 +172,7 @@ const getOneRecord = function(queryObject) {
     // We are done if no records found
     if (! data['num-of-records']) {
         timer = process.hrtime(timer);
-        return dataForDelivery(timer, data, debug);
+        return Utils.dataForDelivery(timer, data, debug);
     }
 
     // more data from beyond the database
@@ -273,7 +187,7 @@ const getOneRecord = function(queryObject) {
     data['related-records'] = getRelatedRecords(q, queryObject, debug);
 
     timer = process.hrtime(timer);
-    return dataForDelivery(timer, data, debug);
+    return Utils.dataForDelivery(timer, data, debug);
 };
 
 const getManyRecords = async function(queryObject) {
@@ -289,6 +203,7 @@ const getManyRecords = async function(queryObject) {
 
     const q = dd2queries(queryObject);
 
+    
     // this is where we will store the various SQL statements 
     // and their performance metrics so we can store them in a db
     const debug = {
@@ -336,7 +251,7 @@ const getManyRecords = async function(queryObject) {
         });
 
         timer = process.hrtime(timer);
-        return dataForDelivery(timer, data, debug);
+        return Utils.dataForDelivery(timer, data, debug);
     }
     
     // get the records
@@ -349,7 +264,7 @@ const getManyRecords = async function(queryObject) {
         data.records = db.prepare(dataSql).all(queryObject) || [];
 
         t = process.hrtime(t);
-        const p = { sql: countSql, took: Utils.timerFormat(t) };
+        const p = { sql: dataSql, took: Utils.timerFormat(t) };
 
         messages.push({ label: 'data', params: p });
         debug.sqls.push(p);
@@ -368,12 +283,16 @@ const getManyRecords = async function(queryObject) {
 
         data.records.forEach(rec => {
 
+            //console.log(`queryObject.resourceId: ${rec[queryObject.resourceId]}`);
             rec._links = {};
             rec._links.self = Utils.makeLink({
                 uri: uriZenodeo, 
                 params: {
-                    resource: queryObject.resource,
-                    resourceId: [ queryObject.resourceId, rec[queryObject.resourceId] ]
+                    path: queryObject.path,
+                    resourceId: {
+                        key: queryObject.resourceId, 
+                        val: rec[queryObject.resourceId] 
+                    }
                 }
             });
 
@@ -422,7 +341,7 @@ const getManyRecords = async function(queryObject) {
 
     // all done
     timer = process.hrtime(timer);
-    return dataForDelivery(timer, data, debug);
+    return Utils.dataForDelivery(timer, data, debug);
 };
 
 const getStatsFacets = function(type, q, queryObject, debug) {

@@ -1,6 +1,7 @@
 'use strict';
 
 /***********************************************************************
+ * 
  * Every data-dictionary (dd) element for a resource should 
  * have the following keys
  * 
@@ -150,7 +151,7 @@ const commonParams = {
             zenodoName    : '',
             sqlType       : 'TEXT NOT NULL',
             cheerioElement: '$("document").attr("docId")',
-            description   : 'The unique ID of the treatment',
+            description   : 'The unique ID of the parent treatment (FK)',
             queryable     : 'equal',
             queryString   : 'treatmentId',
             validation    : 'Joi.string().guid().description(`${d}`).optional()',

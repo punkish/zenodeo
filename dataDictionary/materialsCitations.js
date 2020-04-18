@@ -2,17 +2,6 @@
 
 module.exports = [
     {
-        plaziName     : 'id',
-        zenodoName    : '',
-        sqlType       : 'INTEGER PRIMARY KEY',
-        cheerioElement: '',
-        description   : 'pk',
-        queryable     : '',
-        queryString   : '',
-        validation    : '',
-        resourceId    : false
-    },
-    {
         plaziName     : 'materialsCitationId',
         zenodoName    : '',
         sqlType       : 'TEXT NOT NULL UNIQUE',
@@ -226,8 +215,31 @@ module.exports = [
         zenodoName    : 'geo_lat',
         sqlType       : 'TEXT',
         cheerioElement: '$("materialsCitation").attr("latitude")',
-        description   : 'Geographic coordinates of the location where the specimen was collected',
-        queryable     : 'equal',
+        description   : `Geographic coordinates of the location where the specimen was collected.
+Since it is unreasonable to expect the user to provide exact lat/lon coordinates, a delta of 0.9
+is used to find all the points contained in the resulting box. For example, if latitude 77 and 
+longitude 78 are provided, the two points A and B are located inside the bounding box made from 
+submitted coordinates +- a delta of 0.9
+
+    lat: 77.9                                       lat: 77.9 
+    lon: 77.1                                       lon: 78.9
+    ┌───────────────────────────────────────────────┐
+    │                                               │
+    │                                               │
+    │                        lat: 77.53333          │
+    │                        lon: 78.88333          │
+    │                             B                 │
+    │                                               │
+    │                                               │
+    │             lat: 77.2                         │
+    │             lon: 78.11667                     │
+    │                 A                             │
+    │                                               │
+    │                                               │
+    └───────────────────────────────────────────────┘
+    lat: 76.1                                      lat: 76.1
+    lon: 77.1                                      lon: 78.9`,
+        queryable     : 'between',
         queryString   : 'latitude',
         validation    : 'Joi.number().min(-90).max(90).description(`${d}`).optional()',
         resourceId    : false
@@ -237,8 +249,31 @@ module.exports = [
         zenodoName    : 'geo_lon',
         sqlType       : 'TEXT',
         cheerioElement: '$("materialsCitation").attr("longitude")',
-        description   : 'Geographic coordinates of the location where the specimen was collected',
-        queryable     : 'equal',
+        description   : `Geographic coordinates of the location where the specimen was collected.
+        Since it is unreasonable to expect the user to provide exact lat/lon coordinates, a delta of 0.9
+        is used to find all the points contained in the resulting box. For example, if latitude 77 and 
+        longitude 78 are provided, the two points A and B are located inside the bounding box made from 
+        submitted coordinates +- a delta of 0.9
+        
+            lat: 77.9                                       lat: 77.9 
+            lon: 77.1                                       lon: 78.9
+            ┌───────────────────────────────────────────────┐
+            │                                               │
+            │                                               │
+            │                        lat: 77.53333          │
+            │                        lon: 78.88333          │
+            │                             B                 │
+            │                                               │
+            │                                               │
+            │             lat: 77.2                         │
+            │             lon: 78.11667                     │
+            │                 A                             │
+            │                                               │
+            │                                               │
+            └───────────────────────────────────────────────┘
+            lat: 76.1                                      lat: 76.1
+            lon: 77.1                                      lon: 78.9`,
+        queryable     : 'between',
         queryString   : 'longitude',
         validation    : 'Joi.number().min(-180).max(180).description(`${d}`).optional()',
         resourceId    : false

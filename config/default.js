@@ -32,24 +32,7 @@ module.exports = {
             url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
         } 
     },
-    // 'cache': {
-    //     'path': path.join(cwd, 'cache'),
-    //     'v1': {
-    //         'path': path.join(cwd, 'cache'),
-    //         'name': 'persistent',
-    //     },
-        // 'v2': {
-        //     'path': path.join(cwd, 'cache', 'catbox'),
-        //     'name': 'catbox',
-        //     'on': false
-        // }
-    //},
-    // 'uri': {
-    //     'local': 'http://localhost:3000',
-    //     'remote': 'https://zenodo.org/api',
-    //     'zenodeo': 'http://localhost:3030',
-    //     'zenodo': 'https://zenodo.org/api'
-    // },
+    
     'download-program': {
         "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
         "treatmentsListDir": path.join(cwd, 'data'),
@@ -58,6 +41,7 @@ module.exports = {
         "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
     },
     'swaggered-scheme': ['http'],
+    
     port: 3030,
     loglevel: 'INFO',
 

@@ -1,11 +1,16 @@
 'use strict';
 
+/***********************************************************************
+ * 
+ * Here we use the combined and flatened data dictionary to generate all 
+ * the SQL queries required to extract data from the db based on the 
+ * supplied queryObject 
+ * 
+ **********************************************************************/
+
 const config = require('config');
 const plog = require(config.get('plog'));
 
-// The following params may be present in the querystring but they are 
-// not included when making the SQL
-const exclude = ['resources', 'communities', 'facets', 'page', 'size', 'stats', 'xml', 'limit', 'offset', 'refreshCache', 'resources', 'resourceId'];
 
 // We need sort params only for the data query.
 // Here we figure out the sortcol and sortdir
@@ -37,28 +42,47 @@ const calcConstraint = function(ddKeys, queryObject) {
     }
     else {
         for (let k in queryObject) {
-            
-            if (! exclude.includes(k)) {
-                
-                const ddk = ddKeys.byQueryString[queryObject.resource][k];
-                if (ddk) {
-                    const op = ddk.queryable;
-                    const sqlName = ddk.sqlName;
 
-                    if (op === 'equal') {
-                        constraint.push(`${sqlName} = @${k}`);
-                    }
-                    else if (op === 'like') {
-                        queryObject[k] = queryObject[k] + '%';
-                        constraint.push(`${sqlName} LIKE @${k}`);
-                    }
-                    else if (op === 'match') {
-                        matchTables.push(ddk.table);
-                        constraint.push(`${sqlName} MATCH @${k}`);
-                    }
+            const f = ddKeys.byQueryString[queryObject.resource][k];
+
+            if (f) {
+
+                const op = f.queryable;
+                const sqlName = f.sqlName;
+
+                if (op === 'equal') {
+                    constraint.push(`${sqlName} = @${k}`);
+                }
+                else if (op === 'like') {
+                    queryObject[k] = queryObject[k] + '%';
+                    constraint.push(`${sqlName} LIKE @${k}`);
+                }
+                else if (op === 'match') {
+                    matchTables.push(f.table);
+                    constraint.push(`${sqlName} MATCH @${k}`);
+                }
+                else if (op === 'between') {
+
+                    // else if (col === 'lat') {
+                    //     cols.push('latitude > @min_latitude');
+                    //     cols.push('latitude < @max_latitude');
+                    //     queryObject.min_latitude = queryObject.lat - range;
+                    //     queryObject.max_latitude = +queryObject.lat + range;
+                    // }
+                    // else if (col === 'lon') {
+                    //     cols.push('longitude > @min_longitude');
+                    //     cols.push('longitude < @max_longitude');
+                    //     queryObject.min_longitude = queryObject.lon - range;
+                    //     queryObject.max_longitude = +queryObject.lon + range;
+                    // }
+
+                    const delta = 0.9;
+                    queryObject[`min_${k}`] = +queryObject[k] - delta;
+                    queryObject[`max_${k}`] = +queryObject[k] + delta;
+                    constraint.push(`${sqlName} > @min_${k}`);
+                    constraint.push(`${sqlName} < @max_${k}`);
                 }
             }
-            
         }
     }
 
@@ -129,36 +153,36 @@ const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, 
     return sql;
 };
 
-const ddKeys = function() {
-
+const getDdKeys = function() {
+    
     const byQueryString = {};
     const byResourceIds = {};
 
     const { dataDictionary, resourceGroups } = require('./dd2datadictionary');
-
+    
     for (let resource in dataDictionary) {
+
+        // resource-specific data dictionary
+        const rdd = dataDictionary[resource];
 
         byQueryString[resource] = {};
 
-        const resPart = dataDictionary[resource];
-        for (let i = 0, j = resPart.length; i < j; i++) {
-            const qs = resPart[i].queryString;
+        for (let i = 0, j = rdd.length; i < j; i++) {
 
+            const f = rdd[i];            
+            const qs = f.queryString;
+            
             if (qs) {
 
                 byQueryString[resource][qs] = {
-                    sqlName: resPart[i].sqlName || qs,
-                    queryable: resPart[i].queryable,
-                    table: resPart[i].table || false,
-                    resourceId: resPart[i].resourceId || false
+                    sqlName: f.sqlName || qs,
+                    queryable: f.queryable,
+                    table: f.table || false,
+                    resourceId: f.resourceId ? f.plaziName : false
                 }
 
-                if (resPart[i].resourceId) {
-
-                    byResourceIds[resource] = resPart[i].plaziName
-                }
-                
             }
+
         }
 
     }
@@ -172,7 +196,7 @@ const ddKeys = function() {
 
 const dd2queries = function(queryObject) {
 
-    plog.info('queryObject', JSON.stringify(queryObject));
+    plog.info('queryObject', queryObject);
 
     // get a reference to the resource-specific query parts.
     // For example, if 'queryObject.resource' is 'treatments'
@@ -181,7 +205,9 @@ const dd2queries = function(queryObject) {
     const qParts = require('./qparts');
     const r = qParts[queryObject.resource];
 
-    const ddKeys = ddKeys();
+    const ddKeys = getDdKeys();
+    plog.info('ddKeys', ddKeys);
+
     const pk = ddKeys.byResourceIds[queryObject.resource];
 
     const [ matchTables, constraint ] = calcConstraint(ddKeys, queryObject);
@@ -193,13 +219,17 @@ const dd2queries = function(queryObject) {
     // we want to retain the original query parts.
     const queries = JSON.parse(JSON.stringify(r.queries));
 
-    const queryGroups = {
-        PK: [ 'related', 'taxonStats' ],
-        notPK: [ 'facets', 'stats' ]
-    };
+    const doGroups = ['essential'];
 
-    const doGroups = queryObject[pk] ? queryGroups.PK : queryGroups.notPK;
-    doGroups.push('essential');
+    if (queryObject[pk]) {
+
+        doGroups.push(...[ 'related', 'taxonStats' ]);
+    }
+    else {
+
+        if (queryObject.facets) doGroups.push('facets');
+        if (queryObject.stats) doGroups.push('stats');
+    }
 
     const q = {};
 
@@ -233,26 +263,39 @@ const dd2queries = function(queryObject) {
     return q;
 };
 
-module.exports = dd2queries;
+const test = function() {
 
-// const so = dd2schema();
-// const q = dd2queries({
-//     communities: ['biosyslit', 'belgiumherbarium'],
-//     refreshCache: false,
-//     page: 1,
-//     size: 30,
-//     resources: 'treatments',
-//     facets: true,
-//     stats: true,
-//     xml: false,
-//     //sortBy: 'journalYear:ASC',
-//     q: 'carabus',
-//     authorityName: 'Agosti',
-//     journalYear: '1996',
-//     format: 'xml',
-//     treatmentTitle: 'opheys',
-//     doi: '10.2454/sdff:1956',
-//     treatmentId: '58F12CC7CCAD08F32CF9920D36C9992E'
-// });
+    const queryObject = {
+        communities: ['biosyslit', 'belgiumherbarium'],
+        refreshCache: false,
+        page: 1,
+        size: 30,
+        resource: 'treatments',
+        facets: false,
+        stats: false,
+        xml: false,
+        sortBy: 'journalYear:ASC',
+        // q: 'carabus',
+        authorityName: 'Agosti',
+        // journalYear: '1996',
+        // format: 'xml',
+        // treatmentTitle: 'opheys',
+        // doi: '10.2454/sdff:1956',
+        // treatmentId: '58F12CC7CCAD08F32CF9920D36C9992E'
+    };
 
-// console.log(JSON.stringify(q, null, '\t'))
+    const q = dd2queries(queryObject);
+    console.log(q);
+
+};
+
+// https://stackoverflow.com/questions/6398196/detect-if-called-through-require-or-directly-by-command-line?rq=1
+if (require.main === module) {
+    
+    test();
+} 
+else {
+    
+    module.exports = dd2queries;
+}
+

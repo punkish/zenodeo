@@ -1,11 +1,11 @@
-/*
-Start this program from the command line with `pm2`
-
-    ~/Nodes/punkish$ NODE_ENV=production pm2 start index.js --name zenodeo
-    ~/Nodes/punkish$ NODE_ENV=production pm2 restart zenodeo
-*/
-
 'use strict';
+
+
+// Start this program from the command line with `pm2`
+
+//     ~/Nodes/punkish$ NODE_ENV=production pm2 start index.js --name zenodeo
+//     ~/Nodes/punkish$ NODE_ENV=production pm2 restart zenodeo
+
 
 /*** hapi 18.4.0 *************************************/
 const Hapi = require('@hapi/hapi');
@@ -123,7 +123,13 @@ const start = async () => {
     ]);
     
     await server.start();
-    console.log('Server running on %s', server.info.uri);
+
+    if (process.env.NODE_ENV) {
+        console.log('Server running in %s mode on %s', process.env.NODE_ENV.toUpperCase(), server.info.uri);
+    }
+    else {
+        console.log('Server running in DEVELOPMENT mode on %s', server.info.uri);
+    }
 
     server.events.on('log', (event, tags) => {
 

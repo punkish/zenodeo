@@ -6,7 +6,7 @@ module.exports = [
         zenodoName    : '',
         sqlType       : 'INTEGER PRIMARY KEY',
         cheerioElement: '',
-        description   : 'pk',
+        description   : 'The primary key (PK) for this table',
         queryable     : '',
         queryString   : '',
         validation    : '',
@@ -22,6 +22,17 @@ module.exports = [
         queryString   : 'treatmentId',
         validation    : 'Joi.string().guid().description(`${d}`).optional()',
         resourceId    : true
+    },
+    {
+        plaziName     : 'deleted',
+        zenodoName    : '',
+        sqlType       : 'INTEGER DEFAULT 0',
+        cheerioElement: '$("document").attr("deleted")',
+        description   : 'A boolean that tracks whether or not this resource is considered deleted/revoked, 1 if yes, 0 if no',
+        queryable     : '',
+        queryString   : '',
+        validation    : '',
+        resourceId    : false
     },
     {
         plaziName     : 'treatmentTitle',
@@ -267,17 +278,6 @@ module.exports = [
         queryable     : 'like',
         queryString   : 'rank',
         validation    : 'Joi.string().description(`${d}`).optional()',
-        resourceId    : false
-    },
-    {
-        plaziName     : 'deleted',
-        zenodoName    : '',
-        sqlType       : 'INTEGER DEFAULT 0',
-        cheerioElement: '$("document").attr("deleted")',
-        description   : 'A boolean that tracks whether or not this resource is considered deleted/revoked, 1 if yes, 0 if no',
-        queryable     : '',
-        queryString   : '',
-        validation    : '',
         resourceId    : false
     },
     {

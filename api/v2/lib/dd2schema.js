@@ -1,11 +1,18 @@
 'use strict';
 
+/***********************************************************************
+ * 
+ * Here we convert the combined and flattened data-dictionary into a 
+ * schema that can be used by Joi for parameter vaidation in the 
+ * incoming REST API queries. 
+ * 
+ **********************************************************************/
+
 const Joi = require('@hapi/joi');
 const { dataDictionary, resourceGroups } = require('./dd2datadictionary');
 const Boom = require('@hapi/boom');
 
-// 'resources' is the plural form of the desired resource
-// for example, 'treatments' or 'materialsCitations'
+
 const dd2schema = function() {
 
     // the schema object we are going to construct
@@ -14,17 +21,16 @@ const dd2schema = function() {
 
     for (let resource in dataDictionary) {
 
-        // resource-specific data dictionary
-        const rdd = dataDictionary[resource];
-
         // resource-specific schema description
         const rso = {};
         const rsoLog = {};
 
+        // resource-specific data dictionary
+        const rdd = dataDictionary[resource];
+
         for (let i = 0, j = rdd.length; i < j; i++) {
-            const f = rdd[i];
-            //const n = f.plaziName;
             
+            const f = rdd[i];            
             const qs = f.queryString;
             
             if (qs) {
@@ -49,36 +55,37 @@ const dd2schema = function() {
         soLog[resource] = { query: `Joi.object(${JSON.stringify(rsoLog, null, 4)})` };
     }
     
-    //plog.info('Schema Object', so);
-    return so;
+    return { Schema: so, SchemaLog: soLog };
 
 };
 
-// const so = dd2schema();
+const test = function() {
 
-// const { error, value } = so.treatments.query.validate({
-//     communities: 'biosyslit',
-//     refreshCache: false,
-//     page: 1,
-//     size: 30,
-//     //resources: 'treatments',
-//     facets: true,
-//     stats: true,
-//     xml: false,
-//     sortBy: 'journalYear:ASC',
-//     q: 'carabus',
-//     // authorityName: 'Agosti',
-//     // journalYear: '1996',
-//     format: 'xml',
-//     treatmentTitle: 'opheys',
-//     doi: '10.2454/sdff:1956'
-// });
+    const { Schema, SchemaLog } = dd2schema();
+    console.log(SchemaLog);
 
-// if (error) {
-//     console.log(error);
-// }
-// else {
-//     plog.info('passed');
-// }
+    const { error, value } = Schema.materialsCitations.query.validate({
+        materialsCitationId: '19325B47274DC7B60C78E6AEBFAB8689'
+    });
 
-module.exports = (dd2schema)();
+    if (error) {
+
+        console.log(error);
+    }
+    else {
+
+        console.log('passed');
+    }
+
+};
+
+
+// https://stackoverflow.com/questions/6398196/detect-if-called-through-require-or-directly-by-command-line?rq=1
+if (require.main === module) {
+    
+    test();
+} 
+else {
+    
+    module.exports = (dd2schema)();
+}

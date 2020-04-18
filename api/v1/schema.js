@@ -151,6 +151,30 @@ const schema = {
             refreshCache: Joi.boolean()
                 .default(false)
         })
+    },
+
+    authors: {
+        params: Joi.object({
+            term: Joi.string().description('retrieve all authors starting with the provided letters (at leeast 3)').required().min(3).message('at least 3 characters are required (for example, « authors/ago »)')
+        })
+    },
+
+    taxa: {
+        params: Joi.object({
+            term: Joi.string().description('retrieve all taxa starting with the provided letters (at leeast 3)').required().min(3).message('at least 3 characters are required (for example, « authors/ago »)')
+        })
+    },
+
+    families: {
+        params: Joi.object({
+            term: Joi.string().description('retrieve all families starting with the provided letters (at leeast 3)').required().min(3).message('at least 3 characters are required (for example, « authors/ago »)')
+        })
+    },
+
+    keywords: {
+        params: Joi.object({
+            term: Joi.string().description('retrieve all keywords starting with the provided letters (at leeast 3)').required().min(3).message('at least 3 characters are required (for example, « authors/ago »)')
+        })
     }
 };
 

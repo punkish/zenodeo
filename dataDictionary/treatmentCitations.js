@@ -1,17 +1,17 @@
 'use strict';
 
 module.exports = [
-    {
-        plaziName     : 'id',
-        zenodoName    : '',
-        sqlType       : 'INTEGER PRIMARY KEY',
-        cheerioElement: '',
-        description   : 'pk',
-        queryable     : '',
-        queryString   : '',
-        validation    : '',
-        resourceId    : false
-    },
+    // {
+    //     plaziName     : 'id',
+    //     zenodoName    : '',
+    //     sqlType       : 'INTEGER PRIMARY KEY',
+    //     cheerioElement: '',
+    //     description   : 'pk',
+    //     queryable     : '',
+    //     queryString   : '',
+    //     validation    : '',
+    //     resourceId    : false
+    // },
     {
         plaziName     : 'treatmentCitationId',
         zenodoName    : '',

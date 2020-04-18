@@ -1,67 +1,130 @@
 'use strict';
 
+/***********************************************************************
+ * 
+ * Here we import the raw data definitions defined in dd.js and the  
+ * files included therein, and export a combined and flattened data-
+ * dictionary as well as the resources grouped by resourceGroups to 
+ * facilitate fast and convenient lookups. 
+ * 
+ **********************************************************************/
+
 const { dd, commonParams } = require('../../../dataDictionary/dd');
 
-module.exports = (function() {
+const dd2datadictionary = function() {
 
-    const dataDictionary = [];
+    // We will flatten and compile the data dictionary by 
+    // converting the following
+    //
+    //      dd = {
+    //          zenodeoCore: { treatments: [] },
+    //          zenodeoRelated: { 
+    //              figureCitations: [],
+    //              bibRefCitations: [],
+    //              …
+    //          }
+    //      }
+    //
+    // to the following
+    //
+    //      dataDictionary = {
+    //          treatments: [],
+    //          figureCitations: [],
+    //          bibRefCitations: [],
+    //          …
+    //      }
+    //
+    // In the process, we will also add the required
+    // common parameters to all the resources
+    const dataDictionary = {};
 
+    // We will also create a bundle of all the resources
+    // grouped by their resource groups, and carrying with 
+    // them the name of the 'resource' and the name of the 
+    // 'resourceId'. This will look like
+    //
+    //       "zenodeoCore": [
+    //           {
+    //               "name": "treatments",
+    //               "resourceId": "treatmentId"
+    //           }
+    //       ],
+    //       "zenodeoRelated": [
+    //           {
+    //               "name": "figureCitations",
+    //               "resourceId": "figureCitationId"
+    //           },
+    //           {
+    //               "name": "bibRefCitations",
+    //               "resourceId": "bibRefCitationId"
+    //           },
     const resourceGroups = {};
 
+    // loop over each resourceGroup 'rg' in the raw dd
+    // 'rg' will be one of
+    // - zenodeoCore
+    // - zendeoRelated
+    // - zenodo
+    // - lookups
     for (let rg in dd) {
 
+
         resourceGroups[rg] = [];
-        const resources = dd[rg];
+        
+        // loop over each resource in the respective resource groups
+        const groupResources = dd[rg];
+        for (let resource in groupResources) {
 
-        for (let r in resources) {
+            
+            // Add the commonParams to 'all' the resources no matter
+            // which resourceGroup they are in (hence, the 'all')
+            let gr = groupResources[resource];
+            gr.push(...commonParams['all']);
 
-            resources[r].push(...commonParams['all']);
-
-            // this ensures that nothing is added to 'treatments'
+            // Don't add any params if a particular resourceGroup's
+            // specific commonParams are empty. This ensures nothing 
+            // is added to 'treatments' which is a part of 'zenodeoCore'
+            // and to all the lookups. We do this by testing whether the 
+            // commonParams of a 'rg' are empty by checking its .length()
             if (commonParams[rg].length) {
-                resources[r].push(...commonParams[rg]);
+
+                // we are using concat() instead of push() because we 
+                // want to add these parameters in front of the array
+                // rather than at the end of the array
+                gr = [].concat(commonParams[rg], gr)
             }
-            
-            
-            
-            //if (rg === 'zenodo') {
 
-            //    resources[r].push(...commonZenodoQueryParams);
-            //}
-            //else if (rg === 'zenodeo') {
+            // For every resource, we add its name and the name of its
+            // resourceId key to the resourceGroups hash
+            let name = resource;
+            let resourceId = '';
+            for (let i = 0, j = gr.length; i < j; i++) {
 
-            //    if (r !== 'treatments') {
+                if (rg !== 'lookups') {
 
-            //        resources[r].push(...commonZenodeoQueryParams);
-            //    }
-            //}
+                    if (gr[i].resourceId) {
 
-            for (let i = 0, j = resources[r].length; i < j; i++) {
+                        if (gr[i].resourceId === true) {
 
-                if (rg === 'lookups') {
-
-                    resourceGroups[rg].push({ 
-                        name: r,
-                        resourceId: ''
-                    });
-                    break;
-                }
-                else {
-
-                    if (resources[r][i].resourceId && resources[r][i].resourceId === true) {
-
-                        resourceGroups[rg].push({ 
-                            name: r,
-                            resourceId: resources[r][i].plaziName
-                        });
-                        break;
+                            resourceId = gr[i].plaziName;
+                            break;
+                        }
                     }
+                    
                 }
 
             }
 
-            dataDictionary.push(...resources[r]);
+            resourceGroups[rg].push({ 
+                name: name,
+                resourceId: resourceId
+            });
+            
+            dataDictionary[resource] = gr;
+            
         }
+
+        
 
     }
 
@@ -70,4 +133,21 @@ module.exports = (function() {
         resourceGroups: resourceGroups
     };
     
-})();
+};
+
+const test = function() {
+
+    const dd = dd2datadictionary();
+    console.log(JSON.stringify(dd, null, '    '));
+
+};
+
+// https://stackoverflow.com/questions/6398196/detect-if-called-through-require-or-directly-by-command-line?rq=1
+if (require.main === module) {
+    
+    test();
+} 
+else {
+    
+    module.exports = (dd2datadictionary)();
+}
