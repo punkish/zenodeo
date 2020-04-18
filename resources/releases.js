@@ -2,7 +2,7 @@ const notes = {
     
     method: 'GET',
 
-    path: '/notes',
+    path: '/releases',
 
     config: {
         description: "release notes",
@@ -20,7 +20,7 @@ const notes = {
         return h.view(
 
             // content template
-            'notes', 
+            'releases', 
 
             // data
             data,
@@ -38,10 +38,53 @@ const getRecords = function() {
                 summary: 'version 2.6.0',
                 detail: `
                 <ul>
-                    <li>Major refactoring resulting in a lot less code and a lot more comments.</li>
+                    <li>Major refactoring resulting in a lot less code and a lot more comments. The previous master branch had
+<pre>
+206 text files.
+205 unique files.
+    6 files ignored.
+               
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+JavaScript                      95           1884           1501           8309
+CSS                             87           1297           1073           5842
+HTML                            13             91             31            406
+Markdown                         3             44              0             85
+JSON                             2              0              0             51
+-------------------------------------------------------------------------------
+SUM:                           200           3316           2605          14693
+-------------------------------------------------------------------------------
+</pre>
+
+                This branch has
+
+<pre>
+195 text files.
+194 unique files.
+  4 files ignored.
+
+-------------------------------------------------------------------------------
+Language                     files          blank        comment           code
+-------------------------------------------------------------------------------
+JavaScript                      85           1552           1096           6501
+CSS                             87           1297           1073           5842
+JSON                             3              0              0           2360
+HTML                            13             72             31            336
+Markdown                         3             44              0             85
+-------------------------------------------------------------------------------
+SUM:                           191           2965           2200          15124
+-------------------------------------------------------------------------------
+</pre>
+
+                    That is 1808 fewer lines of code, or a ~22% reduction.
+                    
+                    </li>
                     <li>A brand new data dictionary has been implemented.<li>
                     <li>A move to configuration over code philosophy. For example, the data dictionary generates the schema that is used to validate input queries and it generates the SQL queries that query the database</li>
                     <li>Executed queries along with the performance metrics are now stored in a separate database along with the count of how many times they've been made. Besides providing an insight in the performance bottlenecks, this may also provide an insight into the trends of the data being queried by the users.</li>
+                    <li>The underlying software has been bumped up to the latest version including the entire <code>hapijs</code> suite.
+                    <li>Schema validation now returns more meaningful and helpful messages when validation fails.</li>
                 </ul>`
             },
 
