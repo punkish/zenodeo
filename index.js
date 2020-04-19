@@ -20,6 +20,7 @@ const Blipp = require('blipp');
 const config = require('config');
 const cacheName = config.get('v2.cache.name');
 const cachePath = config.get('v2.cache.path');
+const zendeoUri = config.get('v2.uri.zenodeo');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
@@ -116,7 +117,7 @@ const start = async () => {
     
                 return {
                     error: "404 Error! Page Not Found! You might want to start at the root",
-                    root: `${server.info.uri}/v2/`
+                    root: zendeoUri
                 }
             }
         }
