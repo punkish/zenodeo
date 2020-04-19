@@ -20,10 +20,7 @@ const uriZenodeo = config.get('v2.uri.zenodeo');
 const Utils = require('../utils');
 const Database = require('better-sqlite3');
 const db = new Database(config.get('data.treatments'));
-// const dbQueries = new Database(config.get('data.queries'));
-//console.log('rg')
 const dd2queries = require('../lib/dd2queries');
-
 
 const handler = function(resource) {
 
@@ -107,8 +104,6 @@ const getRecords = function(cacheKey) {
     }
 };
 
-String.prototype.formatUnicorn = String.prototype.formatUnicorn || Utils.formatUnicorn;
-
 const getOneRecord = function(queryObject) {
 
     let timer = process.hrtime();
@@ -148,7 +143,7 @@ const getOneRecord = function(queryObject) {
         }
 
         t = process.hrtime(t);
-        const p = { sql: sql, took: Utils.timerFormat(t) };
+        const p = { sql: sql.formatUnicorn(queryObject), took: Utils.timerFormat(t) };
 
         messages.push({ label: 'data', params: p });
         debug.sqls.push(p);
@@ -226,7 +221,10 @@ const getManyRecords = async function(queryObject) {
             .numOfRecords;
 
         t = process.hrtime(t);
-        const p = { sql: countSql, took: Utils.timerFormat(t) };
+        const p = { 
+            sql: Utils.strfmt(countSql, queryObject), 
+            took: Utils.timerFormat(t) 
+        };
 
         messages.push({ label: 'count', params: p });
         debug.sqls.push(p);
@@ -244,6 +242,7 @@ const getManyRecords = async function(queryObject) {
 
     // We are done if no records found
     if (! data['num-of-records']) {
+
         plog.log({ 
             header: 'MANY QUERIES', 
             messages: messages, 
@@ -264,7 +263,10 @@ const getManyRecords = async function(queryObject) {
         data.records = db.prepare(dataSql).all(queryObject) || [];
 
         t = process.hrtime(t);
-        const p = { sql: dataSql, took: Utils.timerFormat(t) };
+        const p = { 
+            sql: Utils.strfmt(dataSql, queryObject), 
+            took: Utils.timerFormat(t) 
+        };
 
         messages.push({ label: 'data', params: p });
         debug.sqls.push(p);
@@ -283,7 +285,6 @@ const getManyRecords = async function(queryObject) {
 
         data.records.forEach(rec => {
 
-            //console.log(`queryObject.resourceId: ${rec[queryObject.resourceId]}`);
             rec._links = {};
             rec._links.self = Utils.makeLink({
                 uri: uriZenodeo, 
@@ -364,7 +365,10 @@ const getStatsFacets = function(type, q, queryObject, debug) {
 
         t = process.hrtime(t);
 
-        const p = { sql: sql, took: Utils.timerFormat(t) };
+        const p = { 
+            sql: Utils.strfmt(sql, queryObject),  
+            took: Utils.timerFormat(t) 
+        };
         messages.push({ label: query, params: p });
         debug.sqls.push(p);
     }
@@ -404,7 +408,10 @@ const getRelatedRecords = function(q, queryObject, debug) {
 
         t = process.hrtime(t);
 
-        const p = { sql: sql, took: Utils.timerFormat(t) };
+        const p = { 
+            sql: Utils.strfmt(sql, queryObject),  
+            took: Utils.timerFormat(t) 
+        };
         debug.sqls.push(p);
         messages.push({ label: query, params: p });
 
@@ -439,7 +446,10 @@ const getTaxonStats = function(q, queryObject, debug) {
 
         t = process.hrtime(t);
 
-        const p = { sql: sql, took: Utils.timerFormat(t) };
+        const p = { 
+            sql: Utils.strfmt(sql, queryObject),  
+            took: Utils.timerFormat(t) 
+        };
         debug.sqls.push(p);
         messages.push({ label: query, params: p });
 

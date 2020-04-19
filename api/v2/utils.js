@@ -17,6 +17,28 @@ const facets = {
     taxa: 'taxon'
 };
 
+// Modify the string prototype to mimic strfmt() so SQL statements
+// can be sent back in debug or printed to the console with all the 
+// parameters visible. See the following SO link for details.
+// https://stackoverflow.com/a/18234317/183692
+String.prototype.formatUnicorn = String.prototype.formatUnicorn || function () {
+    "use strict";
+    var str = this.toString();
+    if (arguments.length) {
+        var t = typeof arguments[0];
+        var key;
+        var args = ("string" === t || "number" === t) ?
+            Array.prototype.slice.call(arguments)
+            : arguments[0];
+
+        for (key in args) {
+            str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
+        }
+    }
+
+    return str;
+}
+
 module.exports = {
 
     dataForDelivery: function(t, data, debug) {
@@ -27,7 +49,7 @@ module.exports = {
         else {
             const report = { msec: t.msr }
     
-            if (process.env.NODE_ENV === 'test') {
+            if (process.env.NODE_ENV !== 'production') {
                 report.debug = debug;
             }
     
@@ -86,24 +108,11 @@ module.exports = {
     
     },
 
-    // https://stackoverflow.com/a/18234317/183692
-    formatUnicorn: function () {
-        
-        let str = this.toString().replace(/@(\w+)/g, "'{\$1}'");
-        
-        if (arguments.length) {
-
-            const t = typeof arguments[0];
-            const args = ('string' === t || 'number' === t) ?
-                Array.prototype.slice.call(arguments)
-                : arguments[0];
-
-            for (let key in args) {
-                str = str.replace(new RegExp("\\{" + key + "\\}", "gi"), args[key]);
-            }
-        }
-
-        return str;
+    // See String.prototype.formatUnicorn above
+    strfmt: function(str, data) {
+        return str
+            .replace(/@(\w+)/g, "'{\$1}'")
+            .formatUnicorn(data);
     },
     
     timerFormat: function(t) {

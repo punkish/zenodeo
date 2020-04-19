@@ -196,7 +196,7 @@ const getDdKeys = function() {
 
 const dd2queries = function(queryObject) {
 
-    plog.info('queryObject', queryObject);
+    //plog.info('queryObject', queryObject);
 
     // get a reference to the resource-specific query parts.
     // For example, if 'queryObject.resource' is 'treatments'
@@ -206,7 +206,7 @@ const dd2queries = function(queryObject) {
     const r = qParts[queryObject.resource];
 
     const ddKeys = getDdKeys();
-    plog.info('ddKeys', ddKeys);
+    //plog.info('ddKeys', ddKeys);
 
     const pk = ddKeys.byResourceIds[queryObject.resource];
 

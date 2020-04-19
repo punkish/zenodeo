@@ -1,5 +1,9 @@
+'use strict';
+
 // any values set here override the same values set 
 // in default.js
+
+const host = 'http://z2.punkish.org';
 
 module.exports = {
 
@@ -7,19 +11,17 @@ module.exports = {
 
     v1: {
         uri: {
-            zenodeo: 'http://z2.punkish.org/v2'
+            zenodeo: `${host}/v1`
         }
     },
 
     v2: {
-        cache: {
-            on: false
-        },
+        // cache: {
+        //     on: false
+        // },
 
         uri: {
-            zenodeo: 'http://z2.punkish.org/v2'
+            zenodeo: `${host}/v2`
         }
-    },
-    
-    'swaggered-scheme': ['http'],
+    }
 }

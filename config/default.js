@@ -2,6 +2,7 @@
 
 const path = require('path');
 const cwd = process.cwd();
+const host = 'http://localhost:3030';
 
 /*
 http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&groupingFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
@@ -20,7 +21,7 @@ module.exports = {
     info: {
         title: 'Zenodeo API documentation for BLR',
         description: '`nodejs` interface to the Zenodo/BLR community collection',
-        version: '2.5.0',
+        version: '2.6.0',
         termsOfService: '/tos',
         contact: { 
             name: 'Puneet Kishor',
@@ -40,6 +41,7 @@ module.exports = {
         "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
         "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
     },
+
     'swaggered-scheme': ['http'],
     
     port: 3030,
@@ -53,7 +55,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'http://localhost:3030/v1',
+            zenodeo: `${host}/v1`,
             zenodo: 'https://zenodo.org/api'
         },
         
@@ -74,32 +76,13 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'http://localhost:3030/v2',
+            zenodeo: `${host}/v2`,
             zenodo: 'https://zenodo.org/api'
         },
         
 
         dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
-        schema: path.join(cwd, 'api', 'v2', 'schema.js'),
-
-        // 'rank' is a reserved word in FTS tables, so using it in an FTS query 
-        // throws an error. That is why we prefix the column 'rank' with the 
-        // table name
-        // facets: ['journalTitle', 'journalYear', 'journalVolume', 'kingdom', 'phylum', '"order"', 'family', 'genus', 'species', 'status', 'treatments.rank', 'collectionCode']
-  
-
-        // relatedMaterialCitations: {
-        //     yes: integer, // count
-        //     no: integer // count
-        // },
-        // relatedTreatmentCitations: {
-        //     yes: integer, // count
-        //     no: integer // count
-        // }, 
-        // hasFigures: {
-        //     yes: integer, // count
-        //     no: integer // count
-        // }, 
+        schema: path.join(cwd, 'api', 'v2', 'schema.js')
 
     },
 
@@ -131,81 +114,6 @@ module.exports = {
         families: path.join(cwd, 'data', 'families.min'),
         facets: path.join(cwd, 'data', 'facets.sqlite'),
         queries: path.join(cwd, 'data', 'queryStats.sqlite')
-    },
-
+    }
     
-
-    // 'cacheBase': '/Users/punkish/Projects/zenodeo/cache',
-    // 'uri': {
-    //     'local': 'http://localhost:3000',
-    //     'remote': 'https://zenodo.org/api',
-    //     'tb': 'http://tb.plazi.org/GgServer/xml/'
-    // },
-    // 'index': {
-    //     'cacheName': 'diskCache',
-    //     'cachePath': '/Users/punkish/Projects/catbox/diskCache',
-    //     'info': { 
-    //         title: 'Zenodeo API documentation for BLR',
-    //         description: '`nodejs` interface to the Zenodo/BLR community collection',
-    //         version: '2.0.0',
-    //         termsOfService: '/tos',
-    //         contact: { 
-    //             name: 'Puneet Kishor',
-    //             url: 'https://punkish.org/About',
-    //             email: 'punkish@plazi.org' 
-    //         },
-    //         license: { 
-    //             name: 'CC0 Public Domain Dedication',
-    //             url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
-    //         } 
-    //     }
-    // },
-    // 'api': {
-    //     'v1': {
-    //         'utils': {
-    //             'authors': '../../data/authors',
-    //             'keywords': '../../data/keywords'
-    //         },
-    //         'routes': {
-    //             cacheBase: '/Users/punkish/Projects/zenodeo/cache',
-    //             'treatments': {
-    //                 'sqliteDatabase': './data/plazi.sqlite'
-    //             }
-    //         }
-    //     },
-    //     'v2': {
-    //         'utils': {
-    //             'authors': '../../data/authors',
-    //             'keywords': '../../data/keywords'
-    //         },
-    //         'routes': {
-    //             'treatments': {
-    //                 'sqliteDatabase': './data/plazi.sqlite'
-    //             }
-    //         }
-    //     }
-    // },
-    // 'bin': {
-    //     'renew': {
-    //         //'xmlDumpDir': './data/treatmentsDump',
-    //         // 'download': {
-    //         //     'downloadDir': 'data/treatments',
-    //         //     'fileName': 'plazi.xml.zip',
-    //         //     'host': 'tb.plazi.org',
-    //         //     'port': 80,
-    //         //     'pathToFile': '/GgServer/dumps/'
-    //         // },
-    //         // 'parsex': {
-    //         //     'xmlDumpDir': './data/treatmentsDump'
-    //         // },
-    //         // 'database': {
-    //         //     'sqliteDatabase': './data/plazi.sqlite',
-    //         //     'logDatabase': './data/logs.sqlite'
-    //         // },
-    //         // 'rearrangefiles': {
-    //         //     'srcdir': 'data/treatmentsDump',
-    //         //     'destdir': 'data/treatments'
-    //         // }
-    //     }
-    // }
-}
+};
