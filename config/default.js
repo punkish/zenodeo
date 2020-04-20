@@ -112,8 +112,8 @@ module.exports = {
         keywords: path.join(cwd, 'data', 'keywords'),
         taxa: path.join(cwd, 'data', 'taxa.min'),
         families: path.join(cwd, 'data', 'families.min'),
-        facets: path.join(cwd, 'data', 'facets.sqlite'),
-        queries: path.join(cwd, 'data', 'queryStats.sqlite')
+        lookups: path.join(cwd, 'data', 'facets.sqlite'),
+        queryStats: path.join(cwd, 'data', 'queryStats.sqlite')
     }
     
 };

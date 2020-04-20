@@ -211,7 +211,6 @@ const getManyRecords = async function(queryObject) {
     // first find total number of matches
     const countSql = q.essential.count.sql;
 
-    
     try {
 
         let t = process.hrtime();
@@ -221,6 +220,7 @@ const getManyRecords = async function(queryObject) {
             .numOfRecords;
 
         t = process.hrtime(t);
+
         const p = { 
             sql: Utils.strfmt(countSql, queryObject), 
             took: Utils.timerFormat(t) 
@@ -253,16 +253,19 @@ const getManyRecords = async function(queryObject) {
         return Utils.dataForDelivery(timer, data, debug);
     }
     
-    // get the records
+    // The count query above returned a number successfully
+    // which is why we have reached here. So now we get the 
+    // actual records
     const dataSql = q.essential.data.sql;
 
     try {
 
         let t = process.hrtime();
 
-        data.records = db.prepare(dataSql).all(queryObject) || [];
+        data.records = db.prepare(dataSql).all(queryObject);
 
         t = process.hrtime(t);
+
         const p = { 
             sql: Utils.strfmt(dataSql, queryObject), 
             took: Utils.timerFormat(t) 
@@ -317,7 +320,7 @@ const getManyRecords = async function(queryObject) {
 
     data.previd = id;
 
-    data.prevpage = queryObject.page >= 1 ? +queryObject.page - 1 : '';
+    data.prevpage = queryObject.page >= 2 ? +queryObject.page - 1 : '';
     data.nextpage = num < queryObject.size ? '' : +queryObject.page + 1;
 
     data._links.prev = Utils.makeLink({
@@ -333,9 +336,7 @@ const getManyRecords = async function(queryObject) {
     });
 
     // finally, get facets and stats, if requested 
-    const groupedQueries = ['facets', 'stats'];
-    //console.log(queryObject);
-    groupedQueries.forEach(g => {
+    ['facets', 'stats'].forEach(g => {
         if (g in queryObject && queryObject[g] === 'true') {
             data[g] = getStatsFacets(g, q, queryObject, debug);
         }
@@ -357,14 +358,12 @@ const getStatsFacets = function(type, q, queryObject, debug) {
 
         const sql = q[type][query].sql;
         const foo = q[type][query].sql;
-        //console.log(`foo: ${Utils.strfmt(foo, queryObject)}`)
 
         try {
             result[query] = db.prepare(sql).all(queryObject);
         }
         catch (error) {
-            //plog.error(error, Utils.strfmt(sql, queryObject));
-            console.log(error)
+            plog.error(error, Utils.strfmt(sql, queryObject));
         }
 
         t = process.hrtime(t);

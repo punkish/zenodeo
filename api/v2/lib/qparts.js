@@ -765,6 +765,102 @@ const queryParts = {
             facets: {}
         }
 
+    },
+
+    authors: {
+        //pk: '',
+
+        queries: {
+
+            essential: {
+                //count: {},
+    
+                data: {
+                    columns: ['author'],
+                    tables: ['authors'],
+                    constraint: ['0 = 0'],
+                    sortBy: {},
+                    group: [],
+                    pagination: false
+                }
+            },
+
+            // related: {},
+            // stats: {},
+            // facets: {}
+        }
+    },
+
+    keywords: {
+        //pk: '',
+
+        queries: {
+
+            essential: {
+                //count: {},
+    
+                data: {
+                    columns: ['keyword'],
+                    tables: ['keywords'],
+                    constraint: ['0 = 0'],
+                    sortBy: {},
+                    group: [],
+                    pagination: false
+                }
+            },
+
+            // related: {},
+            // stats: {},
+            // facets: {}
+        }
+    },
+
+    taxa: {
+        //pk: '',
+
+        queries: {
+
+            essential: {
+                //count: {},
+    
+                data: {
+                    columns: ['taxon'],
+                    tables: ['taxa'],
+                    constraint: ['0 = 0'],
+                    sortBy: {},
+                    group: [],
+                    pagination: false
+                }
+            },
+
+            // related: {},
+            // stats: {},
+            // facets: {}
+        }
+    },
+
+    families: {
+        //pk: '',
+
+        queries: {
+
+            essential: {
+                //count: {},
+    
+                data: {
+                    columns: ['family'],
+                    tables: ['families'],
+                    constraint: ['0 = 0'],
+                    sortBy: {},
+                    group: [],
+                    pagination: false
+                }
+            },
+
+            // related: {},
+            // stats: {},
+            // facets: {}
+        }
     }
 };
 

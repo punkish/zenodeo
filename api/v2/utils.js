@@ -6,22 +6,16 @@ const config = require('config');
 const plog = require(config.get('plog'));
 const cacheOn = config.get('v2.cache.on');
 const Database = require('better-sqlite3');
-const dbFacets = new Database(config.get('data.facets'));
+const dbLookups = new Database(config.get('data.lookups'));
 const dbTreatments = new Database(config.get('data.treatments'));
-const dbQueries = new Database(config.get('data.queries'));
-
-const facets = {
-    authors: 'author',
-    families: 'family',
-    keywords: 'keyword',
-    taxa: 'taxon'
-};
+const dbQueryStats = new Database(config.get('data.queryStats'));
 
 // Modify the string prototype to mimic strfmt() so SQL statements
 // can be sent back in debug or printed to the console with all the 
 // parameters visible. See the following SO link for details.
 // https://stackoverflow.com/a/18234317/183692
 String.prototype.formatUnicorn = String.prototype.formatUnicorn || function () {
+
     "use strict";
     var str = this.toString();
     if (arguments.length) {
@@ -56,15 +50,15 @@ module.exports = {
             const {queryObject, sqls} = debug;
             const inserts = sqls.length;
     
-            const s1 = dbQueries.prepare(`INSERT INTO webqueries (qp) VALUES(@qp) ON CONFLICT(qp) DO UPDATE SET count=count+1`);
+            const s1 = dbQueryStats.prepare(`INSERT INTO webqueries (qp) VALUES(@qp) ON CONFLICT(qp) DO UPDATE SET count=count+1`);
     
-            const s2 = dbQueries.prepare('SELECT Max(id) AS id FROM webqueries');
+            const s2 = dbQueryStats.prepare('SELECT Max(id) AS id FROM webqueries');
     
-            const s3 = dbQueries.prepare(`INSERT INTO sqlqueries (sql) VALUES(@sql) ON CONFLICT(sql) DO NOTHING`);
+            const s3 = dbQueryStats.prepare(`INSERT INTO sqlqueries (sql) VALUES(@sql) ON CONFLICT(sql) DO NOTHING`);
     
-            const s4 = dbQueries.prepare('SELECT Max(id) AS id FROM sqlqueries');
+            const s4 = dbQueryStats.prepare('SELECT Max(id) AS id FROM sqlqueries');
     
-            const s5 = dbQueries.prepare('INSERT INTO stats (webqueries_id, sqlqueries_id, timeTaken) VALUES (@webqueries_id, @sqlqueries_id, @timeTaken)');
+            const s5 = dbQueryStats.prepare('INSERT INTO stats (webqueries_id, sqlqueries_id, timeTaken) VALUES (@webqueries_id, @sqlqueries_id, @timeTaken)');
     
             if (inserts) {
     
@@ -94,7 +88,7 @@ module.exports = {
                     }
                 }
                 catch (error) {
-                    console.log(error);
+                    plog.error(error);
                 }
                 
             }
@@ -135,7 +129,15 @@ module.exports = {
     },
 
     find: function(pattern, source) {
-        return dbFacets.prepare(`SELECT ${facets[source]} FROM ${source} WHERE ${facets[source]} LIKE ?`)
+
+        const lookups = {
+            authors: 'author',
+            families: 'family',
+            keywords: 'keyword',
+            taxa: 'taxon'
+        };
+
+        return dbLookups.prepare(`SELECT ${lookups[source]} FROM ${source} WHERE ${lookups[source]} LIKE ?`)
             .raw()
             .all(`%${pattern}%`)
             .map(r => r[0]);
@@ -385,6 +387,7 @@ module.exports = {
     },
 
     makeLink: function({uri, params, page}) {
+        
         const qs = Object.entries(params)
             .filter(e => e[0] !== 'path')
             .map(e => page ? `${e[0]}=${(e[0] === 'page' ? page : e[1])}` 

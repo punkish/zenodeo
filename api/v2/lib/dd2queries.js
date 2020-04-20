@@ -104,7 +104,7 @@ const calcConstraint = function(ddKeys, queryObject) {
 // LIMIT <limit> 
 // OFFSET <offset>
 const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, addedConstraint) {
-
+    
     const columns = query.columns;
     const tables = JSON.parse(JSON.stringify(query.tables));
     const constraint = JSON.parse(JSON.stringify(query.constraint));
@@ -242,6 +242,7 @@ const dd2queries = function(queryObject) {
 
             for (let queryName in groupQueries) {
                 const query = groupQueries[queryName];
+
                 const sql = calcQuery(
                     ddKeys, 
                     queryGroup, 
@@ -265,7 +266,7 @@ const dd2queries = function(queryObject) {
 
 const test = function() {
 
-    const queryObject = {
+    const q1 = {
         communities: ['biosyslit', 'belgiumherbarium'],
         refreshCache: false,
         page: 1,
@@ -284,8 +285,29 @@ const test = function() {
         // treatmentId: '58F12CC7CCAD08F32CF9920D36C9992E'
     };
 
-    const q = dd2queries(queryObject);
-    console.log(q);
+    const lookups = [
+        {
+            resource: 'authors',
+            q: 'ago'
+        },
+        {
+            resource: 'keywords',
+            q: 'son'
+        },
+        {
+            resource: 'families',
+            q: 'cho'
+        },
+        {
+            resource: 'taxa',
+            q: 'tin'
+        },
+    ];
+
+    lookups.forEach(l => {
+        const q = dd2queries(l);
+        console.log(q);
+    });
 
 };
 
