@@ -317,7 +317,7 @@ const getManyRecords = async function(queryObject) {
 
     data.previd = id;
 
-    data.prevpage = queryObject.page >= 1 ? queryObject.page - 1 : '';
+    data.prevpage = queryObject.page >= 1 ? +queryObject.page - 1 : '';
     data.nextpage = num < queryObject.size ? '' : +queryObject.page + 1;
 
     data._links.prev = Utils.makeLink({
@@ -334,6 +334,7 @@ const getManyRecords = async function(queryObject) {
 
     // finally, get facets and stats, if requested 
     const groupedQueries = ['facets', 'stats'];
+    //console.log(queryObject);
     groupedQueries.forEach(g => {
         if (g in queryObject && queryObject[g] === 'true') {
             data[g] = getStatsFacets(g, q, queryObject, debug);
@@ -355,12 +356,15 @@ const getStatsFacets = function(type, q, queryObject, debug) {
         let t = process.hrtime();
 
         const sql = q[type][query].sql;
+        const foo = q[type][query].sql;
+        //console.log(`foo: ${Utils.strfmt(foo, queryObject)}`)
 
         try {
             result[query] = db.prepare(sql).all(queryObject);
         }
         catch (error) {
-            plog.error(error, sql);
+            //plog.error(error, Utils.strfmt(sql, queryObject));
+            console.log(error)
         }
 
         t = process.hrtime(t);

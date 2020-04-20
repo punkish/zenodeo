@@ -228,7 +228,7 @@ const queryParts = {
                     constraint: [
                         'treatments.deleted = 0', 
                         'materialsCitations.deleted = 0', 
-                        'specimenCount != ""'
+                        "specimenCount != ''"
                     ],
                     sortBy: {},
                     group: []
@@ -243,7 +243,7 @@ const queryParts = {
                     constraint: [
                         'treatments.deleted = 0',
                         'materialsCitations.deleted = 0',
-                        'specimenCountMale != ""'
+                        "specimenCountMale != ''"
                     ],
                     sortBy: {},
                     group: []
@@ -257,7 +257,8 @@ const queryParts = {
                     ],
                     constraint: [
                         'treatments.deleted = 0',
-                        'materialsCitations.deleted = 0 AND specimenCountFemale != ""'
+                        'materialsCitations.deleted = 0',
+                        "specimenCountFemale != ''"
                     ],
                     sortBy: {},
                     group: []
@@ -266,7 +267,11 @@ const queryParts = {
                 'treatments with specimens': {
                     columns: ['Count(DISTINCT treatments.treatmentId)'], 
                     tables: ['materialsCitations JOIN treatments ON materialsCitations.treatmentId = treatments.treatmentId'],
-                    constraint: ["treatments.deleted = 0 AND materialsCitations.deleted = 0 AND specimenCount != ''"],
+                    constraint: [
+                        'treatments.deleted = 0',
+                        'materialsCitations.deleted = 0',
+                        "specimenCount != ''"
+                    ],
                     sortBy: {},
                     group: []
                 },
@@ -279,7 +284,8 @@ const queryParts = {
                     ],
                     constraint: [
                         'treatments.deleted = 0', 
-                        'materialsCitations.deleted = 0 AND specimenCountMale != ""'
+                        'materialsCitations.deleted = 0',
+                        "specimenCountMale != ''"
                     ],
                     sortBy: {},
                     group: []
@@ -293,7 +299,8 @@ const queryParts = {
                     ],
                     constraint: [
                         'treatments.deleted = 0',
-                        'materialsCitations.deleted = 0 AND specimenCountFemale != ""'
+                        'materialsCitations.deleted = 0',
+                        "specimenCountFemale != ''"
                     ],
                     sortBy: {},
                     group: []
@@ -310,7 +317,7 @@ const queryParts = {
                     tables: ['treatments'],
                     constraint: [
                         'treatments.deleted = 0',
-                        'journalTitle != ""'
+                        "journalTitle != ''"
                     ],
                     sortBy: {},
                     group: ['journalTitle']
@@ -324,7 +331,7 @@ const queryParts = {
                     tables: ['treatments'],
                     constraint: [
                         'treatments.deleted = 0',
-                        'journalYear != ""'
+                        "journalYear != ''"
                     ],
                     sortBy: {},
                     group: ['journalYear']
@@ -338,7 +345,7 @@ const queryParts = {
                     tables: ['treatments'],
                     constraint: [
                         'treatments.deleted = 0',
-                        'status != ""'
+                        "status != ''"
                     ],
                     sortBy: {},
                     group: ['status']
@@ -352,7 +359,7 @@ const queryParts = {
                     tables: ['treatments'],
                     constraint: [
                         'treatments.deleted = 0', 
-                        'treatments.rank != ""'
+                        "treatments.rank != ''"
                     ],
                     sortBy: {},
                     group: ['treatments.rank']
@@ -368,9 +375,9 @@ const queryParts = {
                         'treatments ON materialsCitations.treatmentId = treatments.treatmentId'
                     ],
                     constraint: [
-                        'collectionCode != ""',
                         'materialsCitations.deleted = 0',
-                        'treatments.deleted = 0'
+                        'treatments.deleted = 0',
+                        "collectionCode != ''"
                     ],
                     sortBy: {},
                     group: ['collectionCode']
@@ -620,13 +627,19 @@ const queryParts = {
                 'count by year': {
                     columns: ['Distinct(year) y', 'Count(year) c'],
                     tables: ['bibRefCitations'],
-                    constraint: ['bibRefCitations.deleted = 0 AND year != ""']
+                    constraint: [
+                        'bibRefCitations.deleted = 0',
+                        "year != ''"
+                    ]
                 },
     
                 'type of citation': {
                     columns: ['Distinct(type) t', 'Count(type) c'],
                     tables: ['bibRefCitations'],
-                    constraint: ['bibRefCitations.deleted = 0 AND year != ""']
+                    constraint: [
+                        'bibRefCitations.deleted = 0',
+                        "year != ''"
+                    ]
                 }
             }
         },
