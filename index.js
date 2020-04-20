@@ -1,11 +1,11 @@
-/*
-Start this program from the command line with `pm2`
-
-    ~/Nodes/punkish$ NODE_ENV=production pm2 start index.js --name zenodeo
-    ~/Nodes/punkish$ NODE_ENV=production pm2 restart zenodeo
-*/
-
 'use strict';
+
+
+// Start this program from the command line with `pm2`
+
+//     ~/Nodes/punkish$ NODE_ENV=production pm2 start index.js --name zenodeo
+//     ~/Nodes/punkish$ NODE_ENV=production pm2 restart zenodeo
+
 
 /*** hapi 18.4.0 *************************************/
 const Hapi = require('@hapi/hapi');
@@ -20,6 +20,7 @@ const Blipp = require('blipp');
 const config = require('config');
 const cacheName = config.get('v2.cache.name');
 const cachePath = config.get('v2.cache.path');
+const zendeoUri = config.get('v2.uri.zenodeo');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
@@ -109,10 +110,27 @@ const start = async () => {
         require('./resources/examples'),
         require('./resources/about'),
         require('./resources/releases'),
-        require('./resources/deefault')
+        {
+            method: '*',
+            path: '/{any*}',
+            handler: function (request, h) {
+    
+                return {
+                    error: "404 Error! Page Not Found! You might want to start at the root",
+                    root: zendeoUri
+                }
+            }
+        }
     ]);
     
     await server.start();
+
+    if (process.env.NODE_ENV) {
+        console.log('Server running in %s mode on %s', process.env.NODE_ENV.toUpperCase(), server.info.uri);
+    }
+    else {
+        console.log('Server running in DEVELOPMENT mode on %s', server.info.uri);
+    }
 
     server.events.on('log', (event, tags) => {
 

@@ -20,7 +20,13 @@ module.exports = {
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.families,
+                        validate: {
+                            params: Schema.families.params,
+                            failAction: (request, h, err) => {
+                                throw err;
+                                return;
+                            }
+                        },
                         notes: [
                             'This route fetches the families starting with the provided letters.'
                         ]

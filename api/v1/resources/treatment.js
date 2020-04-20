@@ -184,7 +184,14 @@ const treatment = {
                 responseMessages: ResponseMessages
             }
         },
-        validate: Schema.treatments,
+        validate: {
+            params: Schema.treatments.params,
+            query: Schema.treatments.query,
+            failAction: (request, h, err) => {
+                throw err;
+                return;
+            }
+        },
         notes: [
             'This is the main route for fetching a treatment matching an id.'
         ]

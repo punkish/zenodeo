@@ -1,101 +1,12 @@
 <section class="row">
-    <h1>Releases</h1>
+    <h1>Release Notes</h1>
 
-    <p>To upgrade the `Zenodeo` API to the latest version, run the following commands</p>
-    
-<pre><code class="bash">$ git pull
-$ yarn
-</code></pre>
-
-    <details open>
-        <summary>version 2.0.1</summary>
-
-        <ul>
-            <li>All the data in the database are now exposed via the API with four new routes to query<br>
-
-                <ul>
-                    <li>figureCitations : <a href="https://zenodeo.punkish.org/v2/figurecitations">https://zenodeo.punkish.org/v2/figurecitations</a></li>
-                    <li>bibRefCitations : <a href="https://zenodeo.punkish.org/v2/bibrefcitations">https://zenodeo.punkish.org/v2/bibrefcitations</a></li>
-                    <li>materialsCitations : <a href="https://zenodeo.punkish.org/v2/materialscitations">https://zenodeo.punkish.org/v2/materialscitations</a></li>
-                    <li>treatmentAuthors : <a href="https://zenodeo.punkish.org/v2/treatmentauthors">https://zenodeo.punkish.org/v2/treatmentauthors</a></li>
-                </ul>
-
-                The above four routes, along with <a href="https://zenodeo.punkish.org/v2/treatments">https://zenodeo.punkish.org/v2/treatments</a> now expose all the data ETL-ed from XMLs. By appending queries to the above URIs, you can constrain the results.
-            </li>
-
-            <li>Every query now also returns a ‘statistics’ object that has contextual stats for the resource. So, if you don’t append any queries to the above URIs, the returned statistics reflect the entire corpus (for that resource). If a query is appended, then the stats are relevant only to the result dataset.</li>
-                
-            <li>All returned data are now in the <a href="http://stateless.co/hal_specification.html" target="_blank">Hypertext Application Language (HAL)</a> format making the entire API <a href="https://en.wikipedia.org/wiki/HATEOAS" target="_blank">HATEOAS-compliant</a>. You can explore all the data now by just clicking the hyperlinks of &apos;related records&apos; in any returned dataset.</p>
-                
-            <li>Full text search (FTS) is now possible within the following resources
-
-                <ul>
-                    <li>figureCitations.captionText</li>
-                    <li>bibRefCitations.refString</li>
-                    <li>treatments.fulltext</li>
-                </ul>
-
-            </li>
-                
-            <li>Querying by lat/lon is unintuitive for the common user. Enhanced and easy location search is now possible by automatically doing a &apos;contained&apos; query based on the lat/lon pair provided. For example, the following query <code>https://zenodeo.punkish.org/v2/materialscitations?lat=77&amp;lon=78</code> will actually return all the records that are within the following box: <code>latitude &gt; 76.1 AND latitude &lt; 77.9 AND longitude &gt; 77.1 AND longitude &lt; 78.9</code>
-            
-<pre class="language-text">
-    lat: 77.9                                       lat: 77.9 
-    lon: 77.1                                       lon: 78.9
-        +-----------------------------------------------+
-        |                                               |
-        |                                               |
-        |                        lat: 77.53333          |
-        |                        lon: 78.88333          |
-        |                             ++                |
-        |                                               |
-        |                                               |
-        |             lat: 77.2                         |
-        |             lon: 78.11667                     |
-        |                 +                             |
-        |                                               |
-        |                                               |
-        +-----------------------------------------------+
-    lat: 76.1                                      lat: 76.1
-    lon: 77.1                                      lon: 78.9
-</pre>
-            </li>
+    {{#notes}}
+    <details>
         
-            <li>Contextual (resource&#x2013; and query-specific) statistics are returned for every resource. If no query is specified (other than <code>stats=true</code>) then stats for the entire resource-set will be returned. If a query is specified, then stats for the returned data will be included.</li>
-        </ul>
+        <summary>{{summary}}</summary>
+        <p>{{{detail}}}</p>
+        
     </details>
-
-    <details>
-        <summary>version 1.6.1</summary>
-
-        <ul>
-            <li>async calls to Zenodo are now really async, speeding up the queries significantly</li>
-            <li>a refreshCache switch allows force overwriting results in in cache</li>
-        </ul>
-    </details>
-
-    <details>
-        <summary>version 1.5.2</summary>
-    
-        <ul>
-            <li>Better image layout in examples + link to parent record on Zenodo</li>
-        </ul>
-    </details>
-    
-    <details>
-        <summary>version 1.5.1</summary>
-    
-        <ul>
-            <li>Added a persistent cache</li>
-            <li>Made the examples page more elaborate</li>
-        </ul>
-    </details>
-
-    <details>
-        <summary>version 1.0.1</summary>
-    
-        <ul>
-            <li>Initial version with in-memory cache</li>
-        </ul>
-    </details>
+    {{/notes}}
 </section>

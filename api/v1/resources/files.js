@@ -42,7 +42,14 @@ module.exports = {
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.files,
+                    validate: {
+                        params: Schema.files.params,
+                        query: Schema.files.query,
+                        failAction: (request, h, err) => {
+                            throw err;
+                            return;
+                        }
+                    },
                     notes: [
                         'Files inside Zenodo records',
                     ]

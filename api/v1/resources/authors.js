@@ -21,7 +21,13 @@ module.exports = {
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.authors,
+                        validate: {
+                            params: Schema.authors.params,
+                            failAction: (request, h, err) => {
+                                throw err;
+                                return;
+                            }
+                        },
                         notes: [
                             'This route fetches authors starting with the provided letters.'
                         ]

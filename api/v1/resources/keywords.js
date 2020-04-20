@@ -20,7 +20,13 @@ module.exports = {
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.keywords,
+                        validate: {
+                            params: Schema.keywords.params,
+                            failAction: (request, h, err) => {
+                                throw err;
+                                return;
+                            }
+                        },
                         notes: [
                             'This route fetches the keywords starting with the provided letters.'
                         ]

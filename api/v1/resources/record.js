@@ -49,7 +49,14 @@ module.exports = {
                             responseMessages: ResponseMessages
                         }
                     },
-                    validate: Schema.record,
+                    validate: {
+                        params: Schema.record.params,
+                        query: Schema.record.query,
+                        failAction: (request, h, err) => {
+                            throw err;
+                            return;
+                        }
+                    },
                     notes: [
                         'This is the main route for fetching a record matching an id or a set of records matching the provided query parameters.'
                     ]

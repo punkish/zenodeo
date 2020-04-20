@@ -1,5 +1,5 @@
 const wiki = require('wikijs').default;
-const Schema = require('../schema.js');
+//const Schema = require('../schema.js');
 
 module.exports = {
     plugin: {
@@ -32,7 +32,7 @@ module.exports = {
                                 //responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.wpsummary,
+                        //validate: Schema.wpsummary,
                         notes: [
                             'Summary from the Wikipedia page',
                         ]

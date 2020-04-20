@@ -20,7 +20,13 @@ module.exports = {
                                 responseMessages: ResponseMessages
                             }
                         },
-                        validate: Schema.authors,
+                        validate: {
+                            params: Schema.taxa.params,
+                            failAction: (request, h, err) => {
+                                throw err;
+                                return;
+                            }
+                        },
                         notes: [
                             'This route fetches taxa starting with the provided letters.'
                         ]

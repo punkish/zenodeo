@@ -2,6 +2,7 @@
 
 const path = require('path');
 const cwd = process.cwd();
+const host = 'http://localhost:3030';
 
 /*
 http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&groupingFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
@@ -20,7 +21,7 @@ module.exports = {
     info: {
         title: 'Zenodeo API documentation for BLR',
         description: '`nodejs` interface to the Zenodo/BLR community collection',
-        version: '2.5.0',
+        version: '2.6.0',
         termsOfService: '/tos',
         contact: { 
             name: 'Puneet Kishor',
@@ -32,7 +33,7 @@ module.exports = {
             url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
         } 
     },
-
+    
     'download-program': {
         "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
         "treatmentsListDir": path.join(cwd, 'data'),
@@ -42,6 +43,7 @@ module.exports = {
     },
 
     'swaggered-scheme': ['http'],
+    
     port: 3030,
     loglevel: 'INFO',
 
@@ -53,7 +55,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'http://localhost:3030',
+            zenodeo: `${host}/v1`,
             zenodo: 'https://zenodo.org/api'
         },
         
@@ -74,7 +76,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'http://localhost:3030',
+            zenodeo: `${host}/v2`,
             zenodo: 'https://zenodo.org/api'
         },
         
@@ -102,14 +104,15 @@ module.exports = {
     ],
     plog: path.join(cwd, 'lib', 'plog.js'),
     httpStatusCodes: path.join(cwd, 'lib', 'httpStatusCodes.js'),
-    'data': {
-        'logs': path.join(cwd, 'data', 'logs.sqlite'),
-        'treatments': path.join(cwd, 'data', 'treatments.sqlite'),
-        'authors': path.join(cwd, 'data', 'authors'),
-        'keywords': path.join(cwd, 'data', 'keywords'),
-        'taxa': path.join(cwd, 'data', 'taxa.min'),
-        'families': path.join(cwd, 'data', 'families.min'),
-        'facets': path.join(cwd, 'data', 'facets.sqlite')
+    data: {
+        logs: path.join(cwd, 'data', 'logs.sqlite'),
+        treatments: path.join(cwd, 'data', 'treatments.sqlite'),
+        authors: path.join(cwd, 'data', 'authors'),
+        keywords: path.join(cwd, 'data', 'keywords'),
+        taxa: path.join(cwd, 'data', 'taxa.min'),
+        families: path.join(cwd, 'data', 'families.min'),
+        lookups: path.join(cwd, 'data', 'facets.sqlite'),
+        queryStats: path.join(cwd, 'data', 'queryStats.sqlite')
     }
     
-}
+};
