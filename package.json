@@ -24,6 +24,7 @@
     "csvjson": "^5.1.0",
     "debug": "^4.1.1",
     "download": "^7.1.0",
+    "github-release-notes": "^0.17.1",
     "handlebars": "^4.7.6",
     "hapi-swagger": "^13.0.0",
     "minimist": "^1.2.5",

@@ -17,11 +17,25 @@ const dd2datadictionary = function() {
     // converting the following
     //
     //      dd = {
-    //          zenodeoCore: { treatments: [] },
+    //          zenodeoCore: { 
+    //              treatments: {
+    //                  cache: true,
+    //                  fields [ {}, {} … ]
+    //               }
+    //          },
     //          zenodeoRelated: { 
-    //              figureCitations: [],
-    //              bibRefCitations: [],
-    //              …
+    //              treatments: {
+    //                  cache: true,
+    //                  fields [ {}, {} … ]
+    //               },
+    //               …
+    //          },
+    //          lookups: { 
+    //              about: {
+    //                  cache: false,
+    //                  fields [ {} ]
+    //               },
+    //               …
     //          }
     //      }
     //
@@ -43,20 +57,20 @@ const dd2datadictionary = function() {
     // them the name of the 'resource' and the name of the 
     // 'resourceId'. This will look like
     //
-    //       "zenodeoCore": [
+    //       zenodeoCore: [
     //           {
-    //               "name": "treatments",
-    //               "resourceId": "treatmentId"
+    //               name: "treatments",
+    //               resourceId: "treatmentId"
     //           }
     //       ],
-    //       "zenodeoRelated": [
+    //       zenodeoRelated: [
     //           {
-    //               "name": "figureCitations",
-    //               "resourceId": "figureCitationId"
+    //               name: "figureCitations",
+    //               resourceId: "figureCitationId"
     //           },
     //           {
-    //               "name": "bibRefCitations",
-    //               "resourceId": "bibRefCitationId"
+    //               name: "bibRefCitations",
+    //               resourceId: "bibRefCitationId"
     //           },
     const resourceGroups = {};
 
@@ -76,10 +90,10 @@ const dd2datadictionary = function() {
         for (let resource in groupResources) {
 
             
-            // Add the commonParams to 'all' the resources no matter
-            // which resourceGroup they are in (hence, the 'all')
-            let gr = groupResources[resource];
-            gr.push(...commonParams['all']);
+            // Add the commonParams to the fields of 'all' the resources 
+            // no matter which resourceGroup they are in (hence, the 'all')
+            let rf = groupResources[resource].fields;
+            rf.push(...commonParams['all']);
 
             // Don't add any params if a particular resourceGroup's
             // specific commonParams are empty. This ensures nothing 
@@ -91,22 +105,23 @@ const dd2datadictionary = function() {
                 // we are using concat() instead of push() because we 
                 // want to add these parameters in front of the array
                 // rather than at the end of the array
-                gr = [].concat(commonParams[rg], gr)
+                rf = [].concat(commonParams[rg], rf)
             }
 
             // For every resource, we add its name and the name of its
             // resourceId key to the resourceGroups hash
             let name = resource;
             let resourceId = '';
-            for (let i = 0, j = gr.length; i < j; i++) {
+            
+            for (let i = 0, j = rf.length; i < j; i++) {
 
                 if (rg !== 'lookups') {
 
-                    if (gr[i].resourceId) {
+                    if (rf[i].resourceId) {
 
-                        if (gr[i].resourceId === true) {
+                        if (rf[i].resourceId === true) {
 
-                            resourceId = gr[i].plaziName;
+                            resourceId = rf[i].plaziName;
                             break;
                         }
                     }
@@ -117,10 +132,11 @@ const dd2datadictionary = function() {
 
             resourceGroups[rg].push({ 
                 name: name,
-                resourceId: resourceId
+                resourceId: resourceId,
+                cache: groupResources[resource].cache
             });
             
-            dataDictionary[resource] = gr;
+            dataDictionary[resource] = rf;
             
         }
 

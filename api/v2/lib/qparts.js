@@ -1,5 +1,26 @@
 'use strict';
 
+/***********************************************************************
+ * 
+ * Query definitions for every resource.
+ * 
+ * A query is made up of seven parts
+ * 
+ * three mandatory parts
+ * -----------------------------
+ * SELECT <columns> 
+ * FROM <tables> 
+ * WHERE <constraint> 
+ * 
+ * four optional parts
+ * -----------------------------
+ * GROUP BY <group>
+ * ORDER BY <sortcol> <sortdir> 
+ * LIMIT <limit> 
+ * OFFSET <offset>
+ *
+ **********************************************************************/
+
 const queryParts = {
     treatments: {
         pk: 'treatmentId',

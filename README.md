@@ -6,18 +6,7 @@
 
 ### Method 1
 
-`git`, a relatively new version of `nodejs` (I am using 8.x) and `yarn`.
-
-```bash
-$ git clone git@github.com:punkish/zenodeo.git
-$ cd zenodeo
-$ yarn
-$ node index.js
-```
-
-### Method 2
-
-`git` and `nodejs` are non-negotiable, but if you don’t have or can’t install `yarn`, `npm` should work as well.
+`git`, `nodejs 12.x` or higher
 
 ```bash
 $ git clone git@github.com:punkish/zenodeo.git

@@ -1,4 +1,7 @@
-const inert = {
+'use strict';
+
+// Support for serving static files
+module.exports = {
     method: 'GET',
     path: '/public/{param*}',
     config: {
@@ -13,5 +16,3 @@ const inert = {
         }
     }
 };
-
-module.exports = inert;

@@ -9,7 +9,7 @@
  **********************************************************************/
 
 const Joi = require('@hapi/joi');
-const { dataDictionary, resourceGroups } = require('./dd2datadictionary');
+const { dataDictionary } = require('./dd2datadictionary');
 const Boom = require('@hapi/boom');
 
 

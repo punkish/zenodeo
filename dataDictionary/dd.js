@@ -303,84 +303,33 @@ const dd = {
     
     zenodeoCore: {
 
-        treatments: require('./treatments'),
+        treatments: require('./resources/treatments'),
 
     },
 
     zenodeoRelated: {
 
-        figureCitations: require('./figureCitations'),
-        bibRefCitations: require('./bibRefCitations'),
-        treatmentCitations: require('./treatmentCitations'),
-        materialsCitations: require('./materialsCitations'),
-        treatmentAuthors: require('./treatmentAuthors')
+        figureCitations: require('./resources/figureCitations'),
+        bibRefCitations: require('./resources/bibRefCitations'),
+        treatmentCitations: require('./resources/treatmentCitations'),
+        materialsCitations: require('./resources/materialsCitations'),
+        treatmentAuthors: require('./resources/treatmentAuthors')
 
     },
 
     zenodo: {
 
-        images: require('./images'),
-        publications: require('./publications')
+        images: require('./resources/images'),
+        publications: require('./resources/publications')
 
     },
 
     lookups: {
 
-        authors: [
-            {
-                plaziName     : 'author',
-                zenodoName    : '',
-                sqlType       : '',
-                cheerioElement: '',
-                description   : 'retrieve all authors starting with the provided letters',
-                queryable     : 'like',
-                queryString   : 'q',
-                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=ago»)`)',
-                resourceId    : false
-            }
-        ],
-    
-        keywords: [
-            {
-                plaziName     : 'keyword',
-                zenodoName    : '',
-                sqlType       : '',
-                cheerioElement: '',
-                description   : 'retrieve all keywords starting with the provided letters',
-                queryable     : 'like',
-                queryString   : 'q',
-                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=son»)`)',
-                resourceId    : false
-            }
-        ],
-    
-        families: [
-            {
-                plaziName     : 'family',
-                zenodoName    : '',
-                sqlType       : '',
-                cheerioElement: '',
-                description   : 'retrieve all families starting with the provided letters',
-                queryable     : 'like',
-                queryString   : 'q',
-                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=ago»)`)',
-                resourceId    : false
-            }
-        ],
-    
-        taxa: [
-            {
-                plaziName     : 'taxon',
-                zenodoName    : '',
-                sqlType       : '',
-                cheerioElement: '',
-                description   : 'retrieve all taxa starting with the provided letters',
-                queryable     : 'like',
-                queryString   : 'q',
-                validation    : 'Joi.string().description(`${d}`).required().min(3).message(`a querystring «q» of at least {#limit} characters is required (for example, «?q=ago»)`)',
-                resourceId    : false
-            }
-        ]
+        authors: require('./resources/authors'),
+        keywords: require('./resources/keywords'),
+        families: require('./resources/families'),
+        taxa: require('./resources/taxa')
 
     }
 

@@ -1,4 +1,6 @@
-const notes = {
+'use strict';
+
+module.exports = {
     
     method: 'GET',
 
@@ -201,6 +203,4 @@ lon: 77.1                                      lon: 78.9
 
         ]
     };
-}
-    
-module.exports = notes;
+};

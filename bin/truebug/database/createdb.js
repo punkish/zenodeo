@@ -4,6 +4,40 @@ const config = require('config');
 const plog = require(config.get('plog'));
 const dd = require('../../../dataDictionary/dd');
 
+
+/*
+CREATE TABLE webqueries (
+    id INTEGER PRIMARY KEY,
+
+    -- stringified queryObject
+    qp TEXT NOT NULL UNIQUE,
+
+    -- counter tracking queries
+    count INTEGER DEFAULT 1
+);
+
+CREATE TABLE sqlqueries (
+    id INTEGER PRIMARY KEY,
+
+    -- SQL query
+    sql TEXT NOT NULL UNIQUE
+);
+
+CREATE TABLE stats (
+    id INTEGER PRIMARY KEY,
+
+    -- Foreign Keys
+    webqueries_id INTEGER,
+    sqlqueries_id INTEGER,
+
+    -- query performance time in ms
+    timeTaken INTEGER,
+
+    -- timestamp of query
+    created INTEGER DEFAULT (strftime('%s','now')) 
+);
+*/
+
 const createTable = function(table) {
     const rdd = dd[table];
 

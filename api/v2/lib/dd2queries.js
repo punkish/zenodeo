@@ -196,8 +196,6 @@ const getDdKeys = function() {
 
 const dd2queries = function(queryObject) {
 
-    //plog.info('queryObject', queryObject);
-
     // get a reference to the resource-specific query parts.
     // For example, if 'queryObject.resource' is 'treatments'
     // then 'r' will be a reference to the 'treatments'
@@ -209,7 +207,6 @@ const dd2queries = function(queryObject) {
     //plog.info('ddKeys', ddKeys);
 
     const pk = ddKeys.byResourceIds[queryObject.resource];
-
     const [ matchTables, constraint ] = calcConstraint(ddKeys, queryObject);
 
     // make a deep copy of the resource specific queries
@@ -222,11 +219,13 @@ const dd2queries = function(queryObject) {
     const doGroups = ['essential'];
 
     if (queryObject[pk]) {
-
+        console.log(`pk key: ${pk}`);
+        console.log(`pk val: ${queryObject[pk]}`);
         doGroups.push(...[ 'related', 'taxonStats' ]);
+        
     }
     else {
-
+        console.log('no pk');
         if (queryObject.facets) doGroups.push('facets');
         if (queryObject.stats) doGroups.push('stats');
     }
@@ -267,17 +266,17 @@ const dd2queries = function(queryObject) {
 const test = function() {
 
     const q1 = {
-        communities: ['biosyslit', 'belgiumherbarium'],
-        refreshCache: false,
-        page: 1,
-        size: 30,
+        // communities: ['biosyslit', 'belgiumherbarium'],
+        // refreshCache: false,
+        // page: 1,
+        // size: 30,
         resource: 'treatments',
-        facets: false,
-        stats: false,
-        xml: false,
-        sortBy: 'journalYear:ASC',
+        // facets: false,
+        // stats: false,
+        // xml: false,
+        // sortBy: 'journalYear:ASC',
         // q: 'carabus',
-        authorityName: 'Agosti',
+        // authorityName: 'Agosti',
         // journalYear: '1996',
         // format: 'xml',
         // treatmentTitle: 'opheys',
@@ -304,9 +303,10 @@ const test = function() {
         },
     ];
 
+    console.log(dd2queries(q1));
+
     lookups.forEach(l => {
-        const q = dd2queries(l);
-        console.log(q);
+        //console.log(dd2queries(l));
     });
 
 };

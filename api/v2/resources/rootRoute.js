@@ -1,8 +1,15 @@
-const ResponseMessages = require('../../responseMessages')
+'use strict';
+
+/*************************************************************
+ *
+ * This is the root of the API. It lists all the routes to the 
+ * resources available to the user
+ * 
+ *************************************************************/
 
 module.exports = {
     plugin: {
-        name: 'root2',
+        name: 'root',
         register: function(server, options) {
 
             
@@ -10,19 +17,6 @@ module.exports = {
                 { 
                     path: '/', 
                     method: 'GET', 
-                    config: {
-                        description: 'API root listing all available resources',
-                        tags: ['root', 'api'],
-                        plugins: {
-                            'hapi-swagger': {
-                                order: 1,
-                                responseMessages: ResponseMessages
-                            }
-                        },
-                        notes: [
-                            'This is the root of the API. It lists all available resources.'
-                        ]
-                    },
                     handler: function(request, h) {
     
                         const routes = server.table().filter(r => { 
@@ -44,6 +38,19 @@ module.exports = {
                         
                         return routes;
                     
+                    },
+                    options: {
+                        description: 'API root listing all available resources',
+                        tags: ['root', 'api'],
+                        plugins: {
+                            'hapi-swagger': {
+                                order: 1,
+                                responseMessages: require('../../responseMessages')
+                            }
+                        },
+                        notes: [
+                            'This is the root of the API. It lists all available resources.'
+                        ]
                     }
                 }
             ]);

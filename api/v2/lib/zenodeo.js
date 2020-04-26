@@ -2,10 +2,11 @@
 
 /*******************************************************
  * 
- * Abstracted logic for the handler and other functions 
- * for the related resources that are fetched from 
- * Zenodeo
- * - treatmentAuthors
+ * A factory function with abstracted logic for the 
+ * handler and other functions for the related resources  
+ * that are fetched from Zenodeo
+ * 
+ * - treatmentAuthors (core)
  * - materialsCitations
  * - treatmentCitations
  * - bibRefCitations
@@ -386,7 +387,7 @@ const getStatsFacets = function(type, q, queryObject, debug) {
 };
 
 const getRelatedRecords = function(q, queryObject, debug) {
-
+    
     const related = {};
     const messages = [];
 
@@ -480,23 +481,26 @@ const getXml = function(treatmentId) {
     )
 };
 
-const formatAuthors = function(authors) {
-    let authorsArr = authors.map(a => { return a.author });
-    const numOfAuthors = authorsArr.length;
+// Not used for now, but saved for posterity
+//****************************************************************/
+//
+// const formatAuthors = function(authors) {
+//     let authorsArr = authors.map(a => { return a.author });
+//     const numOfAuthors = authorsArr.length;
 
-    let authorsList = '';
-    if (numOfAuthors === 1) {
-        authorsList = authorsArr[0];
-    }
-    else if (numOfAuthors === 2) {
-        authorsList = authorsArr.join(' and ');
-    }
-    else if (numOfAuthors > 2) {
-        authorsList = authorsArr.slice(0, 2).join(', ');
-        authorsList += ' and ' + authorsArr[numOfAuthors - 1]
-    }
+//     let authorsList = '';
+//     if (numOfAuthors === 1) {
+//         authorsList = authorsArr[0];
+//     }
+//     else if (numOfAuthors === 2) {
+//         authorsList = authorsArr.join(' and ');
+//     }
+//     else if (numOfAuthors > 2) {
+//         authorsList = authorsArr.slice(0, 2).join(', ');
+//         authorsList += ' and ' + authorsArr[numOfAuthors - 1]
+//     }
 
-    return authorsList;
-};
+//     return authorsList;
+// };
 
 module.exports = { handler, getRecords };

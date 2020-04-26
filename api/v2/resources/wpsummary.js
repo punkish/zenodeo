@@ -1,16 +1,25 @@
+'use strict';
+
+/*************************************************************
+ *
+ * A route to fetch summary of the given term from the info-
+ * box on Wikipedia
+ * 
+ *************************************************************/
+
 const wiki = require('wikijs').default;
-//const Schema = require('../schema.js');
 
 module.exports = {
+    
     plugin: {
-        name: 'wpsummary2',
+        name: 'wpsummary',
         register: async function(server, options) {
 
             const wpCache = server.cache({
                 cache: options.cacheName,
                 expiresIn: options.expiresIn,
                 generateTimeout: options.generateTimeout,
-                segment: 'wpsummary2', 
+                segment: 'wpsummary', 
                 generateFunc: async (q) => { return await wp(q); },
                 getDecoratedValue: options.getDecoratedValue
             });
@@ -29,10 +38,8 @@ module.exports = {
                         plugins: {
                             'hapi-swagger': {
                                 order: 13,
-                                //responseMessages: ResponseMessages
                             }
                         },
-                        //validate: Schema.wpsummary,
                         notes: [
                             'Summary from the Wikipedia page',
                         ]
@@ -58,5 +65,7 @@ const handler = async function(request, h) {
 
 const wp = async (term) => {
 
-    return await wiki().page(term).then(page => page.summary()).then(summary => { return summary })
+    return await wiki().page(term)
+        .then(page => page.summary())
+        .then(summary => { return summary })
 };

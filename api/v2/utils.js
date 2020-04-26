@@ -1,5 +1,11 @@
 'use strict';
 
+/***********************************************************************
+ * 
+ * A lot of common utility functions called from several other programs
+ * 
+ **********************************************************************/
+
 const Wreck = require('@hapi/wreck');
 
 const config = require('config');
@@ -109,23 +115,29 @@ module.exports = {
             .formatUnicorn(data);
     },
     
+    // Convert the time from process.hrtime() into human-readable
+    // total ms and an English-string of "? s and ? ms"
     timerFormat: function(t) {
 
-        const [s, ns] = t;
+        // seconds and nanoseconds
+        let [s, ns] = t;
 
-        let ms = ns / 1000000;
-        const msr = Math.round(ms);
+        // Time taken in ms
+        const ms = ns / 1000000;
+        const timeInMs = Math.round(ms);
 
-        let str;
+        // Time in an English-readable string
+        let timeInEnglish;
         if (ms >= 1000) {
+            
             s = s + Math.round(ms / 1000);
-            str = `${s}s ${ms - (s * 1000)}ms`;
+            timeInEnglish = `${s}s ${ms - (s * 1000)}ms`;
         }
         else {
-            str = `${msr}ms`
+            timeInEnglish = `${timeInMs}ms`
         }
 
-        return { msr: msr, str: str}
+        return { timeInMs: timeInMs, timeInEnglish: timeInEnglish}
     },
 
     find: function(pattern, source) {

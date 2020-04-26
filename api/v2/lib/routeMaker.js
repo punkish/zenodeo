@@ -1,11 +1,23 @@
 'use strict';
 
-const { Schema, SchemaLog } = require('./dd2schema');
-const ResponseMessages = require('../../responseMessages');
+/*************************************************************
+ *
+ * This is a factory routine that takens in a resource 
+ * description and returns a handler
+ * 
+ *************************************************************/
+
+const { Schema } = require('./dd2schema');
 const Utils = require('../utils');
 
 const h = function(resource) {
     
+    // Since there are two groups of resources on zenodeo, namely the 
+    // zenodeoCore (really, the treatments) and the zenodeoRelated (
+    // the resources related to each treatment stored in FK-linked 
+    // tables in the database), we coalesce them into one (because there) 
+    // only one factory routine for generating the handler and the  
+    // getRecords functions for them)
     const rg = resource.group.startsWith('zenodeo') ? 'zenodeo' : resource.group;
     const { handler, getRecords } = require(`../lib/${rg}`);
 
@@ -20,7 +32,9 @@ const h = function(resource) {
             name: pluginName,
             register: async function(server, options) {
     
-                if (! resource.group !== 'lookups') {
+                // lookup resources don't use a cache
+                //if (! resource.group !== 'lookups') {
+                if (resource.cache) {
 
                     // create the cache and 
                     // bind it to every route registered  
@@ -47,7 +61,7 @@ const h = function(resource) {
                         plugins: {
                             'hapi-swagger': {
                                 order: resource.order,
-                                responseMessages: ResponseMessages
+                                responseMessages: require('../../responseMessages')
                             }
                         },
                         validate: {

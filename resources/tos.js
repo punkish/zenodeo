@@ -1,11 +1,13 @@
-const tos = {
+'use strict';
+
+module.exports = {
     
     method: 'GET',
 
     path: '/tos',
 
     config: {
-        description: "terms of service",
+        description: 'Terms of service',
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -27,5 +29,3 @@ const tos = {
         );
     }
 };
-    
-module.exports = tos;

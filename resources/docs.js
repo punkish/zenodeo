@@ -1,11 +1,13 @@
-const docs = {
+'use strict';
+
+module.exports = {
     
     method: 'GET',
 
     path: '/docs',
 
     config: {
-        description: "docs",
+        description: 'Documentation',
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -27,5 +29,3 @@ const docs = {
         );
     }
 };
-    
-module.exports = docs;

@@ -1,11 +1,13 @@
-const about = {
+'use strict';
+
+module.exports = {
     
     method: 'GET',
 
     path: '/about',
 
     config: {
-        description: "about",
+        description: 'About',
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -27,5 +29,3 @@ const about = {
         );
     }
 };
-    
-module.exports = about;

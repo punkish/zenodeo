@@ -1,11 +1,13 @@
-const install = {
+'use strict';
+
+module.exports = {
     
     method: 'GET',
 
     path: '/install',
 
     config: {
-        description: "installation instructions",
+        description: 'Installation instructions',
         tags: ['zenodeo'],
         validate: {},
         notes: [
@@ -27,5 +29,3 @@ const install = {
         );
     }
 };
-    
-module.exports = install;
