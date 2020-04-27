@@ -167,13 +167,16 @@ const getOneRecord = function(queryObject) {
 
     // We are done if no records found
     if (! data['num-of-records']) {
+        
         timer = process.hrtime(timer);
         return Utils.dataForDelivery(timer, data, debug);
     }
 
     // more data from beyond the database
     if (queryObject.resource === 'treatments') {
+
         if (queryObject.xml && queryObject.xml === 'true') {
+
             data.records[0].xml = getXml(queryObject.treatmentId);
         }
         

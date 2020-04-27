@@ -119,11 +119,14 @@ const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, 
     const offset = queryObject.offset || query.offset || 0;
     
     if (matchTables.length) {
+
         tables.push(...matchTables);
     }
 
     if (queryGroup !== 'taxonStats' && queryGroup !== 'related') {
+
         if (addedConstraint.length) {
+
             constraint.push(...addedConstraint);
         }
     }
@@ -134,11 +137,13 @@ const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, 
     // now, figure out the sort params, if applicable
     let [sortcol, sortdir] = ['', ''];
     if (queryObject.sortBy && Object.keys(sortBy).length) {
+
         [sortcol, sortdir] = calcSortParams(sortBy, queryObject);
         sql += ` ORDER BY ${sortcol} ${sortdir}`;
     }
 
     if (group && Object.keys(group).length) {
+
         sql += ` GROUP BY ${group.join(' ')}`;
     }
 
@@ -180,7 +185,11 @@ const getDdKeys = function() {
                     table: f.table || false,
                     resourceId: f.resourceId ? f.plaziName : false
                 }
+            }
 
+            if (f.resourceId) {
+
+                byResourceIds[resource] = f.plaziName
             }
 
         }
@@ -219,13 +228,11 @@ const dd2queries = function(queryObject) {
     const doGroups = ['essential'];
 
     if (queryObject[pk]) {
-        console.log(`pk key: ${pk}`);
-        console.log(`pk val: ${queryObject[pk]}`);
-        doGroups.push(...[ 'related', 'taxonStats' ]);
         
+        doGroups.push(...[ 'related', 'taxonStats' ]);
     }
     else {
-        console.log('no pk');
+        
         if (queryObject.facets) doGroups.push('facets');
         if (queryObject.stats) doGroups.push('stats');
     }

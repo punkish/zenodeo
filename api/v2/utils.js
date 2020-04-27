@@ -250,10 +250,21 @@ module.exports = {
     
     halify: function({records, uri, resource, id}) {
         records.forEach(row => {
-            row._links = this.makeSelfLink({
+            // row._links = this.makeLink({
+            //     uri: uri,
+            //     path: resource.toLowerCase(),
+            //     queryString: `${id}=${row[id]}`
+            // })
+            row._links = {};
+            row._links.self = this.makeLink({
                 uri: uri,
-                path: resource.toLowerCase(),
-                queryString: `${id}=${row[id]}`
+                params: { 
+                    path: resource.toLowerCase(),
+                    resourceId: { 
+                        key: id,
+                        val: row[id]
+                    }
+                }
             })
         });
 

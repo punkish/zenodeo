@@ -215,8 +215,8 @@ const queryParts = {
                     tables: ['materialsCitations'],
                     constraint: [
                         'deleted = 0', 
-                        'latitude != ""', 
-                        'longitude != ""',
+                        "latitude != ''", 
+                        "longitude != ''",
                         'treatmentId = @treatmentId'
                     ],
                     sortBy: {},
@@ -232,7 +232,10 @@ const queryParts = {
                         'thumbnailUri'
                     ],
                     tables: ['figureCitations'],
-                    constraint: ['deleted = 0', 'treatmentId = @treatmentId'],
+                    constraint: [
+                        'deleted = 0', 
+                        'treatmentId = @treatmentId'
+                    ],
                     sortBy: {},
                     group: []
                 }
@@ -444,7 +447,7 @@ const queryParts = {
                         'treatments.id',
                         'treatments.treatmentId AS treatmentId', 
                         'treatmentTitle', 
-                        'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context'
+                        "authorityName || '. ' || authorityYear || '. <i>' || articleTitle || '.</i> ' || journalTitle || ', ' || journalYear || ', pp. ' || pages || ', vol. ' || journalVolume || ', issue ' || journalIssue AS context"
                     ],
                     tables: [
                         'treatments',
@@ -509,7 +512,7 @@ const queryParts = {
                         'treatments.id',
                         'treatments.treatmentId AS treatmentId', 
                         'treatmentTitle', 
-                        'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context'
+                        "authorityName || '. ' || authorityYear || '. <i>' || articleTitle || '.</i> ' || journalTitle || ', ' || journalYear || ', pp. ' || pages || ', vol. ' || journalVolume || ', issue ' || journalIssue AS context"
                     ],
                     tables: [
                         'treatments',
@@ -565,7 +568,7 @@ const queryParts = {
                         'treatments.id', 
                         'treatments.treatmentId AS treatmentId', 
                         'treatmentTitle', 
-                        'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context'
+                        "authorityName || '. ' || authorityYear || '. <i>' || articleTitle || '.</i> ' || journalTitle || ', ' || journalYear || ', pp. ' || pages || ', vol. ' || journalVolume || ', issue ' || journalIssue AS context"
                     ],
                     tables: [
                         'treatments', 
@@ -629,7 +632,7 @@ const queryParts = {
                         'treatments.id', 
                         'treatments.treatmentId AS treatmentId', 
                         'treatmentTitle', 
-                        'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context'
+                        "authorityName || '. ' || authorityYear || '. <i>' || articleTitle || '.</i> ' || journalTitle || ', ' || journalYear || ', pp. ' || pages || ', vol. ' || journalVolume || ', issue ' || journalIssue AS context"
                     ],
                     tables: [
                         'treatments', 
@@ -726,7 +729,7 @@ const queryParts = {
                         'treatments.id', 
                         'treatments.treatmentId AS treatmentId', 
                         'treatmentTitle', 
-                        'authorityName || ". " || authorityYear || ". <i>" || articleTitle || ".</i> " || journalTitle || ", " || journalYear || ", pp. " || pages || ", vol. " || journalVolume || ", issue " || journalIssue AS context'
+                        "authorityName || '. ' || authorityYear || '. <i>' || articleTitle || '.</i> ' || journalTitle || ', ' || journalYear || ', pp. ' || pages || ', vol. ' || journalVolume || ', issue ' || journalIssue AS context"
                     ],
                     tables: [
                         'treatments', 
