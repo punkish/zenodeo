@@ -4,7 +4,7 @@ const fs = require('fs');
 const showdown = require('showdown');
 const footnotes = require('../public/js/footnotes.js');
 const sh = new showdown.Converter({extensions: [footnotes], tables: true});
-const dir = './resources/data';
+const dir = './resources/text';
 
 module.exports = {
     
