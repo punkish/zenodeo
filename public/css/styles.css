@@ -35,6 +35,12 @@ input.submit {background-color: #f5f5f5;  line-height: 0;}
 	padding: 0;
 } */
 
+/* accommodate monodraw diagrams */
+pre.diagram {
+	line-height: 1em;
+	overflow: hidden;
+}
+
 /* install.html and examples.html */
 pre code {border: 1px black;}
 
@@ -46,7 +52,7 @@ pre code {border: 1px black;}
 }
 
 figure {
-	width: 150px;
+	/* width: 150px; */
 	margin-bottom: 8px;
 	margin-right: 8px;
 	font-size: 12px; 
@@ -65,7 +71,7 @@ figure:nth-of-type(2n) {
 
 @media screen and (min-width: 50em) {
 figure {
-	width: calc(25% - 6px);
+	/* width: calc(25% - 6px); */
 	margin-bottom: 8px;
 	margin-right: 8px;
 	font-size: 12px; 
