@@ -33,6 +33,7 @@
     "persistent-cache": "^1.1.1",
     "picolog": "^1.0.4",
     "progress": "^2.0.3",
+    "showdown": "^1.9.1",
     "wikijs": "^5.5.1"
   },
   "devDependencies": {}

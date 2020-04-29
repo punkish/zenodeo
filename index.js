@@ -109,6 +109,7 @@ const start = async () => {
         require('./resources/examples'),
         require('./resources/about'),
         require('./resources/releases'),
+        require('./resources/workflow'),
 
         // A catch-all route for any request that hasn't been satisfied
         // by any of the routes so far. Send back a 404 and suggest 
