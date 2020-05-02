@@ -7,25 +7,19 @@
  * 
  **************************************************************/
 
-const host = 'http://z2.punkish.org';
-
 module.exports = {
 
     loglevel: 'ERROR',
 
     v1: {
         uri: {
-            zenodeo: `${host}/v1`
+            zenodeo: 'http://z2.punkish.org/v1'
         }
     },
 
     v2: {
-        // cache: {
-        //     on: false
-        // },
-
         uri: {
-            zenodeo: `${host}/v2`
+            zenodeo: 'http://z2.punkish.org/v2'
         }
     }
 }

@@ -1,11 +1,23 @@
 {
   "name": "zenodeo",
-  "version": "2.6.0",
+  "version": "2.6.1",
   "description": "`nodejs` interface to the Zenodo/BLR community collection",
   "main": "index.js",
   "repository": "https://github.com/punkish/zenodeo",
-  "author": "Puneet Kishor",
+  "author": {
+    "name": "Puneet Kishor",
+    "email": "punk.kish@gmail.com",
+    "url": "https://punkish.org"
+  },
   "license": "CC0-1.0",
+  "homepage": "https://zenodeo.punkish.org",
+  "bugs": {
+    "url": "https://github.com/punkish/zenodeo/issues"
+  },
+  "engines": {
+    "node": ">= 12.0.0",
+    "npm": ">= 6.0.0"
+  },
   "dependencies": {
     "@hapi/boom": "^9.1.0",
     "@hapi/catbox": "^11.1.0",

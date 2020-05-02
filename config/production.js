@@ -15,7 +15,7 @@ module.exports = {
 
     v1: {
         uri: {
-            zenodeo: `${host}/v1`
+            zenodeo: 'https://zenodeo.punkish.org/v1'
         }
     },
 
@@ -25,7 +25,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: `${host}/v2`
+            zenodeo: 'https://zenodeo.punkish.org/v2'
         }
     },
 

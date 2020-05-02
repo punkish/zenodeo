@@ -8,31 +8,36 @@
 
 const path = require('path');
 const cwd = process.cwd();
-const host = 'http://localhost:3030';
 
 module.exports = {
+
+    /* This is the internal URI info ***********************/
+
+    // The internal scheme is *always* 'http', so 
+    // no need to configure it
+    /* scheme: 'http', */
+
+    // The internal host is *always* 'localhost' so
+    // no need to configure it
+    /* host: 'localhost', */
+
+    // The port can change depending on the server
+    port: 3030,
     
-    // API info that is used in the /docs pages by hapi-swaggered
+    loglevel: 'INFO',
+    
+    // API info that is used in the /docs pages by hapi-swaggered.
+    // Note: this info is supplemented with info from package.json
     info: {
         title: 'Zenodeo API documentation for BLR',
-        description: '`nodejs` interface to the Zenodo/BLR community collection',
-        version: '2.6.0',
         termsOfService: '/tos',
-        contact: { 
-            name: 'Puneet Kishor',
-            url: 'https://punkish.org/About',
-            email: 'punkish@plazi.org' 
-        },
-        license: { 
+        license: {
             name: 'CC0 Public Domain Dedication',
             url: 'https://creativecommons.org/publicdomain/zero/1.0/legalcode' 
         } 
     },
 
     'swaggered-scheme': [ 'http' ],
-    
-    port: 3030,
-    loglevel: 'INFO',
 
     // all queries that take longer than the 
     // following (in ms) are displayed in red
@@ -46,8 +51,9 @@ module.exports = {
             on: true
         },
 
+        // These are the external URIs
         uri: {
-            zenodeo: `${host}/v1`,
+            zenodeo: 'http://localhost:3030/v1',
             zenodo: 'https://zenodo.org/api'
         },
         
@@ -68,11 +74,10 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: `${host}/v2`,
+            zenodeo: 'http://localhost:3030/v2',
             zenodo: 'https://zenodo.org/api'
         },
         
-
         dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
         schema: path.join(cwd, 'api', 'v2', 'schema.js')
 

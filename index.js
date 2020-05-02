@@ -2,7 +2,7 @@
 
 
 // Start this program from the command line with `pm2`
-
+//
 //     ~/Nodes/punkish$ NODE_ENV=production pm2 start index.js --name zenodeo
 //     ~/Nodes/punkish$ pm2 restart zenodeo
 
@@ -18,21 +18,21 @@ const config = require('config');
 const cacheName = config.get('v2.cache.name');
 const cachePath = config.get('v2.cache.path');
 const zendeoUri = config.get('v2.uri.zenodeo');
+
+const Pack = require('./package');
 const info = config.get('info');
 const swaggeredScheme = config.get('swaggered-scheme');
 const port = config.get('port');
-
-//const logger = require(config.get('logger'));
 const plog = require(config.get('plog'));
 
 // Generate Swagger-compatible documentation for the app
-// The commented options below are listed for completion
-// sakes. We don't use them here.
+// The commented options below are listed for completeness
+// sakes. We just don't need them here.
 const swaggerOptions = {
 
     /******** URLs and plugin **************/ 
     schemes: swaggeredScheme,
-    //host: 'http://localhost:3030',,
+    //host: 'http://localhost:3030',
     //auth: false,
     //cors: false
 
@@ -41,7 +41,14 @@ const swaggerOptions = {
     //basePath: '/v2/',
     //pathPrefixSize: 2,
     //pathReplacements: [],
-    info: info,
+    info: {
+        title: info.title,
+        license: info.license,
+        version: Pack.version,
+        description: Pack.description,
+        termsOfService: info.termsOfService,
+        contact: Pack.author
+    },
 
     /******** UI **************/
     documentationPage: false,
@@ -52,7 +59,12 @@ const swaggerOptions = {
 
 // Create the server. Everything begins here.
 const server = new Hapi.server({
+
+    // Get the value of port from the config settings
     port: port,
+
+    // Since this application *always* runs behind a proxy, 
+    // the value of host will *always* be 'localhost'
     host: 'localhost',
     routes: { cors: true },
     cache: [{
@@ -161,6 +173,7 @@ const start = async () => {
         if (tags.error) {
             plog.logger({
                 host: server.info.uri,
+                //host: host,
                 start: '',
                 end: '',
                 status: 500,
@@ -176,6 +189,7 @@ const start = async () => {
 
         plog.logger({
             host: request.info.host,
+            //host: host,
             start: request.info.received,
             end: request.info.completed,
             status: request.response.statusCode,
