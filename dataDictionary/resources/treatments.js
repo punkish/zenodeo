@@ -170,7 +170,7 @@ module.exports = {
             zenodoName    : 'creators',
             sqlType       : 'TEXT',
             cheerioElement: '$("subSubSection[type=nomenclature] taxonomicName").attr("authorityName")',
-            description   : 'The name of the author(s) of the taxon (not necessarily the same as the authors of the journal article, but ommited if same as article authors)',
+            description   : 'The author(s) of the treatment (not necessarily the same as the authors of the journal article, but omitted if same as article authors)',
             queryable     : 'like',
             queryString   : 'authorityName',
             validation    : 'Joi.string().description(`${d}`).optional()',
@@ -289,7 +289,7 @@ module.exports = {
             resourceId    : false
         },
         {
-            plaziName     : 'fulltext',
+            plaziName     : 'q',
             zenodoName    : '',
             sqlName       : 'vtreatments',
             table         : 'vtreatments ON treatments.treatmentId = vtreatments.treatmentId',
@@ -301,6 +301,20 @@ module.exports = {
             queryString   : 'q',
             validation    : 'Joi.string().description(`${d}`).optional()'
         },
+        {
+            plaziName     : 'author',
+            zenodoName    : '',
+            sqlName       : 'treatmentAuthors.treatmentAuthor',
+            table         : 'treatmentAuthors ON treatments.treatmentId = treatmentAuthors.treatmentId',
+            sqlType       : 'TEXT',
+            cheerioElement: '',
+            description   : 'The author(s) of the article (not necessarily the same as the author of the treatment)',
+            queryable     : 'like',
+            resourceId    : false,
+            queryString   : 'author',
+            validation    : 'Joi.string().description(`${d}`).optional()'
+        },
+        
         
         /***************** */
 

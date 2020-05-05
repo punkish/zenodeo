@@ -39,7 +39,7 @@ const queryParts = {
     
                 data: {
                     columns: [
-                        'id', 
+                        'treatments.id', 
                         'treatments.treatmentId', 
                         'treatmentTitle', 
                         'doi AS articleDoi', 

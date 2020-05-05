@@ -261,7 +261,7 @@ const getManyRecords = async function(queryObject) {
     // which is why we have reached here. So now we get the 
     // actual records
     const dataSql = q.essential.data.sql;
-
+    //console.log(dataSql)
     try {
 
         let t = process.hrtime();

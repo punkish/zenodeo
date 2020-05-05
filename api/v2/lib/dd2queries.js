@@ -12,6 +12,166 @@ const config = require('config');
 const plog = require(config.get('plog'));
 
 
+const dd2queries = function(queryObject) {
+
+    // get a reference to the resource-specific query parts.
+    // For example, if 'queryObject.resource' is 'treatments'
+    // then 'r' will be a reference to the 'treatments'
+    // specific qParts
+    const qParts = require('./qparts');
+    const r = qParts[queryObject.resource];
+
+    // see `getDdKey()` below for details on what it is and 
+    // and why we need it
+    const ddKeys = getDdKeys();
+
+    // Now we can determine whether or not a PK is included in the 
+    // queryObject …
+    const pk = ddKeys.byResourceIds[queryObject.resource];
+
+    // and whether or not there are additional constraints and tables 
+    // tables to be joined
+    const [ matchTables, additionalConstraint ] = calcConstraint(ddKeys, queryObject);
+
+    // make a deep copy of the resource specific queries
+    // so it is easier to work with them. We make a deep 
+    // copy because the query parts will be modified based 
+    // on the parameters passed in the querystring, and 
+    // we want to retain the original query parts.
+    const queries = JSON.parse(JSON.stringify(r.queries));
+
+    const doGroups = ['essential'];
+
+    // if a PK is present in the querystring then we need to get the 
+    // related records and, if the resource is treatments, then the 
+    // taxonsStats
+    if (queryObject[pk]) {
+        
+        doGroups.push(...[ 'related', 'taxonStats' ]);
+    }
+
+    // if there is no PK, then we need to get facets and state
+    // if they have been requested
+    else {
+        
+        if (queryObject.facets) doGroups.push('facets');
+        if (queryObject.stats) doGroups.push('stats');
+    }
+
+    const q = {};
+
+    for (let queryGroup in queries) {
+    
+        if (doGroups.includes(queryGroup)) {
+            const groupQueries = queries[queryGroup];
+
+            q[queryGroup] = {};
+
+            for (let queryName in groupQueries) {
+                const query = groupQueries[queryName];
+
+                const sql = calcQuery(
+                    ddKeys, 
+                    queryGroup, 
+                    query, 
+                    queryObject, 
+                    matchTables, 
+                    additionalConstraint
+                );
+
+                q[queryGroup][queryName] = { sql: sql };
+                if ('pk' in query) {
+
+                    q[queryGroup][queryName].pk = query.pk;
+                }
+            }
+        }
+        
+    }
+
+    return q;
+};
+
+// We go through the data dictionary and create a data structure that
+// groups various keys of a resource field by the related query string 
+// param submitted via a REST API. There is another grouping that helps 
+// doing a quick look up of the resourceID key for a given resource, 
+// for example, 'treatmentId' for 'treatments'. This is how ddKeys looks
+//
+// "byQueryString": {
+//     "treatments": {
+//       "treatmentId": {
+//         "sqlName": "treatmentId",
+//         "queryable": "equal",
+//         "table": false,
+//         "resourceId": "treatmentId"
+//       },
+//       "treatmentTitle": {
+//         "sqlName": "treatmentTitle",
+//         "queryable": "like",
+//         "table": false,
+//         "resourceId": false
+//       },
+//       … other fields …
+//     },
+//     … other resources …
+//   },
+//   "byResourceIds": {
+//     "treatments": "treatmentId",
+//     "figureCitations": "figureCitationId",
+//     "bibRefCitations": "bibRefCitationId",
+//     "treatmentCitations": "treatmentCitationId",
+//     "materialsCitations": "materialsCitationId",
+//     "treatmentAuthors": "treatmentAuthorId",
+//     "images": "id",
+//     "publications": "id"
+//   }
+const getDdKeys = function() {
+    
+    const byQueryString = {};
+    const byResourceIds = {};
+
+    const { dataDictionary } = require('./dd2datadictionary');
+    
+    for (let resource in dataDictionary) {
+
+        // resource-specific data dictionary
+        const rdd = dataDictionary[resource];
+
+        byQueryString[resource] = {};
+
+        for (let i = 0, j = rdd.length; i < j; i++) {
+
+            const f = rdd[i];            
+            const qs = f.queryString;
+            
+            if (qs) {
+
+                byQueryString[resource][qs] = {
+                    sqlName: f.sqlName || qs,
+                    queryable: f.queryable,
+                    table: f.table || false,
+                    resourceId: f.resourceId ? f.plaziName : false
+                }
+            }
+
+            if (f.resourceId) {
+
+                byResourceIds[resource] = f.plaziName
+            }
+
+        }
+
+    }
+
+    return {
+        byQueryString: byQueryString,
+        byResourceIds: byResourceIds
+    };
+
+};
+
+
 // We need sort params only for the data query.
 // Here we figure out the sortcol and sortdir
 const calcSortParams = function(sortBy, queryObject) {
@@ -31,7 +191,7 @@ const calcSortParams = function(sortBy, queryObject) {
 };
 
 const calcConstraint = function(ddKeys, queryObject) {
-
+    
     const pk = ddKeys.byResourceIds[queryObject.resource];
 
     const matchTables = [];
@@ -44,7 +204,7 @@ const calcConstraint = function(ddKeys, queryObject) {
         for (let k in queryObject) {
 
             const f = ddKeys.byQueryString[queryObject.resource][k];
-
+            
             if (f) {
 
                 const op = f.queryable;
@@ -55,6 +215,10 @@ const calcConstraint = function(ddKeys, queryObject) {
                 }
                 else if (op === 'like') {
                     queryObject[k] = queryObject[k] + '%';
+                    if (f.table) {
+                        matchTables.push(f.table);
+                    }
+                    
                     constraint.push(`${sqlName} LIKE @${k}`);
                 }
                 else if (op === 'match') {
@@ -103,8 +267,9 @@ const calcConstraint = function(ddKeys, queryObject) {
 // ORDER BY <sortcol> <sortdir> 
 // LIMIT <limit> 
 // OFFSET <offset>
-const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, addedConstraint) {
+const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, additionalConstraint) {
     
+    //console.log(additionalConstraint)
     const columns = query.columns;
     const tables = JSON.parse(JSON.stringify(query.tables));
     const constraint = JSON.parse(JSON.stringify(query.constraint));
@@ -125,9 +290,9 @@ const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, 
 
     if (queryGroup !== 'taxonStats' && queryGroup !== 'related') {
 
-        if (addedConstraint.length) {
+        if (additionalConstraint.length) {
 
-            constraint.push(...addedConstraint);
+            constraint.push(...additionalConstraint);
         }
     }
     
@@ -158,117 +323,8 @@ const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, 
     return sql;
 };
 
-const getDdKeys = function() {
-    
-    const byQueryString = {};
-    const byResourceIds = {};
 
-    const { dataDictionary, resourceGroups } = require('./dd2datadictionary');
-    
-    for (let resource in dataDictionary) {
 
-        // resource-specific data dictionary
-        const rdd = dataDictionary[resource];
-
-        byQueryString[resource] = {};
-
-        for (let i = 0, j = rdd.length; i < j; i++) {
-
-            const f = rdd[i];            
-            const qs = f.queryString;
-            
-            if (qs) {
-
-                byQueryString[resource][qs] = {
-                    sqlName: f.sqlName || qs,
-                    queryable: f.queryable,
-                    table: f.table || false,
-                    resourceId: f.resourceId ? f.plaziName : false
-                }
-            }
-
-            if (f.resourceId) {
-
-                byResourceIds[resource] = f.plaziName
-            }
-
-        }
-
-    }
-
-    return {
-        byQueryString: byQueryString,
-        byResourceIds: byResourceIds
-    };
-
-};
-
-const dd2queries = function(queryObject) {
-
-    // get a reference to the resource-specific query parts.
-    // For example, if 'queryObject.resource' is 'treatments'
-    // then 'r' will be a reference to the 'treatments'
-    // specific qParts
-    const qParts = require('./qparts');
-    const r = qParts[queryObject.resource];
-
-    const ddKeys = getDdKeys();
-    //plog.info('ddKeys', ddKeys);
-
-    const pk = ddKeys.byResourceIds[queryObject.resource];
-    const [ matchTables, constraint ] = calcConstraint(ddKeys, queryObject);
-
-    // make a deep copy of the resource specific queries
-    // so it is easier to work with them. We make a deep 
-    // copy because the query parts will be modified based 
-    // on the parameters passed in the querystring, and 
-    // we want to retain the original query parts.
-    const queries = JSON.parse(JSON.stringify(r.queries));
-
-    const doGroups = ['essential'];
-
-    if (queryObject[pk]) {
-        
-        doGroups.push(...[ 'related', 'taxonStats' ]);
-    }
-    else {
-        
-        if (queryObject.facets) doGroups.push('facets');
-        if (queryObject.stats) doGroups.push('stats');
-    }
-
-    const q = {};
-
-    for (let queryGroup in queries) {
-    
-        if (doGroups.includes(queryGroup)) {
-            const groupQueries = queries[queryGroup];
-
-            q[queryGroup] = {};
-
-            for (let queryName in groupQueries) {
-                const query = groupQueries[queryName];
-
-                const sql = calcQuery(
-                    ddKeys, 
-                    queryGroup, 
-                    query, 
-                    queryObject, 
-                    matchTables, 
-                    constraint
-                );
-
-                q[queryGroup][queryName] = { sql: sql };
-                if ('pk' in query) {
-                    q[queryGroup][queryName].pk = query.pk;
-                }
-            }
-        }
-        
-    }
-
-    return q;
-};
 
 const test = function() {
 
@@ -278,6 +334,7 @@ const test = function() {
         // page: 1,
         // size: 30,
         resource: 'treatments',
+        author: 'fisher',
         // facets: false,
         // stats: false,
         // xml: false,
