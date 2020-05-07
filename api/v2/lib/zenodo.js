@@ -200,8 +200,8 @@ const getManyRecords = async function(queryObject) {
     const num = data.records.length;
     data.from = ((queryObject.page - 1) * queryObject.size) + 1;
     data.to = num < queryObject.size ? 
-        data.from + num - 1 : 
-        data.from + queryObject.size - 1;
+        +data.from + num - 1 : 
+        +data.from + (+queryObject.size) - 1;
 
 
     data.prevpage = queryObject.page >= 1 ? queryObject.page - 1 : '';
