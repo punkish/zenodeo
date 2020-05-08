@@ -23,6 +23,7 @@ module.exports = {
 
     // The port can change depending on the server
     port: 3030,
+    root: 'http://localhost:3030',
     
     loglevel: 'INFO',
     

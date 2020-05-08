@@ -7,11 +7,10 @@
  * 
  **************************************************************/
 
-const host = 'https://zenodeo.org';
-
 module.exports = {
 
     loglevel: 'ERROR',
+    root: 'https://zenodeo.org',
 
     v1: {
         uri: {

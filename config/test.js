@@ -10,6 +10,7 @@
 module.exports = {
 
     loglevel: 'ERROR',
+    root: 'http://z2.punkish.org',
 
     v1: {
         uri: {

@@ -1,5 +1,8 @@
 'use strict';
 
+const config = require('config');
+const root = config.get('root');
+
 /*************************************************************
  *
  * This is the root of the API. It lists all the routes to the 
@@ -32,7 +35,7 @@ module.exports = {
                             return {
                                 name: name,
                                 description: description,
-                                path: `${server.info.uri}${path}`
+                                path: `${root}${path}`
                             }
                         });
                         
