@@ -29,7 +29,7 @@ module.exports = {
     // API info that is used in the /docs pages by hapi-swaggered.
     // Note: this info is supplemented with info from package.json
     info: {
-        title: 'Zenodeo API documentation for BLR',
+        title: 'API documentation',
         termsOfService: '/tos',
         license: {
             name: 'CC0 Public Domain Dedication',

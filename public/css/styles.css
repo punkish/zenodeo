@@ -4,6 +4,20 @@ header {
 	text-align: left;
 	padding: 4rem;
 }
+header h1 {
+	margin-bottom: 0;
+}
+header a.title {
+    text-decoration: none;
+    color: black;
+    
+}
+header h2.small {
+    text-transform: uppercase;
+    font-weight: 400;
+    font-size: xx-small;
+	letter-spacing: 0;
+}
 nav a, nav b {margin-right: 0.75em;}
 
 section {
