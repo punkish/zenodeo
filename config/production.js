@@ -7,7 +7,7 @@
  * 
  **************************************************************/
 
-const host = 'https://zenodeo.punkish.org';
+const host = 'https://zenodeo.org';
 
 module.exports = {
 
@@ -15,7 +15,7 @@ module.exports = {
 
     v1: {
         uri: {
-            zenodeo: 'https://zenodeo.punkish.org/v1'
+            zenodeo: 'https://zenodeo.org/v1'
         }
     },
 
@@ -25,7 +25,7 @@ module.exports = {
         },
 
         uri: {
-            zenodeo: 'https://zenodeo.punkish.org/v2'
+            zenodeo: 'https://zenodeo.org/v2'
         }
     },
 

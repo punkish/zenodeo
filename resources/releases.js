@@ -108,13 +108,13 @@ SUM:                           191           2965           2200          15124
                         All the data in the database are now exposed via the API with four new routes to query<br>
 
                         <ul>
-                            <li>figureCitations : <a href="https://zenodeo.punkish.org/v2/figurecitations">https://zenodeo.punkish.org/v2/figurecitations</a></li>
-                            <li>bibRefCitations : <a href="https://zenodeo.punkish.org/v2/bibrefcitations">https://zenodeo.punkish.org/v2/bibrefcitations</a></li>
-                            <li>materialsCitations : <a href="https://zenodeo.punkish.org/v2/materialscitations">https://zenodeo.punkish.org/v2/materialscitations</a></li>
-                            <li>treatmentAuthors : <a href="https://zenodeo.punkish.org/v2/treatmentauthors">https://zenodeo.punkish.org/v2/treatmentauthors</a></li>
+                            <li>figureCitations : <a href="https://zenodeo.org/v2/figurecitations">https://zenodeo.org/v2/figurecitations</a></li>
+                            <li>bibRefCitations : <a href="https://zenodeo.org/v2/bibrefcitations">https://zenodeo.org/v2/bibrefcitations</a></li>
+                            <li>materialsCitations : <a href="https://zenodeo.org/v2/materialscitations">https://zenodeo.org/v2/materialscitations</a></li>
+                            <li>treatmentAuthors : <a href="https://zenodeo.org/v2/treatmentauthors">https://zenodeo.org/v2/treatmentauthors</a></li>
                         </ul>
                 
-                        The above four routes, along with <a href="https://zenodeo.punkish.org/v2/treatments">https://zenodeo.punkish.org/v2/treatments</a> now expose all the data ETL-ed from XMLs. By appending queries to the above URIs, you can constrain the results.
+                        The above four routes, along with <a href="https://zenodeo.org/v2/treatments">https://zenodeo.org/v2/treatments</a> now expose all the data ETL-ed from XMLs. By appending queries to the above URIs, you can constrain the results.
                     </li>
 
                     <li>
@@ -136,7 +136,7 @@ SUM:                           191           2965           2200          15124
                     </li>
             
                     <li>
-                        Querying by lat/lon is unintuitive for the common user. Enhanced and easy location search is now possible by automatically doing a &apos;contained&apos; query based on the lat/lon pair provided. For example, the following query <code>https://zenodeo.punkish.org/v2/materialscitations?lat=77&amp;lon=78</code> will actually return all the records that are within the following box: <code>latitude &gt; 76.1 AND latitude &lt; 77.9 AND longitude &gt; 77.1 AND longitude &lt; 78.9</code>
+                        Querying by lat/lon is unintuitive for the common user. Enhanced and easy location search is now possible by automatically doing a &apos;contained&apos; query based on the lat/lon pair provided. For example, the following query <code>https://zenodeo.org/v2/materialscitations?lat=77&amp;lon=78</code> will actually return all the records that are within the following box: <code>latitude &gt; 76.1 AND latitude &lt; 77.9 AND longitude &gt; 77.1 AND longitude &lt; 78.9</code>
     
 <pre class="language-text">
 lat: 77.9                                       lat: 77.9 
