@@ -3,7 +3,8 @@
 const Database = require('better-sqlite3');
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
-const db = new Database(config.get('data.treatments'));
+const dataDictionary = dataDict.dataDictionary;
+const db = new Database(config.get('data.treatmentsTmp'));
 const debug = false;
 
 const deBugger = function(options) {
@@ -18,9 +19,10 @@ const deBugger = function(options) {
     if (options.debug) {
         if (type === 'insert') {
             if (values.length) {
-                let istmt = database.insertStmts[table];
-                values.forEach(v => {istmt = istmt.replace(/\?/, `'${v}'`)});
-                console.log(istmt);
+                let istmt = database.insertStatic[table];
+                //values.forEach(v => {istmt = istmt.replace(/\?/, `'${v}'`)});
+                console.log(values)
+                //console.log(istmt);
             }
         }
         else {
@@ -32,7 +34,13 @@ const deBugger = function(options) {
             database.insertStmts[table] = db.prepare(stmt);
         }
         else if (type === 'insert') {
-            database.insertStmts[table].run(values);
+            //database.insertStmts[table].run(values);
+            // console.log(table)
+            // console.log('----------------------------------')
+            // console.log(values)
+            // console.log('==================================\n')
+            //console.log(database.insertStatic[table])
+            database.insertStatic[table].run(values);
         }
         else if (type === 'create') {
             db.prepare(stmt).run();
@@ -47,20 +55,39 @@ const database = {
 
     createTables: function() {
         
-        for (let table in dataDict) {
+        for (let table in dataDictionary) {
 
             let cols = [];
             let colsWithTypes = [];
             let colsForBinding = [];
 
-            dataDict[table].forEach(f => {
-                cols.push( f.plazi );
-                colsWithTypes.push( f.plazi + ' ' + f.type );
-                colsForBinding.push( '?' );
+            dataDictionary[table].forEach(f => {
+
+                if (f.sqlType) {
+
+                    if ( f.plaziName === 'q') {
+                        cols.push( 'fulltext' );
+                    }
+                    else if ( f.plaziName === 'order' ) {
+                        cols.push( '"order"' );
+                    }
+                    else {
+                        cols.push( f.plaziName );
+                    }
+
+                    colsWithTypes.push( f.plaziName + ' ' + f.sqlType );
+                    colsForBinding.push( '?' );
+                }
+
             });
 
+            cols.push( 'inserted' );
+            colsWithTypes.push( "inserted INTEGER DEFAULT (strftime('%s','now'))" );
+            colsForBinding.push( '?' );
+
             // add a primary key to all the tables
-            colsWithTypes.unshift('id INTEGER PRIMARY KEY');
+            // not needed with the new datadictionary
+            //colsWithTypes.unshift('id INTEGER PRIMARY KEY');
 
             // for making the UNIQUE indexes
             let colUniq = [];
@@ -147,95 +174,560 @@ const database = {
         deBugger({debug: debug, type: 'create', stmt: createViewActiveTreatments, table: 'activeTreatments', values: []});
     },
 
+    createTablesStatic: function() {
+        
+        const tables = {
+            treatments: `CREATE TABLE IF NOT EXISTS treatments ( 
+    id INTEGER PRIMARY KEY, 
+    treatmentId TEXT NOT NULL UNIQUE, 
+    treatmentTitle TEXT, 
+    doi TEXT, 
+    zenodoDep TEXT, 
+    zoobank TEXT, 
+    articleTitle TEXT, 
+    publicationDate TEXT, 
+    journalTitle TEXT, 
+    journalYear TEXT, 
+    journalVolume TEXT, 
+    journalIssue TEXT, 
+    pages TEXT, 
+    authorityName TEXT, 
+    authorityYear TEXT, 
+    kingdom TEXT, 
+    phylum TEXT, 
+    "order" TEXT, 
+    family TEXT, 
+    genus TEXT, 
+    species TEXT, 
+    status TEXT, 
+    taxonomicNameLabel TEXT, 
+    rank TEXT, 
+    q TEXT, 
+    author TEXT,
+    deleted INTEGER DEFAULT 0,
+    created INTEGER DEFAULT (strftime('%s','now')),
+    updated INTEGER
+)`,
+            
+            treatmentAuthors: `CREATE TABLE IF NOT EXISTS treatmentAuthors ( 
+    id INTEGER PRIMARY KEY, 
+    treatmentAuthorId TEXT NOT NULL, 
+    treatmentId TEXT NOT NULL, 
+    treatmentAuthor TEXT,
+    deleted INTEGER DEFAULT 0,
+    created INTEGER DEFAULT (strftime('%s','now')),
+    updated INTEGER,
+    UNIQUE (treatmentAuthorId, treatmentId)
+)`,
+            
+            materialsCitations: `CREATE TABLE IF NOT EXISTS materialsCitations ( 
+    id INTEGER PRIMARY KEY, 
+    materialsCitationId TEXT NOT NULL, 
+    treatmentId TEXT NOT NULL, 
+    collectingDate TEXT, 
+    collectionCode TEXT, 
+    collectorName TEXT, 
+    country TEXT, 
+    collectingRegion TEXT, 
+    municipality TEXT, 
+    county TEXT, 
+    stateProvince TEXT, 
+    location TEXT, 
+    locationDeviation TEXT, 
+    specimenCountFemale TEXT, 
+    specimenCountMale TEXT, 
+    specimenCount TEXT, 
+    specimenCode TEXT, 
+    typeStatus TEXT, 
+    determinerName TEXT, 
+    collectedFrom TEXT, 
+    collectingMethod TEXT, 
+    latitude REAL, 
+    longitude REAL, 
+    elevation REAL, 
+    httpUri TEXT, 
+    deleted INTEGER DEFAULT 0,
+    created INTEGER DEFAULT (strftime('%s','now')),
+    updated INTEGER,
+    UNIQUE (materialsCitationId, treatmentId)
+)`,
+            
+            treatmentCitations: `CREATE TABLE IF NOT EXISTS treatmentCitations ( 
+    id INTEGER PRIMARY KEY, 
+    treatmentCitationId TEXT NOT NULL, 
+    treatmentId TEXT NOT NULL, 
+    treatmentCitation TEXT, 
+    refString TEXT, 
+    deleted INTEGER DEFAULT 0, 
+    created INTEGER DEFAULT (strftime('%s','now')),
+    updated INTEGER,
+    UNIQUE (treatmentCitationId, treatmentId) 
+)`,
+            
+            figureCitations: `CREATE TABLE IF NOT EXISTS figureCitations ( 
+    id INTEGER PRIMARY KEY, 
+    figureCitationId TEXT NOT NULL, 
+    treatmentId TEXT NOT NULL, 
+    captionText TEXT, 
+    httpUri TEXT, 
+    thumbnailUri TEXT, 
+    deleted INTEGER DEFAULT 0,
+    created INTEGER DEFAULT (strftime('%s','now')),
+    updated INTEGER,
+    UNIQUE (figureCitationId, treatmentId) 
+)`,
+            
+            bibRefCitations: `CREATE TABLE IF NOT EXISTS bibRefCitations ( 
+    id INTEGER PRIMARY KEY, 
+    bibRefCitationId TEXT NOT NULL, 
+    treatmentId TEXT NOT NULL, 
+    refString TEXT, 
+    type TEXT, 
+    year TEXT, 
+    deleted INTEGER DEFAULT 0,
+    created INTEGER DEFAULT (strftime('%s','now')),
+    updated INTEGER,
+    UNIQUE (bibRefCitationId, treatmentId) 
+)`,
+            
+            vtreatments: `CREATE VIRTUAL TABLE vtreatments USING FTS5(treatmentId, fullText)`,
+            vfigurecitations: `CREATE VIRTUAL TABLE vfigurecitations USING FTS5(figureCitationId, captionText)`,
+            vbibrefcitations: `CREATE VIRTUAL TABLE vbibrefcitations USING FTS5(bibRefCitationId, refString)`
+        };
+
+        for (let t in tables) {
+            deBugger({
+                debug: debug, 
+                type: 'create', 
+                stmt: tables[t], 
+                table: t, 
+                values: []
+            });
+        }
+    },
+
     // store the insert statements for later use
     insertStmts: {},
+
+    insertStatic: {
+        treatments: db.prepare(`INSERT INTO treatments (
+    treatmentId,
+    treatmentTitle,
+    doi,
+    zenodoDep,
+    zoobank,
+    articleTitle,
+    publicationDate,
+    journalTitle,
+    journalYear,
+    journalVolume,
+    journalIssue,
+    pages,
+    authorityName,
+    authorityYear,
+    kingdom,
+    phylum,
+    "order",
+    family,
+    genus,
+    species,
+    status,
+    taxonomicNameLabel,
+    rank,
+    fulltext,
+    deleted
+)
+VALUES ( 
+    @treatmentId,
+    @treatmentTitle,
+    @doi,
+    @zenodoDep,
+    @zoobank,
+    @articleTitle,
+    @publicationDate,
+    @journalTitle,
+    @journalYear,
+    @journalVolume,
+    @journalIssue,
+    @pages,
+    @authorityName,
+    @authorityYear,
+    @kingdom,
+    @phylum,
+    @order,
+    @family,
+    @genus,
+    @species,
+    @status,
+    @taxonomicNameLabel,
+    @rank,
+    @fulltext,
+    @deleted
+ )
+ON CONFLICT (treatmentId)
+DO UPDATE SET
+    treatmentTitle=excluded.treatmentTitle,
+    doi=excluded.doi,
+    zenodoDep=excluded.zenodoDep,
+    zoobank=excluded.zoobank,
+    articleTitle=excluded.articleTitle,
+    publicationDate=excluded.publicationDate,
+    journalTitle=excluded.journalTitle,
+    journalYear=excluded.journalYear,
+    journalVolume=excluded.journalVolume,
+    journalIssue=excluded.journalIssue,
+    pages=excluded.pages,
+    authorityName=excluded.authorityName,
+    authorityYear=excluded.authorityYear,
+    kingdom=excluded.kingdom,
+    phylum=excluded.phylum,
+    "order"=excluded."order",
+    family=excluded.family,
+    genus=excluded.genus,
+    species=excluded.species,
+    status=excluded.status,
+    taxonomicNameLabel=excluded.taxonomicNameLabel,
+    rank=excluded.rank,
+    fulltext=excluded.fulltext,
+    author=excluded.author,
+    deleted=excluded.deleted,
+    updated=excluded.updated`),
+
+        treatmentAuthors: db.prepare(`INSERT INTO treatmentAuthors (
+    treatmentAuthorId,
+    treatmentId,
+    treatmentAuthor,
+    deleted
+)
+VALUES ( 
+    @treatmentAuthorId,
+    @treatmentId,
+    @treatmentAuthor,
+    @deleted
+ )
+ON CONFLICT (treatmentAuthorId, treatmentId)
+DO UPDATE SET
+    treatmentId=excluded.treatmentId,
+    treatmentAuthor=excluded.treatmentAuthor,
+    deleted=excluded.deleted,
+    updated=excluded.updated`),
+ 
+        materialsCitations: db.prepare(`INSERT INTO materialsCitations (
+    materialsCitationId,
+    treatmentId,
+    collectingDate,
+    collectionCode,
+    collectorName,
+    country,
+    collectingRegion,
+    municipality,
+    county,
+    stateProvince,
+    location,
+    locationDeviation,
+    specimenCountFemale,
+    specimenCountMale,
+    specimenCount,
+    specimenCode,
+    typeStatus,
+    determinerName,
+    collectedFrom,
+    collectingMethod,
+    latitude,
+    longitude,
+    elevation,
+    httpUri,
+    deleted
+)
+VALUES ( 
+    @materialsCitationId,
+    @treatmentId,
+    @collectingDate,
+    @collectionCode,
+    @collectorName,
+    @country,
+    @collectingRegion,
+    @municipality,
+    @county,
+    @stateProvince,
+    @location,
+    @locationDeviation,
+    @specimenCountFemale,
+    @specimenCountMale,
+    @specimenCount,
+    @specimenCode,
+    @typeStatus,
+    @determinerName,
+    @collectedFrom,
+    @collectingMethod,
+    @latitude,
+    @longitude,
+    @elevation,
+    @httpUri,
+    @deleted
+ )
+ON CONFLICT (materialsCitationId, treatmentId)
+DO UPDATE SET
+    treatmentId=excluded.treatmentId,
+    collectingDate=excluded.collectingDate,
+    collectionCode=excluded.collectionCode,
+    collectorName=excluded.collectorName,
+    country=excluded.country,
+    collectingRegion=excluded.collectingRegion,
+    municipality=excluded.municipality,
+    county=excluded.county,
+    stateProvince=excluded.stateProvince,
+    location=excluded.location,
+    locationDeviation=excluded.locationDeviation,
+    specimenCountFemale=excluded.specimenCountFemale,
+    specimenCountMale=excluded.specimenCountMale,
+    specimenCount=excluded.specimenCount,
+    specimenCode=excluded.specimenCode,
+    typeStatus=excluded.typeStatus,
+    determinerName=excluded.determinerName,
+    collectedFrom=excluded.collectedFrom,
+    collectingMethod=excluded.collectingMethod,
+    latitude=excluded.latitude,
+    longitude=excluded.longitude,
+    elevation=excluded.elevation,
+    httpUri=excluded.httpUri,
+    deleted=excluded.deleted,
+    updated=excluded.updated`),
+
+        treatmentCitations: db.prepare(`INSERT INTO treatmentCitations (
+    treatmentCitationId,
+    treatmentId,
+    treatmentCitation,
+    refString,
+    deleted
+)
+VALUES ( 
+    @treatmentCitationId,
+    @treatmentId,
+    @treatmentCitation,
+    @refString,
+    @deleted
+ )
+ON CONFLICT (treatmentCitationId, treatmentId)
+DO UPDATE SET
+    treatmentId=excluded.treatmentId,
+    treatmentCitation=excluded.treatmentCitation,
+    refString=excluded.refString,
+    deleted=excluded.deleted,
+    updated=excluded.updated`),
+
+        figureCitations: db.prepare(`INSERT INTO figureCitations (
+    figureCitationId,
+    treatmentId,
+    captionText,
+    httpUri,
+    thumbnailUri,
+    deleted
+)
+VALUES ( 
+    @figureCitationId,
+    @treatmentId,
+    @captionText,
+    @httpUri,
+    @thumbnailUri,
+    @deleted
+ )
+ON CONFLICT (figureCitationId, treatmentId)
+DO UPDATE SET
+    treatmentId=excluded.treatmentId,
+    captionText=excluded.captionText,
+    httpUri=excluded.httpUri,
+    thumbnailUri=excluded.thumbnailUri,
+    deleted=excluded.deleted,
+    updated=excluded.updated`),
+
+        bibRefCitations: db.prepare(`INSERT INTO bibRefCitations (
+    bibRefCitationId,
+    treatmentId,
+    refString,
+    type,
+    year,
+    deleted
+)
+VALUES ( 
+    @bibRefCitationId,
+    @treatmentId,
+    @refString,
+    @type,
+    @year,
+    @deleted
+ )
+ON CONFLICT (bibRefCitationId, treatmentId)
+DO UPDATE SET
+    treatmentId=excluded.treatmentId,
+    refString=excluded.refString,
+    type=excluded.type,
+    year=excluded.year,
+    deleted=excluded.deleted,
+    updated=excluded.updated`),
+    
+        vtreatments: db.prepare('INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments WHERE deleted = 0'),
+
+        vfigurecitations: db.prepare('INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations WHERE deleted = 0'),
+
+        vbibrefcitations: db.prepare('INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0')
+        
+    },
     
     loadData: function(data) {
 
-        // The data structure submitted to `loadData()` looks as follows
-        // 
-        // data = [ 
-        //     { 
-        //         treatment: { },
-        //         treatmentAuthors:    [ [{}, {} … ] ],
-        //         materialCitations:   [ [{}, {} … ] ],
-        //         treatmentCitations:   [ [{}, {} … ] ],
-        //         figureCitations:     [ [{}, {} … ] ],
-        //         bibRefCitations:     [ [{}, {} … ] ] 
-        //     } 
-        // ]
-        //
-        // We need to convert this hierarchical array of treatments into 
-        // a separate array for each part of the treatment so they can be 
-        // inserted into the separate SQL tables. However, we also have 
-        // add an extra 'treatmentId' key to all the componoents of a 
-        // treatment so they can be linked together in a SQL JOIN query.
-        // So the above data structure will be converted to the following
-        //
-        // d = {
-        //     treatments: [],
-        //     treatmentAuthors: [],
-        //     materialsCitations: [],
-        //     treatmentCitations: [],
-        //     figureCitations: [],
-        //     bibRefCitations: []
-        // }
+        /***************************************************************************
+         * 
+         * The data structure submitted to `loadData()` looks as follows
+         * 
+         * data = [ 
+         * 
+         *     // treatment 1 and its related data
+         *     { 
+         *         treatment: { },
+         *         treatmentAuthors:    [ [{}, {} … ] ],
+         *         materialCitations:   [ [{}, {} … ] ],
+         *         treatmentCitations:   [ [{}, {} … ] ],
+         *         figureCitations:     [ [{}, {} … ] ],
+         *         bibRefCitations:     [ [{}, {} … ] ] 
+         *     },
+         * 
+         *     // treatment 2 and its related data
+         *     { 
+         *         treatment: { },
+         *         treatmentAuthors:    [ [{}, {} … ] ],
+         *         materialCitations:   [ [{}, {} … ] ],
+         *         treatmentCitations:   [ [{}, {} … ] ],
+         *         figureCitations:     [ [{}, {} … ] ],
+         *         bibRefCitations:     [ [{}, {} … ] ] 
+         *     } 
+         * ]
+         *
+         * We need to convert this hierarchical array of treatments into 
+         * a separate array for each part of the treatment so they can be 
+         * inserted into the separate SQL tables. However, we also have 
+         * add an extra 'treatmentId' key to all the componoents of a 
+         * treatment so they can be linked together in a SQL JOIN query.
+         * So the above data structure will be converted to the following
+         *
+         * d = {
+         *     treatments: [ {}, {} … ],
+         *     treatmentAuthors: [ {}, {} … ],
+         *     materialsCitations: [ {}, {} … ],
+         *     treatmentCitations: [ {}, {} … ],
+         *     figureCitations: [ {}, {} … ],
+         *     bibRefCitations: [ {}, {} … ]
+         * }
+         * 
+         ***************************************************************************/
 
-        for (let table in dataDict) {
+        const d = {
+            treatments: [],
+            treatmentAuthors: [],
+            materialsCitations: [],
+            treatmentCitations: [],
+            figureCitations: [],
+            bibRefCitations: []
+        };
 
-            let d = {
-                treatments: [],
-                treatmentAuthors: [],
-                materialsCitations: [],
-                treatmentCitations: [],
-                figureCitations: [],
-                bibRefCitations: []
-            }
+        for (let i = 0, j = data.length; i < j; i++) {
 
-            for (let i = 0, j = data.length; i < j; i++) {
+            const t = data[i];
 
-                if (table === 'treatments') {
-                    d.treatments.push(data[i].treatment)
+            for (let table in t) {
+
+                if (table === 'treatment') {
+                    d.treatments.push( t[ table ] );
                 }
                 else {
-
-                    // While processing different parts of a 'treatment'
-                    // such as 'treatmentCitations', 'materialsCitation'
-                    // 'treatmentAuthors', 'figureCitations' and 
-                    // 'bibrefCitations' we have to check whether not the
-                    // array exists. For example, if no 'treatmentAuthors'
-                    // were found for a specific treatment, for that 
-                    // 'treatment' the 'treatmentAuthors' array will be 
-                    // undefined. In that case we don't process it because 
-                    // there is nothing to insert into the database.
-                    if (typeof(data[i][table]) !== 'undefined') {
-
-                        // for each component of the 'treatment', we take each 
-                        // element of the array, ultimately a new row in the 
-                        // database, and insert it into a separate array.
-                        for (let r in data[i][table]) {
-                            d[table].push(data[i][table][r])
-                        }
-    
-                    }
-                    
+                    d[ table ].push( t[ table ] );
                 }
             }
-
-            const insertMany = db.transaction((rows) => {
-                for (const row of rows) {      
-                    const r = Object.values(row);
-                    deBugger({debug: debug, type: 'insert', stmt: '', table: table, values: r});
-                }
-            });
-            
-            for (let t in d) {
-                if (d[t].length) {
-                    insertMany(d[t]);
-                }
-            }
-            
         }
+
+        for (let table in d) {
+
+            if (d[ table ].length) {
+
+                const insertMany = db.transaction((rows) => {
+                    for (const row of rows) {      
+                        deBugger({
+                            debug: debug, 
+                            type: 'insert', 
+                            stmt: '', 
+                            table: table, 
+                            values: Object.values(row)
+                        });
+                    }
+                });
+
+                insertMany(d[ table ]);
+            }
+        }
+
+        // for (let table in dataDictionary) {
+
+        //     let d = {
+        //         treatments: [],
+        //         treatmentAuthors: [],
+        //         materialsCitations: [],
+        //         treatmentCitations: [],
+        //         figureCitations: [],
+        //         bibRefCitations: []
+        //     }
+
+        //     for (let i = 0, j = data.length; i < j; i++) {
+
+        //         if (table === 'treatments') {
+        //             d.treatments.push(data[i].treatment);
+        //         }
+        //         else {
+
+        //             /****************************************************************************
+        //              * 
+        //              * While processing different parts of a 'treatment'
+        //              * such as 'treatmentCitations', 'materialsCitation'
+        //              * 'treatmentAuthors', 'figureCitations' and 
+        //              * 'bibrefCitations' we have to check whether not the
+        //              * array exists. For example, if no 'treatmentAuthors'
+        //              * were found for a specific treatment, for that 
+        //              * 'treatment' the 'treatmentAuthors' array will be 
+        //              * undefined. In that case we don't process it because 
+        //              * there is nothing to insert into the database.
+        //              * 
+        //              ****************************************************************************/
+        //             if (typeof(data[i][table]) !== 'undefined') {
+
+        //                 /****************************************************************************
+        //                  * 
+        //                  * for each component of the 'treatment', we take each 
+        //                  * element of the array, ultimately a new row in the 
+        //                  * database, and insert it into a separate array.
+        //                  * 
+        //                  ****************************************************************************/
+        //                 for (let r in data[i][table]) {
+        //                     d[table].push(data[i][table][r])
+        //                 }
+    
+        //             }
+                    
+        //         }
+        //     }
+
+        //     const insertMany = db.transaction((rows) => {
+        //         for (const row of rows) {      
+        //             const r = Object.values(row);
+        //             deBugger({debug: debug, type: 'insert', stmt: '', table: table, values: r});
+        //         }
+        //     });
+            
+        //     for (let t in d) {
+        //         if (d[t].length) {
+        //             insertMany(d[t]);
+        //         }
+        //     }
+            
+        // }
     },
 
     indexTables: function() {
@@ -259,9 +751,9 @@ const database = {
         // });
 
         // index treatents table on each queryable field
-        for (let t in dataDict) {
+        for (let t in dataDictionary) {
 
-            const table = dataDict[t];
+            const table = dataDictionary[t];
             let i = 0, j = table.length;
             for (; i < j; i++) {
                 const col = table[i];
@@ -290,6 +782,84 @@ const database = {
         //CREATE INDEX IF NOT EXISTS ix_treatments_facets ON treatments (deleted, treatmentId, journalTitle, journalYear, kingdom, phylum, "order", family, genus, species, status, rank) WHERE deleted = 0
         const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_facets ON treatments (deleted, ${facets.join(', ')}) WHERE deleted = 0`;
         deBugger({debug: debug, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
+    },
+
+    indexTablesStatic: function() {
+
+        const indexes = {
+            ix_treatmentCitations_treatmentCitation  : 'CREATE INDEX ix_treatmentCitations_treatmentCitation   ON treatmentCitations (deleted, Lower(treatmentCitation)) WHERE deleted = 0',
+            ix_treatmentCitations_refString          : 'CREATE INDEX ix_treatmentCitations_refString           ON treatmentCitations (deleted, Lower(refString)) WHERE deleted = 0',
+            ix_bibRefCitations_year                  : 'CREATE INDEX ix_bibRefCitations_year                   ON bibRefCitations    (deleted, year) WHERE deleted = 0',
+            ix_treatments_treatmentId                : 'CREATE INDEX ix_treatments_treatmentId                 ON treatments         (deleted, treatmentId)',
+            ix_treatments_treatmentTitle             : 'CREATE INDEX ix_treatments_treatmentTitle              ON treatments         (deleted, treatmentTitle COLLATE NOCASE)',
+            ix_treatments_articleTitle               : 'CREATE INDEX ix_treatments_articleTitle                ON treatments         (deleted, articleTitle COLLATE NOCASE)',
+            ix_treatments_publicationDate            : 'CREATE INDEX ix_treatments_publicationDate             ON treatments         (deleted, publicationDate)',
+            ix_treatments_journalTitle               : 'CREATE INDEX ix_treatments_journalTitle                ON treatments         (deleted, journalTitle COLLATE NOCASE)',
+            ix_treatments_journalYear                : 'CREATE INDEX ix_treatments_journalYear                 ON treatments         (deleted, journalYear)',
+            ix_treatments_authorityName              : 'CREATE INDEX ix_treatments_authorityName               ON treatments         (deleted, authorityName COLLATE NOCASE)',
+            ix_treatments_taxonomicNameLabel         : 'CREATE INDEX ix_treatments_taxonomicNameLabel          ON treatments         (deleted, taxonomicNameLabel COLLATE NOCASE)',
+            ix_treatments_kingdom                    : 'CREATE INDEX ix_treatments_kingdom                     ON treatments         (deleted, kingdom COLLATE NOCASE)',
+            ix_treatments_phylum                     : 'CREATE INDEX ix_treatments_phylum                      ON treatments         (deleted, phylum COLLATE NOCASE)',
+            ix_treatments_order                      : 'CREATE INDEX ix_treatments_order                       ON treatments         (deleted, "order" COLLATE NOCASE)',
+            ix_treatments_family                     : 'CREATE INDEX ix_treatments_family                      ON treatments         (deleted, family COLLATE NOCASE)',
+            ix_treatments_genus                      : 'CREATE INDEX ix_treatments_genus                       ON treatments         (deleted, genus COLLATE NOCASE)',
+            ix_treatments_species                    : 'CREATE INDEX ix_treatments_species                     ON treatments         (deleted, species COLLATE NOCASE)',
+            ix_treatments_status                     : 'CREATE INDEX ix_treatments_status                      ON treatments         (deleted, status COLLATE NOCASE)',
+            ix_treatments_rank                       : 'CREATE INDEX ix_treatments_rank                        ON treatments         (deleted, rank COLLATE NOCASE)',
+            ix_treatments_k_phylum                   : 'CREATE INDEX ix_treatments_k_phylum                    ON treatments         (deleted, kingdom, phylum)',
+            ix_treatments_k_p_order                  : 'CREATE INDEX ix_treatments_k_p_order                   ON treatments         (deleted, kingdom, phylum, "order")',
+            ix_treatments_k_p_o_family               : 'CREATE INDEX ix_treatments_k_p_o_family                ON treatments         (deleted, kingdom, phylum, "order", family)',
+            ix_treatments_k_p_o_f_genus              : 'CREATE INDEX ix_treatments_k_p_o_f_genus               ON treatments         (deleted, kingdom, phylum, "order", family, genus)',
+            ix_treatments_k_p_o_f_g_species          : 'CREATE INDEX ix_treatments_k_p_o_f_g_species           ON treatments         (deleted, kingdom, phylum, "order", family, genus, species)',
+            ix_treatments_facets                     : 'CREATE INDEX ix_treatments_facets                      ON treatments         (deleted, treatmentId, journalTitle, journalYear, kingdom, phylum, "order", family, genus, species, status, rank)',
+            ix_treatments_deleted                    : 'CREATE INDEX ix_treatments_deleted                     ON treatments         (deleted)',
+            ix_treatmentAuthors_treatmentAuthorId    : 'CREATE INDEX ix_treatmentAuthors_treatmentAuthorId     ON treatmentAuthors   (deleted, treatmentAuthorId)',
+            ix_treatmentAuthors_treatmentId          : 'CREATE INDEX ix_treatmentAuthors_treatmentId           ON treatmentAuthors   (deleted, treatmentId)',
+            ix_treatmentAuthors_treatmentAuthor      : 'CREATE INDEX ix_treatmentAuthors_treatmentAuthor       ON treatmentAuthors   (deleted, treatmentAuthor COLLATE NOCASE)',
+            ix_treatmentAuthors_deleted              : 'CREATE INDEX ix_treatmentAuthors_deleted               ON treatmentAuthors   (deleted)',
+            ix_materialsCitations_materialsCitationId: 'CREATE INDEX ix_materialsCitations_materialsCitationId ON materialsCitations (deleted, materialsCitationId)',
+            ix_materialsCitations_treatmentId        : 'CREATE INDEX ix_materialsCitations_treatmentId         ON materialsCitations (deleted, treatmentId)',
+            ix_materialsCitations_collectingDate     : 'CREATE INDEX ix_materialsCitations_collectingDate      ON materialsCitations (deleted, collectingDate COLLATE NOCASE)',
+            ix_materialsCitations_collectionCode     : 'CREATE INDEX ix_materialsCitations_collectionCode      ON materialsCitations (deleted, collectionCode COLLATE NOCASE)',
+            ix_materialsCitations_collectorName      : 'CREATE INDEX ix_materialsCitations_collectorName       ON materialsCitations (deleted, collectorName COLLATE NOCASE)',
+            ix_materialsCitations_country            : 'CREATE INDEX ix_materialsCitations_country             ON materialsCitations (deleted, country COLLATE NOCASE)',
+            ix_materialsCitations_collectingRegion   : 'CREATE INDEX ix_materialsCitations_collectingRegion    ON materialsCitations (deleted, collectingRegion COLLATE NOCASE)',
+            ix_materialsCitations_municipality       : 'CREATE INDEX ix_materialsCitations_municipality        ON materialsCitations (deleted, municipality COLLATE NOCASE)',
+            ix_materialsCitations_county             : 'CREATE INDEX ix_materialsCitations_county              ON materialsCitations (deleted, county COLLATE NOCASE)',
+            ix_materialsCitations_stateProvince      : 'CREATE INDEX ix_materialsCitations_stateProvince       ON materialsCitations (deleted, stateProvince COLLATE NOCASE)',
+            ix_materialsCitations_location           : 'CREATE INDEX ix_materialsCitations_location            ON materialsCitations (deleted, location COLLATE NOCASE)',
+            ix_materialsCitations_locationDeviation  : 'CREATE INDEX ix_materialsCitations_locationDeviation   ON materialsCitations (deleted, locationDeviation COLLATE NOCASE)',
+            ix_materialsCitations_specimenCountFemale: 'CREATE INDEX ix_materialsCitations_specimenCountFemale ON materialsCitations (deleted, specimenCountFemale COLLATE NOCASE)',
+            ix_materialsCitations_specimenCountMale  : 'CREATE INDEX ix_materialsCitations_specimenCountMale   ON materialsCitations (deleted, specimenCountMale COLLATE NOCASE)',
+            ix_materialsCitations_specimenCount      : 'CREATE INDEX ix_materialsCitations_specimenCount       ON materialsCitations (deleted, specimenCount COLLATE NOCASE)',
+            ix_materialsCitations_specimenCode       : 'CREATE INDEX ix_materialsCitations_specimenCode        ON materialsCitations (deleted, specimenCode COLLATE NOCASE)',
+            ix_materialsCitations_typeStatus         : 'CREATE INDEX ix_materialsCitations_typeStatus          ON materialsCitations (deleted, typeStatus COLLATE NOCASE)',
+            ix_materialsCitations_determinerName     : 'CREATE INDEX ix_materialsCitations_determinerName      ON materialsCitations (deleted, determinerName COLLATE NOCASE)',
+            ix_materialsCitations_collectedFrom      : 'CREATE INDEX ix_materialsCitations_collectedFrom       ON materialsCitations (deleted, collectedFrom COLLATE NOCASE)',
+            ix_materialsCitations_collectingMethod   : 'CREATE INDEX ix_materialsCitations_collectingMethod    ON materialsCitations (deleted, collectingMethod COLLATE NOCASE)',
+            ix_materialsCitations_latitude           : 'CREATE INDEX ix_materialsCitations_latitude            ON materialsCitations (deleted, latitude)',
+            ix_materialsCitations_longitude          : 'CREATE INDEX ix_materialsCitations_longitude           ON materialsCitations (deleted, longitude)',
+            ix_materialsCitations_elevation          : 'CREATE INDEX ix_materialsCitations_elevation           ON materialsCitations (deleted, elevation)',
+            ix_materialsCitations_deleted            : 'CREATE INDEX ix_materialsCitations_deleted             ON materialsCitations (deleted)',
+            ix_treatmentCitations_treatmentCitationId: 'CREATE INDEX ix_treatmentCitations_treatmentCitationId ON treatmentCitations (deleted, treatmentCitationId)',
+            ix_treatmentCitations_treatmentId        : 'CREATE INDEX ix_treatmentCitations_treatmentId         ON treatmentCitations (deleted, treatmentId)',
+            ix_treatmentCitations_deleted            : 'CREATE INDEX ix_treatmentCitations_deleted             ON treatmentCitations (deleted)',
+            ix_figureCitations_treatmentId           : 'CREATE INDEX ix_figureCitations_treatmentId            ON figureCitations    (deleted, treatmentId)',
+            ix_figureCitations_figureCitationId      : 'CREATE INDEX ix_figureCitations_figureCitationId       ON figureCitations    (deleted, figureCitationId, treatmentId)',
+            ix_bibRefCitations_bibRefCitationId      : 'CREATE INDEX ix_bibRefCitations_bibRefCitationId       ON bibRefCitations    (deleted, bibRefCitationId)',
+            ix_bibRefCitations_treatmentId           : 'CREATE INDEX ix_bibRefCitations_treatmentId            ON bibRefCitations    (deleted, treatmentId)',
+            ix_bibRefCitations_deleted               : 'CREATE INDEX ix_bibRefCitations_deleted                ON bibRefCitations    (deleted)',
+        }
+
+        for (let i in indexes) {
+            deBugger({
+                debug: debug, 
+                type: 'index', 
+                stmt: indexes[i], 
+                table: i, 
+                values: []
+            });
+        }
     },
 
     loadFTSTreatments: function() {
