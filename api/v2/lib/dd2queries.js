@@ -183,7 +183,7 @@ const calcSortParams = function(sortBy, queryObject) {
         sortcol = sortBy.defaultSort.col;
     }
 
-    if (sortdir !== 'ASC' || sortdir !== 'DESC') {
+    if (sortdir !== 'ASC' && sortdir !== 'DESC') {
         sortdir = sortBy.defaultSort.dir
     }
 
