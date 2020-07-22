@@ -2,17 +2,20 @@
 
 const fs = require('fs');
 const path = require('path');
+
 const progress = require('progress');
 const cheerio = require('cheerio');
 const chance = require('chance').Chance();
 
 const config = require('config');
 const dataDict = require(config.get('v2.dataDict'));
-const xmlDumpDir = config.get('xmlDumpDir');
-const logger = require(config.get('logger'));
+const dataDictionary = dataDict.dataDictionary;
 
-// truebug modules
-const rearrange = require('./rearrange');
+const treatmentsDump = config.get('truebug.treatmentsDump');
+
+
+// // truebug modules
+// const rearrange = require('./rearrange');
 const database = require('./database');
 
 /*
@@ -58,38 +61,42 @@ const stats = function(treatments, endProc) {
     extracted.treatments = extracted.treatments + j;
 
     for (; i < j; i++) {
+
         const treatment = treatments[i];
+
         if (treatment.treatmentCitations) {
             extracted.treatmentCitations = extracted.treatmentCitations + treatment.treatmentCitations.length;
         }
+
         if (treatment.treatmentAuthors) {
             extracted.treatmentAuthors = extracted.treatmentAuthors + treatment.treatmentAuthors.length;
         }
+
         if (treatment.materialsCitations) {
             extracted.materialsCitations = extracted.materialsCitations + treatment.materialsCitations.length;
         }
+
         if (treatment.figureCitations) {
             extracted.figureCitations = extracted.figureCitations + treatment.figureCitations.length;
         }
+
         if (treatment.bibRefCitations) {
             extracted.bibRefCitations = extracted.bibRefCitations + treatment.bibRefCitations.length;
         }
+
     }
 
-    return JSON.stringify(extracted, null, '\t');
+    //return JSON.stringify(extracted, null, '\t');
 };
 
 const parseOne = function(treatmentId) {
-    const xml = fs.readFileSync(`${xmlDumpDir}/${treatmentId + '.xml'}`, 'utf8');
 
-    //038787DAFFF7FF904BBFF925FD13F9AA
-    //730087F21E00FF81FF61FC34FDA561A5
-    //const xml = fs.readFileSync(`${process.cwd()}/data/${treatmentId}.xml`, 'utf8');
+    const xml = fs.readFileSync(`${treatmentsDump}/${treatmentId + '.xml'}`, 'utf8');
     return cheerioparse(xml, treatmentId);    
 };
 
 
-// As to the deleted (or retired, or whatever) elements: they are marked with a deleted attribute bearing value true. In addition, they also have deleteUser, deleteTime, and deleteVersion attributes.
+// // As to the deleted (or retired, or whatever) elements: they are marked with a deleted attribute bearing value true. In addition, they also have deleteUser, deleteTime, and deleteVersion attributes.
 
 const parseTreatmentCitations = function($, treatmentId) {
 
@@ -218,15 +225,18 @@ const _parse = function($, elements, parts, partId, treatmentId) {
             const missingAttr = [];
             const entry = {};
 
-            dataDict[parts].forEach(el => {
-                const attr = $(elements[i]).attr(el.plazi);
-                if (attr) {
-                    entry[el.plazi] = attr;
-                }
-                else {
-                    entry[el.plazi] = '';
-                    missingAttr.push(el.plazi);
+            dataDictionary[parts].forEach(el => {
 
+                if (el.cheerioElement) {
+                    const attr = $(elements[i]).attr(el.plaziName);
+                    if (attr) {
+                        entry[el.plaziName] = attr;
+                    }
+                    else {
+                        entry[el.plaziName] = '';
+                        missingAttr.push(el.plaziName);
+
+                    }
                 }
             });
 
@@ -269,25 +279,38 @@ const parseTreament = function($, treatmentId) {
         
     let treatment = {};
     
-    dataDict.treatments.forEach(el => {
-        let val = eval(el.element) || '';
-        if (el.plazi === 'treatmentId') {
-            val = treatmentId;
-        }
-        else if (el.plazi === 'deleted') {
-            if (val && val === 'true') {
-                val = 1;
-            }
-            else {
-                val = 0;
-            }
-        }
-        
-        if (typeof val === 'string') {
-            treatment[el.plazi] = val ? val.trim() : '';
-        }
-        else {
-            treatment[el.plazi] = val;
+    
+
+    dataDictionary.treatments.forEach(el => {
+
+
+        if (el.cheerioElement) {
+            let val = eval(el.cheerioElement) || '';
+
+            //if (val) {
+                if (el.plaziName === 'treatmentId') {
+
+                    val = treatmentId;
+                }
+                else if (el.plaziName === 'deleted') {
+
+                    //val = val && val === 'true' ? 1 : 0;
+                    if (val && val === 'true') {
+                        val = 1;
+                    }
+                    else {
+                        val = 0;
+                    }
+                }
+                
+                treatment[el.plaziName] =   typeof val === 'string' ? val.trim() : val;
+                // if (typeof val === 'string') {
+                //     treatment[el.plaziName] = val ? val.trim() : '';
+                // }
+                // else {
+                //     treatment[el.plaziName] = val;
+                // }
+            //}
         }
     })
 
@@ -339,8 +362,8 @@ const cheerioparse = function(xml, treatmentId) {
     // 'treatmentId' to each remaining object so it can be 
     // used as a foreign key to connect the object to the 
     // parent treatment
-    //const emptyObjs = (el) => Object.keys(el).length > 0;
-    //const addTreatmentId = (el) => el.treatmentId = treatmentId;
+    const emptyObjs = (el) => Object.keys(el).length > 0;
+    const addTreatmentId = (el) => el.treatmentId = treatmentId;
 
     let ta = parseTreatmentAuthors($, treatmentId);
     if (ta.length) {
@@ -374,26 +397,34 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
 
     //const xmlre = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[1-5][0-9a-f]{3}-?[89ab][0-9a-f]{3}-?[0-9a-f]{12}$/i;
     if (n.length === 32) {
+
+        console.log(`going to parse treatment ${n}`)
         const treatment = parseOne(n);
         console.log('----------------------------------------\n')
         console.log(treatment);
     }
     else {
 
-        const start = new Date().getTime();
-        const xmlsArr = fs.readdirSync(xmlDumpDir);
+        // const start = new Date().getTime();
+        const xmlsArr = fs.readdirSync(treatmentsDump);
         let i = 0;
         let j = typeof(n) === 'number' ? n : xmlsArr.length;
 
-        // update the progress bar every x% of the total num of files
-        // but x% of j should not be more than 10000
-        let x = 10;
-        const transactionLimit = 5000;
-        if ((j / x) > transactionLimit) {
-            x = Math.floor(j / transactionLimit);
+        /**************************************************************
+         * 
+         * update the progress bar every x% of the total num of files
+         * but x% of j should not be more than 5000 because we don't 
+         * want to insert more than 5K records at a time.
+         * 
+         **************************************************************/
+        
+        let batch = 1;
+        if (j > 50) {
+            batch = Math.floor(j / 10);
         }
 
-        const tickInterval = Math.floor( j / (j / x) );
+        if (j > 5000) batch = 5000;
+        const tickInterval = Math.floor( j / batch );
         const bar = new progress('processing [:bar] :rate files/sec :current/:total done (:percent) time left: :etas', {
             complete: '=',
             incomplete: ' ',
@@ -401,11 +432,11 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
             total: j
         });
     
-        const batch = Math.floor(j / x);
+        
         let treatments = [];
-    
         let endProc = false;
 
+        console.log(`- parsing XMLs and inserting into the db ${batch} at a time`)
         for (; i < j; i++) {
 
             if (i == (j - 1)) {
@@ -428,7 +459,8 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
         
             if (!(i % batch)) {
 
-                bar.interrupt(stats(treatments, endProc) + '\n');
+                //bar.interrupt(stats(treatments, endProc) + '\n');
+                stats(treatments, endProc)
 
                 if (databaseOpt) {
                     database.loadData(treatments);
@@ -437,28 +469,24 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
                 // empty the treatments for the next batch
                 treatments = [];
             }
+
             
         }
+
+        stats(treatments, endProc);
+        console.log('finished\n***********************************')
+        console.log(extracted);
+        //bar.interrupt(stats(treatments, endProc) + '\n');
 
         if (databaseOpt) {
             database.loadData(treatments);
 
-            database.indexTables();
+            //database.indexTables();
             database.loadFTSTreatments();
             database.loadFTSFigureCitations();
             database.loadFTSBibRefCitations();
         }
-
-        console.log('\n\n')
-        logger({
-            host: 'localhost',
-            start: start,
-            end: new Date().getTime(),
-            status: 200,
-            resource: 'parse',
-            query: `parsed ${n}`,
-            message: stats(treatments, endProc)
-        })
+        
     }
 
 };

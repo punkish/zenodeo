@@ -79,7 +79,9 @@ module.exports = {
             zenodo: 'https://zenodo.org/api'
         },
         
-        dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+        //dataDict: path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+        dataDict: path.join(cwd, 'api', 'v2', 'lib', 'dd2datadictionary.js'),
+
         schema: path.join(cwd, 'api', 'v2', 'schema.js')
 
     },
@@ -87,6 +89,7 @@ module.exports = {
     data: {
         logs: path.join(cwd, 'data', 'logs.sqlite'),
         treatments: path.join(cwd, 'data', 'treatments.sqlite'),
+        treatmentsTmp: path.join(cwd, 'data', 'treatments-tmp.sqlite'),
         queryStats: path.join(cwd, 'data', 'queryStats.sqlite'),
         lookups: path.join(cwd, 'data', 'facets.sqlite'),
 
@@ -111,20 +114,20 @@ module.exports = {
         { col : 'message', type: 'TEXT' }
     ],
 
-    'download-program': {
-        "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
-        "treatmentsListDir": path.join(cwd, 'data'),
-        "treatmentsListFilename": "listOfTreatments.xml",
-        "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
-        "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
-    },
+    // 'download-program': {
+    //     "newTreatmentsDir": path.join(cwd, 'data', 'treatmentsNew'), 
+    //     "treatmentsListDir": path.join(cwd, 'data'),
+    //     "treatmentsListFilename": "listOfTreatments.xml",
+    //     "downloadTreatmentsURL": 'http://tb.plazi.org/GgServer/xml/',
+    //     "downloadListURL": 'http://tb.plazi.org/GgServer/search?&indexName=0&resultFormat=XML&lastModifiedSince='
+    // },
 
-    'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
-    'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
-    'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
+    // 'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
+    // 'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    // 'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
     //'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
     //'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
-    'xmlRearrangedDest': path.join(cwd, 'data', 'treatments')
+    //'xmlRearrangedDest': path.join(cwd, 'data', 'treatments'),
 
     
     // http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&groupingFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
@@ -133,8 +136,29 @@ module.exports = {
 
     // http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
 
+    truebug: {
+        
+        //hostname: 'http://tb.plazi.org/GgServer',
+        hostname: '127.0.0.1',
 
-    // tb.plazi.org/GgServer/dumps/plazi.zenodeo.zip
-    // tb.plazi.org/GgServer/dumps/plazi.xmlHistory.zip
+        download: {
+
+            // full: 'plazi.zenodeo.zip'
+            // example: 'http://tb.plazi.org/GgServer/dumps/plazi.zenodeo.zip'
+            full: 'dumps/1B1.zip',
+
+            // diff
+            // example 'http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&format=JSON&FP-doc.updateDate=%222020-07-03%22'
+            diff: '/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&format=JSON&FP-doc.updateDate=',
+            
+
+            // single download: '8C2D95A59531F2DCB34D5040E36E6566'
+            // example 'http://tb.plazi.org/GgServer/xml/8C2D95A59531F2DCB34D5040E36E6566'
+            single: 'xml'
+        },
+
+        treatmentsDump: path.join(cwd, 'data', 'treatmentsDump')
+        
+    }
     
 };

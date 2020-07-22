@@ -97,6 +97,19 @@ module.exports = {
             validation    : 'Joi.string().description(`${d}`).optional()',
             resourceId    : false
         },
+
+        // used to be 'author'
+        {
+            plaziName     : 'articleAuthor',
+            zenodoName    : '',
+            sqlType       : 'TEXT',
+            cheerioElement: '$("document").attr("masterDocTitle")',
+            description   : 'The author(s) of the article (not necessarily the same as the author of the treatment)',
+            queryable     : 'like',
+            resourceId    : false,
+            queryString   : 'author',
+            validation    : 'Joi.string().description(`${d}`).optional()'
+        },
         {
             plaziName     : 'publicationDate',
             zenodoName    : 'publicationDate',
@@ -301,19 +314,20 @@ module.exports = {
             queryString   : 'q',
             validation    : 'Joi.string().description(`${d}`).optional()'
         },
-        {
-            plaziName     : 'author',
-            zenodoName    : '',
-            sqlName       : 'treatmentAuthors.treatmentAuthor',
-            table         : 'treatmentAuthors ON treatments.treatmentId = treatmentAuthors.treatmentId',
-            sqlType       : 'TEXT',
-            cheerioElement: '',
-            description   : 'The author(s) of the article (not necessarily the same as the author of the treatment)',
-            queryable     : 'like',
-            resourceId    : false,
-            queryString   : 'author',
-            validation    : 'Joi.string().description(`${d}`).optional()'
-        },
+
+        // {
+        //     plaziName     : 'author',
+        //     zenodoName    : '',
+        //     sqlName       : 'treatmentAuthors.treatmentAuthor',
+        //     table         : 'treatmentAuthors ON treatments.treatmentId = treatmentAuthors.treatmentId',
+        //     sqlType       : 'TEXT',
+        //     cheerioElement: '',
+        //     description   : 'The author(s) of the article (not necessarily the same as the author of the treatment)',
+        //     queryable     : 'like',
+        //     resourceId    : false,
+        //     queryString   : 'author',
+        //     validation    : 'Joi.string().description(`${d}`).optional()'
+        // },
         
         
         /***************** */

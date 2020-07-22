@@ -68,7 +68,7 @@ const queryParts = {
                     constraint: ['treatments.deleted = 0'],
                     sortBy: {
                         columns: [
-                            'journalYear', 
+                            'journalYear',
                             'treatmentTitle'
                         ],
                         defaultSort: {
