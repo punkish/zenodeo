@@ -92,40 +92,44 @@ const dd2queries = function(queryObject) {
     return q;
 };
 
-// We go through the data dictionary and create a data structure that
-// groups various keys of a resource field by the related query string 
-// param submitted via a REST API. There is another grouping that helps 
-// doing a quick look up of the resourceID key for a given resource, 
-// for example, 'treatmentId' for 'treatments'. This is how ddKeys looks
-//
-// "byQueryString": {
-//     "treatments": {
-//       "treatmentId": {
-//         "sqlName": "treatmentId",
-//         "queryable": "equal",
-//         "table": false,
-//         "resourceId": "treatmentId"
-//       },
-//       "treatmentTitle": {
-//         "sqlName": "treatmentTitle",
-//         "queryable": "like",
-//         "table": false,
-//         "resourceId": false
-//       },
-//       … other fields …
-//     },
-//     … other resources …
-//   },
-//   "byResourceIds": {
-//     "treatments": "treatmentId",
-//     "figureCitations": "figureCitationId",
-//     "bibRefCitations": "bibRefCitationId",
-//     "treatmentCitations": "treatmentCitationId",
-//     "materialsCitations": "materialsCitationId",
-//     "treatmentAuthors": "treatmentAuthorId",
-//     "images": "id",
-//     "publications": "id"
-//   }
+/*************************************************************************
+ 
+    We go through the data dictionary and create a data structure that
+    groups various keys of a resource field by the related query string 
+    param submitted via a REST API. There is another grouping that helps 
+    doing a quick look up of the resourceID key for a given resource, 
+    for example, 'treatmentId' for 'treatments'. This is how ddKeys looks
+
+    "byQueryString": {
+        "treatments": {
+        "treatmentId": {
+            "sqlName": "treatmentId",
+            "queryable": "equal",
+            "table": false,
+            "resourceId": "treatmentId"
+        },
+        "treatmentTitle": {
+            "sqlName": "treatmentTitle",
+            "queryable": "like",
+            "table": false,
+            "resourceId": false
+        },
+        … other fields …
+        },
+        … other resources …
+    },
+    "byResourceIds": {
+        "treatments": "treatmentId",
+        "figureCitations": "figureCitationId",
+        "bibRefCitations": "bibRefCitationId",
+        "treatmentCitations": "treatmentCitationId",
+        "materialsCitations": "materialsCitationId",
+        "treatmentAuthors": "treatmentAuthorId",
+        "images": "id",
+        "publications": "id"
+    }
+ 
+*************************************************************************/
 const getDdKeys = function() {
     
     const byQueryString = {};
@@ -227,18 +231,22 @@ const calcConstraint = function(ddKeys, queryObject) {
                 }
                 else if (op === 'between') {
 
-                    // else if (col === 'lat') {
-                    //     cols.push('latitude > @min_latitude');
-                    //     cols.push('latitude < @max_latitude');
-                    //     queryObject.min_latitude = queryObject.lat - range;
-                    //     queryObject.max_latitude = +queryObject.lat + range;
-                    // }
-                    // else if (col === 'lon') {
-                    //     cols.push('longitude > @min_longitude');
-                    //     cols.push('longitude < @max_longitude');
-                    //     queryObject.min_longitude = queryObject.lon - range;
-                    //     queryObject.max_longitude = +queryObject.lon + range;
-                    // }
+                    /***********************************************************************
+                    
+                    else if (col === 'lat') {
+                        cols.push('latitude > @min_latitude');
+                        cols.push('latitude < @max_latitude');
+                        queryObject.min_latitude = queryObject.lat - range;
+                        queryObject.max_latitude = +queryObject.lat + range;
+                    }
+                    else if (col === 'lon') {
+                        cols.push('longitude > @min_longitude');
+                        cols.push('longitude < @max_longitude');
+                        queryObject.min_longitude = queryObject.lon - range;
+                        queryObject.max_longitude = +queryObject.lon + range;
+                    }
+                    
+                    ***********************************************************************/
 
                     const delta = 0.9;
                     queryObject[`min_${k}`] = +queryObject[k] - delta;
@@ -253,20 +261,22 @@ const calcConstraint = function(ddKeys, queryObject) {
     return [ matchTables, constraint ];
 };
 
-// A query is made up of seven parts
-//
-// three mandatory parts
-// -----------------------------
-// SELECT <columns> 
-// FROM <tables> 
-// WHERE <constraint> 
-//
-// four optional parts
-// -----------------------------
-// GROUP BY <group>
-// ORDER BY <sortcol> <sortdir> 
-// LIMIT <limit> 
-// OFFSET <offset>
+/***********************************************************************
+ 
+    A query is made up of seven parts
+    three mandatory parts
+    -----------------------------
+    SELECT <columns> 
+    FROM <tables> 
+    WHERE <constraint> 
+    four optional parts
+    -----------------------------
+    GROUP BY <group>
+    ORDER BY <sortcol> <sortdir> 
+    LIMIT <limit> 
+    OFFSET <offset>
+
+***********************************************************************/
 const calcQuery = function(ddKeys, queryGroup, query, queryObject, matchTables, additionalConstraint) {
     
     //console.log(additionalConstraint)
@@ -334,12 +344,12 @@ const test = function() {
         // page: 1,
         // size: 30,
         resource: 'treatments',
-        author: 'fisher',
+        // author: 'fisher',
         // facets: false,
         // stats: false,
         // xml: false,
         // sortBy: 'journalYear:ASC',
-        // q: 'carabus',
+        q: 'Rhinolophus sinicus',
         // authorityName: 'Agosti',
         // journalYear: '1996',
         // format: 'xml',

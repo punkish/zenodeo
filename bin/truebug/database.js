@@ -21,7 +21,8 @@ const deBugger = function(options) {
             if (values.length) {
                 let istmt = database.insertStatic[table];
                 //values.forEach(v => {istmt = istmt.replace(/\?/, `'${v}'`)});
-                console.log(values)
+                //console.log(values)
+                //console.log('done')
                 //console.log(istmt);
             }
         }
@@ -30,7 +31,8 @@ const deBugger = function(options) {
         }
     }
     else {
-        if (type === 'createInsert') {
+        if (type === 'createInsertStatements') {
+            console.log(`- creating insert statement ${table}`);
             database.insertStmts[table] = db.prepare(stmt);
         }
         else if (type === 'insert') {
@@ -40,13 +42,22 @@ const deBugger = function(options) {
             // console.log(values)
             // console.log('==================================\n')
             //console.log(database.insertStatic[table])
-            database.insertStatic[table].run(values);
+            database.insertStmts[table].run(values);
         }
         else if (type === 'create') {
+            console.log(`- creating table ${table}`);
             db.prepare(stmt).run();
         }
         else if (type === 'index') {
-            db.prepare(stmt).run();
+            try {
+                console.log(`- creating index ${table}`);
+                db.prepare(stmt).run();
+            }
+            catch(error) {
+                console.log(`… skipping index ${table} (already exists)`);
+            }
+
+            
         }
     }
 };
@@ -290,9 +301,9 @@ const database = {
     UNIQUE (bibRefCitationId, treatmentId) 
 )`,
             
-            vtreatments: `CREATE VIRTUAL TABLE vtreatments USING FTS5(treatmentId, fullText)`,
-            vfigurecitations: `CREATE VIRTUAL TABLE vfigurecitations USING FTS5(figureCitationId, captionText)`,
-            vbibrefcitations: `CREATE VIRTUAL TABLE vbibrefcitations USING FTS5(bibRefCitationId, refString)`
+            vtreatments: `CREATE VIRTUAL TABLE IF NOT EXISTS vtreatments USING FTS5(treatmentId, fullText)`,
+            vfigurecitations: `CREATE VIRTUAL TABLE IF NOT EXISTS vfigurecitations USING FTS5(figureCitationId, captionText)`,
+            vbibrefcitations: `CREATE VIRTUAL TABLE IF NOT EXISTS vbibrefcitations USING FTS5(bibRefCitationId, refString)`
         };
 
         for (let t in tables) {
@@ -309,268 +320,285 @@ const database = {
     // store the insert statements for later use
     insertStmts: {},
 
-    insertStatic: {
-        treatments: db.prepare(`INSERT INTO treatments (
-    treatmentId,
-    treatmentTitle,
-    doi,
-    zenodoDep,
-    zoobank,
-    articleTitle,
-    publicationDate,
-    journalTitle,
-    journalYear,
-    journalVolume,
-    journalIssue,
-    pages,
-    authorityName,
-    authorityYear,
-    kingdom,
-    phylum,
-    "order",
-    family,
-    genus,
-    species,
-    status,
-    taxonomicNameLabel,
-    rank,
-    fulltext,
-    deleted
-)
-VALUES ( 
-    @treatmentId,
-    @treatmentTitle,
-    @doi,
-    @zenodoDep,
-    @zoobank,
-    @articleTitle,
-    @publicationDate,
-    @journalTitle,
-    @journalYear,
-    @journalVolume,
-    @journalIssue,
-    @pages,
-    @authorityName,
-    @authorityYear,
-    @kingdom,
-    @phylum,
-    @order,
-    @family,
-    @genus,
-    @species,
-    @status,
-    @taxonomicNameLabel,
-    @rank,
-    @fulltext,
-    @deleted
- )
-ON CONFLICT (treatmentId)
-DO UPDATE SET
-    treatmentTitle=excluded.treatmentTitle,
-    doi=excluded.doi,
-    zenodoDep=excluded.zenodoDep,
-    zoobank=excluded.zoobank,
-    articleTitle=excluded.articleTitle,
-    publicationDate=excluded.publicationDate,
-    journalTitle=excluded.journalTitle,
-    journalYear=excluded.journalYear,
-    journalVolume=excluded.journalVolume,
-    journalIssue=excluded.journalIssue,
-    pages=excluded.pages,
-    authorityName=excluded.authorityName,
-    authorityYear=excluded.authorityYear,
-    kingdom=excluded.kingdom,
-    phylum=excluded.phylum,
-    "order"=excluded."order",
-    family=excluded.family,
-    genus=excluded.genus,
-    species=excluded.species,
-    status=excluded.status,
-    taxonomicNameLabel=excluded.taxonomicNameLabel,
-    rank=excluded.rank,
-    fulltext=excluded.fulltext,
-    author=excluded.author,
-    deleted=excluded.deleted,
-    updated=excluded.updated`),
+    createInsertStatements: function() {
 
-        treatmentAuthors: db.prepare(`INSERT INTO treatmentAuthors (
-    treatmentAuthorId,
-    treatmentId,
-    treatmentAuthor,
-    deleted
-)
-VALUES ( 
-    @treatmentAuthorId,
-    @treatmentId,
-    @treatmentAuthor,
-    @deleted
- )
-ON CONFLICT (treatmentAuthorId, treatmentId)
-DO UPDATE SET
-    treatmentId=excluded.treatmentId,
-    treatmentAuthor=excluded.treatmentAuthor,
-    deleted=excluded.deleted,
-    updated=excluded.updated`),
- 
-        materialsCitations: db.prepare(`INSERT INTO materialsCitations (
-    materialsCitationId,
-    treatmentId,
-    collectingDate,
-    collectionCode,
-    collectorName,
-    country,
-    collectingRegion,
-    municipality,
-    county,
-    stateProvince,
-    location,
-    locationDeviation,
-    specimenCountFemale,
-    specimenCountMale,
-    specimenCount,
-    specimenCode,
-    typeStatus,
-    determinerName,
-    collectedFrom,
-    collectingMethod,
-    latitude,
-    longitude,
-    elevation,
-    httpUri,
-    deleted
-)
-VALUES ( 
-    @materialsCitationId,
-    @treatmentId,
-    @collectingDate,
-    @collectionCode,
-    @collectorName,
-    @country,
-    @collectingRegion,
-    @municipality,
-    @county,
-    @stateProvince,
-    @location,
-    @locationDeviation,
-    @specimenCountFemale,
-    @specimenCountMale,
-    @specimenCount,
-    @specimenCode,
-    @typeStatus,
-    @determinerName,
-    @collectedFrom,
-    @collectingMethod,
-    @latitude,
-    @longitude,
-    @elevation,
-    @httpUri,
-    @deleted
- )
-ON CONFLICT (materialsCitationId, treatmentId)
-DO UPDATE SET
-    treatmentId=excluded.treatmentId,
-    collectingDate=excluded.collectingDate,
-    collectionCode=excluded.collectionCode,
-    collectorName=excluded.collectorName,
-    country=excluded.country,
-    collectingRegion=excluded.collectingRegion,
-    municipality=excluded.municipality,
-    county=excluded.county,
-    stateProvince=excluded.stateProvince,
-    location=excluded.location,
-    locationDeviation=excluded.locationDeviation,
-    specimenCountFemale=excluded.specimenCountFemale,
-    specimenCountMale=excluded.specimenCountMale,
-    specimenCount=excluded.specimenCount,
-    specimenCode=excluded.specimenCode,
-    typeStatus=excluded.typeStatus,
-    determinerName=excluded.determinerName,
-    collectedFrom=excluded.collectedFrom,
-    collectingMethod=excluded.collectingMethod,
-    latitude=excluded.latitude,
-    longitude=excluded.longitude,
-    elevation=excluded.elevation,
-    httpUri=excluded.httpUri,
-    deleted=excluded.deleted,
-    updated=excluded.updated`),
+        const updateTime = Math.floor(new Date().getTime() / 1000);
 
-        treatmentCitations: db.prepare(`INSERT INTO treatmentCitations (
-    treatmentCitationId,
-    treatmentId,
-    treatmentCitation,
-    refString,
-    deleted
-)
-VALUES ( 
-    @treatmentCitationId,
-    @treatmentId,
-    @treatmentCitation,
-    @refString,
-    @deleted
- )
-ON CONFLICT (treatmentCitationId, treatmentId)
-DO UPDATE SET
-    treatmentId=excluded.treatmentId,
-    treatmentCitation=excluded.treatmentCitation,
-    refString=excluded.refString,
-    deleted=excluded.deleted,
-    updated=excluded.updated`),
+        const insertStatements = {
+            treatments: `INSERT INTO treatments (
+                    treatmentId,
+                    treatmentTitle,
+                    doi,
+                    zenodoDep,
+                    zoobank,
+                    articleTitle,
+                    publicationDate,
+                    journalTitle,
+                    journalYear,
+                    journalVolume,
+                    journalIssue,
+                    pages,
+                    authorityName,
+                    authorityYear,
+                    kingdom,
+                    phylum,
+                    "order",
+                    family,
+                    genus,
+                    species,
+                    status,
+                    taxonomicNameLabel,
+                    rank,
+                    q,
+                    deleted
+                )
+                VALUES ( 
+                    @treatmentId,
+                    @treatmentTitle,
+                    @doi,
+                    @zenodoDep,
+                    @zoobank,
+                    @articleTitle,
+                    @publicationDate,
+                    @journalTitle,
+                    @journalYear,
+                    @journalVolume,
+                    @journalIssue,
+                    @pages,
+                    @authorityName,
+                    @authorityYear,
+                    @kingdom,
+                    @phylum,
+                    @order,
+                    @family,
+                    @genus,
+                    @species,
+                    @status,
+                    @taxonomicNameLabel,
+                    @rank,
+                    @q,
+                    @deleted
+                )
+                ON CONFLICT (treatmentId)
+                DO UPDATE SET
+                    treatmentTitle=excluded.treatmentTitle,
+                    doi=excluded.doi,
+                    zenodoDep=excluded.zenodoDep,
+                    zoobank=excluded.zoobank,
+                    articleTitle=excluded.articleTitle,
+                    publicationDate=excluded.publicationDate,
+                    journalTitle=excluded.journalTitle,
+                    journalYear=excluded.journalYear,
+                    journalVolume=excluded.journalVolume,
+                    journalIssue=excluded.journalIssue,
+                    pages=excluded.pages,
+                    authorityName=excluded.authorityName,
+                    authorityYear=excluded.authorityYear,
+                    kingdom=excluded.kingdom,
+                    phylum=excluded.phylum,
+                    "order"=excluded."order",
+                    family=excluded.family,
+                    genus=excluded.genus,
+                    species=excluded.species,
+                    status=excluded.status,
+                    taxonomicNameLabel=excluded.taxonomicNameLabel,
+                    rank=excluded.rank,
+                    q=excluded.q,
+                    author=excluded.author,
+                    deleted=excluded.deleted,
+                    updated=${updateTime}`,
 
-        figureCitations: db.prepare(`INSERT INTO figureCitations (
-    figureCitationId,
-    treatmentId,
-    captionText,
-    httpUri,
-    thumbnailUri,
-    deleted
-)
-VALUES ( 
-    @figureCitationId,
-    @treatmentId,
-    @captionText,
-    @httpUri,
-    @thumbnailUri,
-    @deleted
- )
-ON CONFLICT (figureCitationId, treatmentId)
-DO UPDATE SET
-    treatmentId=excluded.treatmentId,
-    captionText=excluded.captionText,
-    httpUri=excluded.httpUri,
-    thumbnailUri=excluded.thumbnailUri,
-    deleted=excluded.deleted,
-    updated=excluded.updated`),
-
-        bibRefCitations: db.prepare(`INSERT INTO bibRefCitations (
-    bibRefCitationId,
-    treatmentId,
-    refString,
-    type,
-    year,
-    deleted
-)
-VALUES ( 
-    @bibRefCitationId,
-    @treatmentId,
-    @refString,
-    @type,
-    @year,
-    @deleted
- )
-ON CONFLICT (bibRefCitationId, treatmentId)
-DO UPDATE SET
-    treatmentId=excluded.treatmentId,
-    refString=excluded.refString,
-    type=excluded.type,
-    year=excluded.year,
-    deleted=excluded.deleted,
-    updated=excluded.updated`),
+            treatmentAuthors: `INSERT INTO treatmentAuthors (
+                    treatmentAuthorId,
+                    treatmentId,
+                    treatmentAuthor,
+                    deleted
+                )
+                VALUES ( 
+                    @treatmentAuthorId,
+                    @treatmentId,
+                    @treatmentAuthor,
+                    @deleted
+                )
+                ON CONFLICT (treatmentAuthorId, treatmentId)
+                DO UPDATE SET
+                    treatmentId=excluded.treatmentId,
+                    treatmentAuthor=excluded.treatmentAuthor,
+                    deleted=excluded.deleted,
+                    updated=${updateTime}`,
     
-        vtreatments: db.prepare('INSERT INTO vtreatments SELECT treatmentId, fullText FROM treatments WHERE deleted = 0'),
+            materialsCitations: `INSERT INTO materialsCitations (
+                    materialsCitationId,
+                    treatmentId,
+                    collectingDate,
+                    collectionCode,
+                    collectorName,
+                    country,
+                    collectingRegion,
+                    municipality,
+                    county,
+                    stateProvince,
+                    location,
+                    locationDeviation,
+                    specimenCountFemale,
+                    specimenCountMale,
+                    specimenCount,
+                    specimenCode,
+                    typeStatus,
+                    determinerName,
+                    collectedFrom,
+                    collectingMethod,
+                    latitude,
+                    longitude,
+                    elevation,
+                    httpUri,
+                    deleted
+                )
+                VALUES ( 
+                    @materialsCitationId,
+                    @treatmentId,
+                    @collectingDate,
+                    @collectionCode,
+                    @collectorName,
+                    @country,
+                    @collectingRegion,
+                    @municipality,
+                    @county,
+                    @stateProvince,
+                    @location,
+                    @locationDeviation,
+                    @specimenCountFemale,
+                    @specimenCountMale,
+                    @specimenCount,
+                    @specimenCode,
+                    @typeStatus,
+                    @determinerName,
+                    @collectedFrom,
+                    @collectingMethod,
+                    @latitude,
+                    @longitude,
+                    @elevation,
+                    @httpUri,
+                    @deleted
+                )
+                ON CONFLICT (materialsCitationId, treatmentId)
+                DO UPDATE SET
+                    treatmentId=excluded.treatmentId,
+                    collectingDate=excluded.collectingDate,
+                    collectionCode=excluded.collectionCode,
+                    collectorName=excluded.collectorName,
+                    country=excluded.country,
+                    collectingRegion=excluded.collectingRegion,
+                    municipality=excluded.municipality,
+                    county=excluded.county,
+                    stateProvince=excluded.stateProvince,
+                    location=excluded.location,
+                    locationDeviation=excluded.locationDeviation,
+                    specimenCountFemale=excluded.specimenCountFemale,
+                    specimenCountMale=excluded.specimenCountMale,
+                    specimenCount=excluded.specimenCount,
+                    specimenCode=excluded.specimenCode,
+                    typeStatus=excluded.typeStatus,
+                    determinerName=excluded.determinerName,
+                    collectedFrom=excluded.collectedFrom,
+                    collectingMethod=excluded.collectingMethod,
+                    latitude=excluded.latitude,
+                    longitude=excluded.longitude,
+                    elevation=excluded.elevation,
+                    httpUri=excluded.httpUri,
+                    deleted=excluded.deleted,
+                    updated=${updateTime}`,
 
-        vfigurecitations: db.prepare('INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations WHERE deleted = 0'),
+            treatmentCitations: `INSERT INTO treatmentCitations (
+                    treatmentCitationId,
+                    treatmentId,
+                    treatmentCitation,
+                    refString,
+                    deleted
+                )
+                VALUES ( 
+                    @treatmentCitationId,
+                    @treatmentId,
+                    @treatmentCitation,
+                    @refString,
+                    @deleted
+                )
+                ON CONFLICT (treatmentCitationId, treatmentId)
+                DO UPDATE SET
+                    treatmentId=excluded.treatmentId,
+                    treatmentCitation=excluded.treatmentCitation,
+                    refString=excluded.refString,
+                    deleted=excluded.deleted,
+                    updated=${updateTime}`,
 
-        vbibrefcitations: db.prepare('INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0')
+                    //thumbnailUri,
+            figureCitations: `INSERT INTO figureCitations (
+                    figureCitationId,
+                    treatmentId,
+                    captionText,
+                    httpUri,
+                    
+                    deleted
+                )
+                VALUES ( 
+                    @figureCitationId,
+                    @treatmentId,
+                    @captionText,
+                    @httpUri,
+                    
+                    @deleted
+                )
+                ON CONFLICT (figureCitationId, treatmentId)
+                DO UPDATE SET
+                    treatmentId=excluded.treatmentId,
+                    captionText=excluded.captionText,
+                    httpUri=excluded.httpUri,
+                    
+                    deleted=excluded.deleted,
+                    updated=${updateTime}`,
+
+            bibRefCitations: `INSERT INTO bibRefCitations (
+                    bibRefCitationId,
+                    treatmentId,
+                    refString,
+                    type,
+                    year,
+                    deleted
+                )
+                VALUES ( 
+                    @bibRefCitationId,
+                    @treatmentId,
+                    @refString,
+                    @type,
+                    @year,
+                    @deleted
+                )
+                ON CONFLICT (bibRefCitationId, treatmentId)
+                DO UPDATE SET
+                    treatmentId=excluded.treatmentId,
+                    refString=excluded.refString,
+                    type=excluded.type,
+                    year=excluded.year,
+                    deleted=excluded.deleted,
+                    updated=${updateTime}`,
+        
+            vtreatments: 'INSERT INTO vtreatments SELECT treatmentId, q FROM treatments WHERE deleted = 0',
+
+            vfigurecitations: 'INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations WHERE deleted = 0',
+
+            vbibrefcitations: 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0'
+        };
+
+        for (let table in insertStatements) {
+            deBugger({
+                debug: debug, 
+                type: 'createInsertStatements', 
+                stmt: insertStatements[ table ], 
+                table: table, 
+                values: []
+            });
+        }
+
         
     },
     
@@ -585,21 +613,21 @@ DO UPDATE SET
          *     // treatment 1 and its related data
          *     { 
          *         treatment: { },
-         *         treatmentAuthors:    [ [{}, {} … ] ],
-         *         materialCitations:   [ [{}, {} … ] ],
-         *         treatmentCitations:   [ [{}, {} … ] ],
-         *         figureCitations:     [ [{}, {} … ] ],
-         *         bibRefCitations:     [ [{}, {} … ] ] 
+         *         treatmentAuthors:    [ {}, {} …  ],
+         *         materialCitations:   [ {}, {} …  ],
+         *         treatmentCitations:  [ {}, {} …  ],
+         *         figureCitations:     [ {}, {} …  ],
+         *         bibRefCitations:     [ {}, {} …  ] 
          *     },
          * 
          *     // treatment 2 and its related data
          *     { 
          *         treatment: { },
-         *         treatmentAuthors:    [ [{}, {} … ] ],
-         *         materialCitations:   [ [{}, {} … ] ],
-         *         treatmentCitations:   [ [{}, {} … ] ],
-         *         figureCitations:     [ [{}, {} … ] ],
-         *         bibRefCitations:     [ [{}, {} … ] ] 
+         *         treatmentAuthors:    [ {}, {} …  ],
+         *         materialCitations:   [ {}, {} …  ],
+         *         treatmentCitations:  [ {}, {} …  ],
+         *         figureCitations:     [ {}, {} …  ],
+         *         bibRefCitations:     [ {}, {} …  ] 
          *     } 
          * ]
          *
@@ -623,24 +651,27 @@ DO UPDATE SET
 
         const d = {
             treatments: [],
-            treatmentAuthors: [],
-            materialsCitations: [],
-            treatmentCitations: [],
-            figureCitations: [],
-            bibRefCitations: []
+            // treatmentAuthors: [],
+            // materialsCitations: [],
+            // treatmentCitations: [],
+            // figureCitations: [],
+            // bibRefCitations: []
         };
+  
 
         for (let i = 0, j = data.length; i < j; i++) {
 
             const t = data[i];
 
             for (let table in t) {
+                
 
                 if (table === 'treatment') {
                     d.treatments.push( t[ table ] );
                 }
                 else {
-                    d[ table ].push( t[ table ] );
+                    //d[ table ].push( t[ table ] );
+                    d[ table ] = t[ table ];
                 }
             }
         }
@@ -656,7 +687,7 @@ DO UPDATE SET
                             type: 'insert', 
                             stmt: '', 
                             table: table, 
-                            values: Object.values(row)
+                            values: row
                         });
                     }
                 });
@@ -751,20 +782,26 @@ DO UPDATE SET
         // });
 
         // index treatents table on each queryable field
-        for (let t in dataDictionary) {
+        for (let table in dataDictionary) {
 
-            const table = dataDictionary[t];
-            let i = 0, j = table.length;
+            const columns = dataDictionary[ table ];
+            let i = 0, j = columns.length;
             for (; i < j; i++) {
-                const col = table[i];
-                let colname = col.plazi;
-                let colName = colname.replace(/"/g, '');
+                const column = columns[i];
+                const colname = column.plaziName.replace(/"/g, '');
+                //let colName = colname.replace(/"/g, '');
 
-                if (col.queryable) {
+                if (column.queryable) {
                     //bar.tick(1);
 
-                    const indexStmt = `CREATE INDEX IF NOT EXISTS ix_${t}_${colName} ON ${t} (${colname}) WHERE deleted = 0`;
-                    deBugger({debug: debug, type: 'index', stmt: indexStmt, table: t, values: []});
+                    const indexStmt = `CREATE INDEX IF NOT EXISTS ix_${t}_${colname} ON ${table} (${colname}) WHERE deleted = 0`;
+                    deBugger({
+                        debug: debug, 
+                        type: 'index', 
+                        stmt: indexStmt, 
+                        table: table, 
+                        values: []
+                    });
                 }
             }
             
@@ -774,14 +811,26 @@ DO UPDATE SET
             const i = cols.indexOf('"order"');
             let name = cols.join('_').replace(/"/g, '');
             const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_${name} ON treatments (${cols.join(', ')}) WHERE deleted = 0`;
-            deBugger({debug: debug, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
+            deBugger({
+                debug: debug, 
+                type: 'index', 
+                stmt: ixStmt, 
+                table: 'treatments', 
+                values: []
+            });
         });
 
         let facets = config.get('v2.facets');
         facets.unshift('treatmentId');
         //CREATE INDEX IF NOT EXISTS ix_treatments_facets ON treatments (deleted, treatmentId, journalTitle, journalYear, kingdom, phylum, "order", family, genus, species, status, rank) WHERE deleted = 0
         const ixStmt = `CREATE INDEX IF NOT EXISTS ix_treatments_facets ON treatments (deleted, ${facets.join(', ')}) WHERE deleted = 0`;
-        deBugger({debug: debug, type: 'index', stmt: ixStmt, table: 'treatments', values: []});
+        deBugger({
+            debug: debug, 
+            type: 'index', 
+            stmt: ixStmt, 
+            table: 'treatments', 
+            values: []
+        });
     },
 
     indexTablesStatic: function() {

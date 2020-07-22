@@ -2,7 +2,6 @@
 
 const fs = require('fs');
 const path = require('path');
-// const cwd = process.cwd();
 
 const progress = require('progress');
 const cheerio = require('cheerio');
@@ -13,7 +12,7 @@ const dataDict = require(config.get('v2.dataDict'));
 const dataDictionary = dataDict.dataDictionary;
 
 const treatmentsDump = config.get('truebug.treatmentsDump');
-// const logger = require(config.get('logger'));
+
 
 // // truebug modules
 // const rearrange = require('./rearrange');
@@ -406,7 +405,7 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
     }
     else {
 
-        const start = new Date().getTime();
+        // const start = new Date().getTime();
         const xmlsArr = fs.readdirSync(treatmentsDump);
         let i = 0;
         let j = typeof(n) === 'number' ? n : xmlsArr.length;
@@ -419,14 +418,12 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
          * 
          **************************************************************/
         
-        let x = 10;
-        const transactionLimit = 5000;
-        const batch = Math.floor(j / x);
-
-        if (batch > transactionLimit) {
-            x = Math.floor(j / transactionLimit);
+        let batch = 1;
+        if (j > 50) {
+            batch = Math.floor(j / 10);
         }
 
+        if (j > 5000) batch = 5000;
         const tickInterval = Math.floor( j / batch );
         const bar = new progress('processing [:bar] :rate files/sec :current/:total done (:percent) time left: :etas', {
             complete: '=',
@@ -437,9 +434,9 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
     
         
         let treatments = [];
-    
         let endProc = false;
 
+        console.log(`- parsing XMLs and inserting into the db ${batch} at a time`)
         for (; i < j; i++) {
 
             if (i == (j - 1)) {
@@ -476,7 +473,8 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
             
         }
 
-        stats(treatments, endProc)
+        stats(treatments, endProc);
+        console.log('finished\n***********************************')
         console.log(extracted);
         //bar.interrupt(stats(treatments, endProc) + '\n');
 
@@ -484,21 +482,11 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
             database.loadData(treatments);
 
             //database.indexTables();
-            // database.loadFTSTreatments();
-            // database.loadFTSFigureCitations();
-            // database.loadFTSBibRefCitations();
+            database.loadFTSTreatments();
+            database.loadFTSFigureCitations();
+            database.loadFTSBibRefCitations();
         }
-
-        // console.log('\n\n')
-        // logger({
-        //     host: 'localhost',
-        //     start: start,
-        //     end: new Date().getTime(),
-        //     status: 200,
-        //     resource: 'parse',
-        //     query: `parsed ${n}`,
-        //     message: stats(treatments, endProc)
-        // })
+        
     }
 
 };
