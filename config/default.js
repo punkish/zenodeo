@@ -139,17 +139,18 @@ module.exports = {
     truebug: {
         
         //hostname: 'http://tb.plazi.org/GgServer',
-        hostname: '127.0.0.1',
+        hostname: 'http://127.0.0.1',
 
-        download: {
+        downloads: {
 
-            // full: 'plazi.zenodeo.zip'
+            //full: 'plazi.zenodeo.zip',
             // example: 'http://tb.plazi.org/GgServer/dumps/plazi.zenodeo.zip'
-            full: 'dumps/1B1.zip',
+            full: 'plazi/data/test.zip',
 
             // diff
             // example 'http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&format=JSON&FP-doc.updateDate=%222020-07-03%22'
-            diff: '/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&format=JSON&FP-doc.updateDate=',
+            //diff: '/srsStats/stats?outputFields=doc.uuid+doc.updateDate&groupingFields=doc.uuid+doc.updateDate&orderingFields=doc.updateDate&format=JSON&FP-doc.updateDate=',
+            diff: 'plazi/data/diff.txt',
             
 
             // single download: '8C2D95A59531F2DCB34D5040E36E6566'
@@ -157,7 +158,9 @@ module.exports = {
             single: 'xml'
         },
 
-        treatmentsDump: path.join(cwd, 'data', 'treatmentsDump')
+
+        // treatmentsDump: path.join(cwd, 'data', 'treatmentsDump')
+        treatmentsDump: path.join(cwd, 'data', 'testDump')
         
     }
     

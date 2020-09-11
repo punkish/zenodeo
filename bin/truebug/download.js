@@ -1,70 +1,117 @@
-'use strict';
+'use strict'
 
-const exec = require('child_process').exec;
-const ProgressBar = require('progress');
-const http = require('http');
-const fs = require('fs');
-const path = require('path');
+const execSync = require('child_process').execSync
+const fs = require('fs')
+const path = require('path')
+const config = require('config')
+const hostname = config.get('truebug.hostname')
+const downloads = config.get('truebug.downloads')
+const treatmentsDump = config.get('truebug.treatmentsDump')
 
-const config = require('config');
-const hostname = config.get('truebug.hostname');
-const download = config.get('truebug.download');
+// const curl = function(file, url, dir) {
+//     const cmd = spawn('curl', ['--output', file, url])
 
-module.exports = function(downloadtype) {
+//     cmd.stdout.on('data', function (data) {
+//         console.log('stdout: ' + data.toString())
+//     });
+    
+//     cmd.stderr.on('data', function (data) {
+//         console.log('stderr: ' + data.toString())
+//     });
 
-    process.chdir('./data/');
+//     cmd.on('exit', function(code) {
+//         console.log(`downloaded ${url} to ${file}`)
+//         unzip(file, dir)
+//     })
+// }
+
+// const del = function(file) {
+//     console.log(`deleting file ${file}`)
+//     fs.unlink(file, (err) => {
+//         if (err) throw err;
+//         console.log(`${file} was deleted`);
+//     })
+// }
+
+// const unzip = function(file, dir) {
+//     const cmd = spawn('unzip', ['-q', '-n', file, '-d', dir])
+
+//     cmd.stdout.on('data', function (data) {
+//         console.log('stdout: ' + data.toString())
+//     })
+    
+//     cmd.stderr.on('data', function (data) {
+//         console.log('stderr: ' + data.toString())
+//     })
+
+//     cmd.on('exit', function(code) {
+//         console.log(`unzipped ${file} to ${dir}`)
+//         del(file)
+//     })
+// }
+
+const download = function(downloadtype) {
+
+    const filename = downloads[downloadtype]
 
     // a date-time stamp that looks like `[yyyy-mm-dd]-[hh]h[mm]m[ss]s`
     const dt = new Date()
         .toISOString()
         .replace(/\..+/, '')
-        .replace(/T(\d\d):(\d\d):(\d\d)/, '-$1h$2m$3s');
+        .replace(/T(\d\d):(\d\d):(\d\d)/, '-$1h$2m$3s')
+        
+    const ext = '.zip';
+    const basename = path.basename(filename, ext)
 
+    // rename the source file by adding date-time stamp to its basename
+    const new_filename = `${basename}-${dt}${ext}`
+
+    // check if output dump directory exists, otherwise create it
+    try {
+        const stats = fs.statSync(treatmentsDump)
+    }
+    catch(error) {
+        if(error.code === 'ENOENT') {
+            process.stdout.write(`creating ${treatmentsDump}… `)
+            fs.mkdirSync(treatmentsDump)
+            console.log('done')
+        }
+    }        
+
+    process.stdout.write(`downloading ${hostname}/${filename} to ${new_filename}… `)
+    execSync(`curl --output ${new_filename} ${hostname}/${filename}`)
+    console.log('done')
+
+    process.stdout.write(`unzipping ${new_filename} to ${treatmentsDump}… `)
+    execSync(`unzip -q -n ${new_filename} -d ${treatmentsDump}`)
+    console.log('done')
+
+    // console.log(`deleting ${new_filename}`)
+    execSync(`rm ${new_filename}`)
+}
+
+
+module.exports = function(downloadtype) {
+
+    process.chdir('./data/')
 
     if ( downloadtype === 'full' ) {
 
-        const ext = '.zip';
-        const basename = path.basename(download[downloadtype], ext);
-
-        // rename the source file by adding date-time stamp to its basename
-        const filename = `${basename}-${dt}${ext}`;
-        const target = fs.createWriteStream(filename);
-        const req = http.request({
-            hostname: hostname,
-            path: `/${download[downloadtype]}`
-        });
-
-        req.on('response', function(res) {
-            const len = parseInt(res.headers['content-length'], 10);
-            
-            let bar = new ProgressBar(`downloading ${hostname}/${download[downloadtype]} [:bar] :rate/bps :percent :etas`, {
-                complete: '=',
-                incomplete: ' ',
-                width: 20,
-                total: len
-            });
+        download(downloadtype)
         
-            res.on('data', function (chunk) {
-                bar.tick(chunk.length);
-                target.write(chunk);
-            });
         
-            res.on('end', function () {
-                target.end();
+        // download()
 
-                console.log(`downloaded ${len} bytes to data/${filename}`);
-                console.log(`unzipping ${filename} to treatments-${dt}`)
-                exec(`unzip -q ${filename} -d treatments-${dt}`);
-
-                console.log(`deleting ${filename}`);
-                exec(`rm ${filename}`);
-            });
-        });
         
-        req.end();
 
     }
     else {
         
     }
 };
+
+
+
+
+
+//unzip -o 1b1-2020-08-13-05h54m57s.zip -d treatments-2020-08-13-06h00m01s | awk 'BEGIN {ORS=""} {if(NR%1==0)print "."}'

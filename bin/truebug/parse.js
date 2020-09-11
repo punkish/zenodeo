@@ -365,30 +365,38 @@ const cheerioparse = function(xml, treatmentId) {
     const emptyObjs = (el) => Object.keys(el).length > 0;
     const addTreatmentId = (el) => el.treatmentId = treatmentId;
 
-    let ta = parseTreatmentAuthors($, treatmentId);
-    if (ta.length) {
-        treatment.treatmentAuthors = getLatest(ta, 'treatmentAuthorId', 'updateVersion');
-    }
-
-    const tc = parseTreatmentCitations($, treatmentId);
-    if (tc.length) {
-        treatment.treatmentCitations = getLatest(tc, 'treatmentCitationId', 'updateVersion');
-    }
-
-    const br = parseBibRefCitations($, treatmentId);
-    if (br.length) {
-        treatment.bibRefCitations = getLatest(br, 'bibRefCitationId', 'updateVersion');
-    }
-
-    const fc = parseFigureCitations($, treatmentId);
-    if (fc.length) {
-        treatment.figureCitations = getLatest(fc, 'figureCitationId', 'updateVersion');
-    }
     
-    const mc = parseMaterialsCitations($, treatmentId);
-    if (mc.length) {
-        treatment.materialsCitations = getLatest(mc, 'materialsCitationId', 'updateVersion');
-    }
+    treatment.treatmentAuthors = parseTreatmentAuthors($, treatmentId)
+    treatment.treatmentCitations = parseTreatmentCitations($, treatmentId)
+    treatment.bibRefCitations = parseBibRefCitations($, treatmentId)
+    treatment.figureCitations = parseFigureCitations($, treatmentId)
+    treatment.materialsCitations = parseMaterialsCitations($, treatmentId)
+
+
+    // const ta = parseTreatmentAuthors($, treatmentId);
+    // if (ta.length) {
+    //     treatment.treatmentAuthors = getLatest(ta, 'treatmentAuthorId', 'updateVersion');
+    // }
+
+    // const tc = parseTreatmentCitations($, treatmentId);
+    // if (tc.length) {
+    //     treatment.treatmentCitations = getLatest(tc, 'treatmentCitationId', 'updateVersion');
+    // }
+
+    // const br = parseBibRefCitations($, treatmentId);
+    // if (br.length) {
+    //     treatment.bibRefCitations = getLatest(br, 'bibRefCitationId', 'updateVersion');
+    // }
+
+    // const fc = parseFigureCitations($, treatmentId);
+    // if (fc.length) {
+    //     treatment.figureCitations = getLatest(fc, 'figureCitationId', 'updateVersion');
+    // }
+    
+    // const mc = parseMaterialsCitations($, treatmentId);
+    // if (mc.length) {
+    //     treatment.materialsCitations = getLatest(mc, 'materialsCitationId', 'updateVersion');
+    // }
     
     return treatment;
 };
@@ -455,7 +463,8 @@ module.exports = function(n, rearrangeOpt = false, databaseOpt = false) {
             }
 
             const treatmentId = path.basename(xmlsArr[i], '.xml');
-            treatments.push(parseOne(treatmentId));
+            const treatment = parseOne(treatmentId)
+            treatments.push(treatment);
         
             if (!(i % batch)) {
 

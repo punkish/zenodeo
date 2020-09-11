@@ -301,9 +301,13 @@ const database = {
     UNIQUE (bibRefCitationId, treatmentId) 
 )`,
             
-            vtreatments: `CREATE VIRTUAL TABLE IF NOT EXISTS vtreatments USING FTS5(treatmentId, fullText)`,
-            vfigurecitations: `CREATE VIRTUAL TABLE IF NOT EXISTS vfigurecitations USING FTS5(figureCitationId, captionText)`,
-            vbibrefcitations: `CREATE VIRTUAL TABLE IF NOT EXISTS vbibrefcitations USING FTS5(bibRefCitationId, refString)`
+            vtreatments: 'CREATE VIRTUAL TABLE IF NOT EXISTS vtreatments USING FTS5(treatmentId, fullText)',
+            
+            vfigurecitations: 'CREATE VIRTUAL TABLE IF NOT EXISTS vfigurecitations USING FTS5(figureCitationId, captionText)',
+            
+            vbibrefcitations: 'CREATE VIRTUAL TABLE IF NOT EXISTS vbibrefcitations USING FTS5(bibRefCitationId, refString)',
+
+            vlocations: 'CREATE VIRTUAL TABLE IF NOT EXISTS vlocations USING geopoly(treatmentId, materialsCitationId)'
         };
 
         for (let t in tables) {
@@ -586,7 +590,9 @@ const database = {
 
             vfigurecitations: 'INSERT INTO vfigurecitations SELECT figureCitationId, captionText FROM figureCitations WHERE deleted = 0',
 
-            vbibrefcitations: 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0'
+            vbibrefcitations: 'INSERT INTO vbibrefcitations SELECT bibRefCitationId, refString FROM bibRefCitations WHERE deleted = 0',
+
+            vlocations: "INSERT INTO vlocations(treatmentId, materialsCitationId, _shape) SELECT treatments.treatmentId, materialsCitationId, '[[' || longitude || ',' || latitude || '],[' || longitude || ',' || latitude || '],[' || longitude || ',' || latitude || '],[' || longitude || ',' || latitude || ']]' AS _shape FROM treatments JOIN materialsCitations ON treatments.treatmentId = materialsCitations.treatmentId WHERE latitude != '' AND longitude != ''"
         };
 
         for (let table in insertStatements) {
@@ -603,6 +609,22 @@ const database = {
     },
     
     loadData: function(data) {
+
+        // const counts = {
+        //     treatments: data.length,
+        //     treatmentAuthors   : 0, 
+        //     materialsCitations : 0, 
+        //     treatmentCitations : 0, 
+        //     figureCitations    : 0, 
+        //     bibRefCitations    : 0
+        // }
+        // for (let i = 0, j = data.length; i < j; i++) {
+        //     if (data[i].treatmentAuthors)   counts.treatmentAuthors   += data[i].treatmentAuthors.length
+        //     if (data[i].materialsCitations) counts.materialsCitations += data[i].materialsCitations.length
+        //     if (data[i].treatmentCitations) counts.treatmentCitations += data[i].treatmentCitations.length
+        //     if (data[i].figureCitations)    counts.figureCitations    += data[i].figureCitations.length
+        //     if (data[i].bibRefCitations)    counts.bibRefCitations    += data[i].bibRefCitations.length
+        // }
 
         /***************************************************************************
          * 
@@ -651,11 +673,11 @@ const database = {
 
         const d = {
             treatments: [],
-            // treatmentAuthors: [],
-            // materialsCitations: [],
-            // treatmentCitations: [],
-            // figureCitations: [],
-            // bibRefCitations: []
+            treatmentAuthors: [],
+            materialsCitations: [],
+            treatmentCitations: [],
+            figureCitations: [],
+            bibRefCitations: []
         };
   
 
@@ -670,11 +692,29 @@ const database = {
                     d.treatments.push( t[ table ] );
                 }
                 else {
-                    //d[ table ].push( t[ table ] );
-                    d[ table ] = t[ table ];
+                    d[ table ].push( ...t[ table ] );
                 }
             }
         }
+
+        // const newcounts = { 
+        //     new_treatments: d.treatments.length,
+        //     new_treatmentAuthors   : 0,
+        //     new_materialsCitations : 0,
+        //     new_treatmentCitations : 0,
+        //     new_figureCitations    : 0,
+        //     new_bibRefCitations    : 0
+        // }
+        // if (d.treatmentAuthors)   newcounts.new_treatmentAuthors   += d.treatmentAuthors.length
+        // if (d.materialsCitations) newcounts.new_materialsCitations += d.materialsCitations.length
+        // if (d.treatmentCitations) newcounts.new_treatmentCitations += d.treatmentCitations.length
+        // if (d.figureCitations)    newcounts.new_figureCitations    += d.figureCitations.length
+        // if (d.bibRefCitations)    newcounts.new_bibRefCitations    += d.bibRefCitations.length
+
+        // console.log(counts)
+        // console.log(newcounts)
+        
+        // return
 
         for (let table in d) {
 
