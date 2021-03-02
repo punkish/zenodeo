@@ -87,17 +87,25 @@ module.exports = {
     },
 
     data: {
-        logs: path.join(cwd, 'data', 'logs.sqlite'),
-        treatments: path.join(cwd, 'data', 'treatments.sqlite'),
-        treatmentsTmp: path.join(cwd, 'data', 'treatments-tmp.sqlite'),
-        queryStats: path.join(cwd, 'data', 'queryStats.sqlite'),
-        lookups: path.join(cwd, 'data', 'facets.sqlite'),
+        //logs: path.join(cwd, 'data', 'logs.sqlite'),
+        logs: '../data/logs.sqlite',
+        //treatments: path.join(cwd, 'data', 'treatments.sqlite'),
+        treatments: '../data/treatments.sqlite',
+        treatmentsTmp: path.join(cwd, '..', 'data', 'treatments-tmp.sqlite'),
+        //queryStats: path.join(cwd, 'data', 'queryStats.sqlite'),
+        queryStats: '../data/queryStats.sqlite',
+        //lookups: path.join(cwd, 'data', 'facets.sqlite'),
+        lookups: '../data/facets.sqlite',
 
         // The following are legacy files used by API v1
-        authors: path.join(cwd, 'data', 'authors'),
-        keywords: path.join(cwd, 'data', 'keywords'),
-        taxa: path.join(cwd, 'data', 'taxa.min'),
-        families: path.join(cwd, 'data', 'families.min')
+        // authors: path.join(cwd, 'data', 'authors'),
+        // keywords: path.join(cwd, 'data', 'keywords'),
+        // taxa: path.join(cwd, 'data', 'taxa.min'),
+        // families: path.join(cwd, 'data', 'families.min')
+        authors  : path.join(cwd, '..', 'data', 'authors'),
+        keywords : path.join(cwd, '..', 'data', 'keywords'),
+        taxa     : path.join(cwd, '..', 'data', 'taxa.min'),
+        families : path.join(cwd, '..', 'data', 'families.min')
 
     },
 
@@ -125,9 +133,9 @@ module.exports = {
     // 'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
     // 'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
     // 'dataDict': path.join(cwd, 'dataDictionary', 'data-dictionary.js'),
-    //'xmlDumpDir': path.join(cwd, 'data', 'treatmentsDump'),
+    'xmlDumpDir': path.join(cwd, '..', 'data', 'treatmentsDump'),
     //'xmlDumpSrc': 'http://tb.plazi.org/GgServer/dumps/plazi.xml.zip',
-    //'xmlRearrangedDest': path.join(cwd, 'data', 'treatments'),
+    'xmlRearrangedDest': path.join(cwd, '..', 'data', 'treatmentsNew'),
 
     
     // http://tb.plazi.org/GgServer/srsStats/stats?outputFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&groupingFields=doc.uuid+doc.zenodoDepId+doc.updateUser+doc.updateDate&orderingFields=doc.updateDate&FP-doc.updateDate=%222020-02-21%22-&format=JSON
@@ -160,7 +168,7 @@ module.exports = {
 
 
         // treatmentsDump: path.join(cwd, 'data', 'treatmentsDump')
-        treatmentsDump: path.join(cwd, 'data', 'testDump')
+        treatmentsDump: path.join(cwd, '..', 'data', 'testDump')
         
     }
     
