@@ -88,9 +88,9 @@ module.exports = {
 
     data: {
         //logs: path.join(cwd, 'data', 'logs.sqlite'),
-        logs: '../data/logs.sqlite',
+        logs: '../data/z2-logs.sqlite',
         //treatments: path.join(cwd, 'data', 'treatments.sqlite'),
-        treatments: '../data/treatments.sqlite',
+        treatments: '../data/z2-treatments.sqlite',
         treatmentsTmp: path.join(cwd, '..', 'data', 'treatments-tmp.sqlite'),
         //queryStats: path.join(cwd, 'data', 'queryStats.sqlite'),
         queryStats: '../data/queryStats.sqlite',
